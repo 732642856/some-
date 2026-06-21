@@ -33,6 +33,37 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(target.memos.first?.tags, ["导出"])
     }
 
+    func testSaveCreatesBackupAfterSecondWrite() throws {
+        let filename = "test-\(UUID().uuidString).json"
+        let store = MemoStore(filename: filename)
+        store.addMemo(text: "第一条 #备份")
+        store.addMemo(text: "第二条 #备份")
+
+        let backupURL = documentsURL()
+            .appendingPathComponent(filename)
+            .deletingPathExtension()
+            .appendingPathExtension("bak.json")
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: backupURL.path))
+    }
+
+    func testLoadFallsBackToBackupWhenMainFileIsCorrupt() throws {
+        let filename = "test-\(UUID().uuidString).json"
+        let fileURL = documentsURL().appendingPathComponent(filename)
+        let backupURL = fileURL
+            .deletingPathExtension()
+            .appendingPathExtension("bak.json")
+        let memo = Memo(text: "备份里还有这一条 #安全", tags: ["安全"])
+        let backupData = try JSONEncoder.memoEncoder.encode([memo])
+
+        try Data("not json".utf8).write(to: fileURL, options: [.atomic])
+        try backupData.write(to: backupURL, options: [.atomic])
+
+        let store = MemoStore(filename: filename)
+
+        XCTAssertEqual(store.memos.map(\.text), ["备份里还有这一条 #安全"])
+    }
+
     func testPlainTextImportSplitsByBlankLine() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         let count = store.importPlainText("第一条 #a\n\n第二条 #b")
@@ -80,5 +111,10 @@ final class SomeTests: XCTestCase {
         let filtered = AIInsightRange.all.filter([active, archived])
 
         XCTAssertEqual(filtered.map(\.text), ["保留"])
+    }
+
+    private func documentsURL() -> URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSTemporaryDirectory())
     }
 }

@@ -20,14 +20,26 @@
 
 ## 构建与上传
 
+### 本机新 Xcode 路径
+
 - 在 Xcode 中选择 `Any iOS Device`。
 - Product > Archive。
 - Organizer 中选择 Distribute App。
 - 选择 App Store Connect。
 - 完成签名、验证和上传。
+
+### 线上 GitHub Actions 路径
+
+- 把当前工程推到 GitHub 仓库。
+- 先运行 `iOS CI` workflow，确认模拟器编译和测试通过。
+- 在 GitHub Actions secrets 配置 Apple Team、Bundle ID、Distribution 证书、App Store provisioning profile、App Store Connect API Key。
+- 手动触发 `iOS TestFlight` workflow。
+- 等 App Store Connect 处理 build。
 - 等 Apple 处理 build，处理完成后在 App Store Connect 选择该 build。
 - 填元数据、截图、年龄分级、隐私信息、审核说明。
 - Submit for Review。
+
+详细配置见 `docs/online-build-and-release.md`。
 
 ## 截图建议
 

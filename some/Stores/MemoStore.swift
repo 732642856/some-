@@ -40,11 +40,15 @@ final class MemoStore: ObservableObject {
     @Published private(set) var reviewMemo: Memo?
 
     private let fileURL: URL
+    private let backupFileURL: URL
 
     init(filename: String = "some-memos.json") {
         let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
         self.fileURL = (documentsDirectory ?? URL(fileURLWithPath: NSTemporaryDirectory()))
             .appendingPathComponent(filename)
+        self.backupFileURL = fileURL
+            .deletingPathExtension()
+            .appendingPathExtension("bak.json")
 
         load()
     }
@@ -282,25 +286,47 @@ final class MemoStore: ObservableObject {
     }
 
     private func load() {
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            memos = loadBackupMemos() ?? []
+            return
+        }
+
         do {
-            guard FileManager.default.fileExists(atPath: fileURL.path) else {
-                memos = []
-                return
-            }
-            let data = try Data(contentsOf: fileURL)
-            memos = try JSONDecoder.memoDecoder.decode([Memo].self, from: data)
+            memos = try decodeMemos(from: fileURL)
         } catch {
-            memos = []
+            memos = loadBackupMemos() ?? []
         }
     }
 
     private func save() {
         do {
+            try writeBackupIfNeeded()
             let data = try JSONEncoder.memoEncoder.encode(memos)
             try data.write(to: fileURL, options: [.atomic])
         } catch {
             assertionFailure("Failed to save memos: \(error)")
         }
+    }
+
+    private func decodeMemos(from url: URL) throws -> [Memo] {
+        let data = try Data(contentsOf: url)
+        return try JSONDecoder.memoDecoder.decode([Memo].self, from: data)
+    }
+
+    private func loadBackupMemos() -> [Memo]? {
+        guard FileManager.default.fileExists(atPath: backupFileURL.path) else {
+            return nil
+        }
+        return try? decodeMemos(from: backupFileURL)
+    }
+
+    private func writeBackupIfNeeded() throws {
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            return
+        }
+
+        let currentData = try Data(contentsOf: fileURL)
+        try currentData.write(to: backupFileURL, options: [.atomic])
     }
 }
 
