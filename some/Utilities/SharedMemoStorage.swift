@@ -4,7 +4,9 @@ enum SharedMemoStorage {
     static var appGroupIdentifier: String {
         let configuredIdentifier = Bundle.main.object(forInfoDictionaryKey: "SomeAppGroupIdentifier") as? String
         let trimmedIdentifier = configuredIdentifier?.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let trimmedIdentifier, !trimmedIdentifier.isEmpty, !trimmedIdentifier.hasPrefix("$(") {
+        if let trimmedIdentifier = trimmedIdentifier,
+           !trimmedIdentifier.isEmpty,
+           !trimmedIdentifier.hasPrefix("$(") {
             return trimmedIdentifier
         }
         return "group.com.732642856.some"

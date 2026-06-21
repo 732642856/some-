@@ -311,7 +311,7 @@ struct ShareCaptureView: View {
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        NavigationStack {
+        NavigationView {
             ZStack {
                 Color(.systemGroupedBackground).ignoresSafeArea()
 
@@ -328,7 +328,6 @@ struct ShareCaptureView: View {
                                 .focused($isFocused)
                                 .frame(minHeight: 220)
                                 .padding(10)
-                                .scrollContentBackground(.hidden)
                                 .background(Color(.secondarySystemGroupedBackground))
                                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                                 .overlay(
@@ -367,7 +366,7 @@ struct ShareCaptureView: View {
                     Button("保存") {
                         onSave()
                     }
-                    .fontWeight(.semibold)
+                    .font(.body.weight(.semibold))
                     .disabled(!viewModel.canSave)
                 }
             }
@@ -375,6 +374,7 @@ struct ShareCaptureView: View {
                 isFocused = true
             }
         }
+        .navigationViewStyle(StackNavigationViewStyle())
     }
 }
 
