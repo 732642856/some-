@@ -10,9 +10,6 @@ jobs:
     env:
       SCHEME: some
       PROJECT: some.xcodeproj
-      ARCHIVE_PATH: ${{ runner.temp }}/some.xcarchive
-      EXPORT_PATH: ${{ runner.temp }}/export
-      KEYCHAIN_PATH: ${{ runner.temp }}/app-signing.keychain-db
 
     steps:
       - name: Checkout
@@ -25,7 +22,8 @@ jobs:
           KEYCHAIN_PASSWORD: ${{ secrets.IOS_SIGNING_KEYCHAIN_PASSWORD }}
         run: |
           CERTIFICATE_PATH="${RUNNER_TEMP}/ios_distribution.p12"
-          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o "$CERTIFICATE_PATH"
+          KEYCHAIN_PATH="${RUNNER_TEMP}/app-signing.keychain-db"
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
@@ -38,7 +36,7 @@ jobs:
         run: |
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
           PROFILE_PATH="$HOME/Library/MobileDevice/Provisioning Profiles/some-app-store.mobileprovision"
-          echo -n "$PROVISIONING_PROFILE_BASE64" | base64 --decode -o "$PROFILE_PATH"
+          echo -n "$PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
 
       - name: Write export options
         env:
@@ -77,7 +75,7 @@ jobs:
             -project "$PROJECT" \
             -scheme "$SCHEME" \
             -destination 'generic/platform=iOS' \
-            -archivePath "$ARCHIVE_PATH" \
+            -archivePath "${RUNNER_TEMP}/some.xcarchive" \
             PRODUCT_BUNDLE_IDENTIFIER="$APP_BUNDLE_ID" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             clean archive
@@ -86,9 +84,9 @@ jobs:
         run: |
           xcodebuild \
             -exportArchive \
-            -archivePath "$ARCHIVE_PATH" \
+            -archivePath "${RUNNER_TEMP}/some.xcarchive" \
             -exportOptionsPlist "${RUNNER_TEMP}/ExportOptions.plist" \
-            -exportPath "$EXPORT_PATH"
+            -exportPath "${RUNNER_TEMP}/export"
 
       - name: Write App Store Connect API key
         env:
@@ -97,7 +95,7 @@ jobs:
           ASC_API_PRIVATE_KEY_BASE64: ${{ secrets.ASC_API_PRIVATE_KEY_BASE64 }}
         run: |
           mkdir -p "$HOME/.appstoreconnect/private_keys"
-          echo -n "$ASC_API_PRIVATE_KEY_BASE64" | base64 --decode -o "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8"
+          echo -n "$ASC_API_PRIVATE_KEY_BASE64" | base64 --decode > "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8"
           echo "ASC API key installed for issuer ${ASC_API_ISSUER_ID}"
 
       - name: Upload to TestFlight
@@ -105,7 +103,7 @@ jobs:
           ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
           ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
         run: |
-          IPA_PATH="$(find "$EXPORT_PATH" -name '*.ipa' -print -quit)"
+          IPA_PATH="$(find "${RUNNER_TEMP}/export" -name '*.ipa' -print -quit)"
           xcrun altool \
             --upload-app \
             --type ios \
