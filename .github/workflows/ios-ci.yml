@@ -19,24 +19,47 @@ jobs:
 
       - name: Show versions
         run: |
+          set -euo pipefail
           xcode-select -p
           xcodebuild -version
           swift --version
 
+      - name: Resolve simulator destination
+        id: simulator
+        run: |
+          set -euo pipefail
+          xcrun simctl list devices available
+          xcodebuild -project some.xcodeproj -scheme some -showdestinations
+          SIMULATOR_NAME="$(
+            xcrun simctl list devices available \
+              | awk -F '[()]' '/^[[:space:]]*iPhone/ { name=$1; sub(/^[[:space:]]+/, "", name); sub(/[[:space:]]+$/, "", name); print name; exit }'
+          )"
+          if [ -z "$SIMULATOR_NAME" ]; then
+            echo "No available iPhone simulator found."
+            exit 1
+          fi
+          DESTINATION="platform=iOS Simulator,name=${SIMULATOR_NAME},OS=latest"
+          echo "destination=${DESTINATION}" >> "$GITHUB_OUTPUT"
+          echo "Using simulator destination: ${DESTINATION}"
+
       - name: Build for simulator
         run: |
+          set -euo pipefail
+          DESTINATION="${{ steps.simulator.outputs.destination }}"
           xcodebuild \
             -project some.xcodeproj \
             -scheme some \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            -destination "$DESTINATION" \
             CODE_SIGNING_ALLOWED=NO \
             clean build
 
       - name: Run tests
         run: |
+          set -euo pipefail
+          DESTINATION="${{ steps.simulator.outputs.destination }}"
           xcodebuild \
             -project some.xcodeproj \
             -scheme some \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            -destination "$DESTINATION" \
             CODE_SIGNING_ALLOWED=NO \
             test
