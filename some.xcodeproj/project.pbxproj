@@ -1,0 +1,850 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		7A1000010000000000000001 /* SomeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000001 /* SomeApp.swift */; };
+		7A1000010000000000000002 /* Memo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000002 /* Memo.swift */; };
+		7A1000010000000000000003 /* MemoStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000003 /* MemoStore.swift */; };
+		7A1000010000000000000004 /* TagParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000004 /* TagParser.swift */; };
+		7A1000010000000000000005 /* DateFormatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000005 /* DateFormatters.swift */; };
+		7A1000010000000000000006 /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000006 /* Colors.swift */; };
+		7A1000010000000000000007 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000007 /* ContentView.swift */; };
+		7A1000010000000000000008 /* QuickCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000008 /* QuickCaptureView.swift */; };
+		7A1000010000000000000009 /* TagFilterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000009 /* TagFilterView.swift */; };
+		7A1000010000000000000010 /* MemoRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000010 /* MemoRowView.swift */; };
+		7A1000010000000000000011 /* MemoDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000011 /* MemoDetailView.swift */; };
+		7A1000010000000000000012 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000012 /* SettingsView.swift */; };
+		7A1000010000000000000013 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000013 /* EmptyStateView.swift */; };
+		7A1000010000000000000014 /* FlowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000014 /* FlowLayout.swift */; };
+		7A1000010000000000000015 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000015 /* Assets.xcassets */; };
+		7A1000010000000000000016 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000016 /* PrivacyInfo.xcprivacy */; };
+		7A1000010000000000000017 /* ReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000019 /* ReviewView.swift */; };
+		7A1000010000000000000018 /* StatsDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000020 /* StatsDashboardView.swift */; };
+		7A1000010000000000000019 /* SomeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000021 /* SomeTests.swift */; };
+		7A1000010000000000000020 /* AIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000023 /* AIError.swift */; };
+		7A1000010000000000000021 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000024 /* KeychainStore.swift */; };
+		7A1000010000000000000022 /* OpenAISettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000025 /* OpenAISettings.swift */; };
+		7A1000010000000000000023 /* OpenAIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000026 /* OpenAIClient.swift */; };
+		7A1000010000000000000024 /* SemanticSearchEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000027 /* SemanticSearchEngine.swift */; };
+		7A1000010000000000000025 /* AIInsightComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000028 /* AIInsightComposer.swift */; };
+		7A1000010000000000000026 /* AIWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000029 /* AIWorkspaceView.swift */; };
+		7A1000010000000000000027 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000030 /* Security.framework */; };
+		7A1000010000000000000028 /* AppLockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000031 /* AppLockView.swift */; };
+		7A1000010000000000000029 /* LocalAuthentication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000032 /* LocalAuthentication.framework */; };
+		7A1000010000000000000030 /* ReminderManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000033 /* ReminderManager.swift */; };
+		7A1000010000000000000031 /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000034 /* UserNotifications.framework */; };
+		7A1000010000000000000032 /* LinkExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000035 /* LinkExtractor.swift */; };
+		7A1000010000000000000033 /* SQLiteMemoDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000036 /* SQLiteMemoDatabase.swift */; };
+		7A1000010000000000000034 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000037 /* libsqlite3.tbd */; };
+		7A1000010000000000000035 /* MemoBackupArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000038 /* MemoBackupArchive.swift */; };
+		7A1000010000000000000036 /* MemoBackupArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000038 /* MemoBackupArchive.swift */; };
+		7A2000010000000000000001 /* SharedMemoStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A2001010000000000000001 /* SharedMemoStorage.swift */; };
+		7A2000010000000000000002 /* SharedMemoTextComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A2001010000000000000002 /* SharedMemoTextComposer.swift */; };
+		7A2000010000000000000003 /* SomeShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 7A2001010000000000000004 /* SomeShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		7A2000010000000000000004 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A2001010000000000000005 /* ShareViewController.swift */; };
+		7A2000010000000000000005 /* Memo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000002 /* Memo.swift */; };
+		7A2000010000000000000006 /* MemoStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000003 /* MemoStore.swift */; };
+		7A2000010000000000000007 /* TagParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000004 /* TagParser.swift */; };
+		7A2000010000000000000008 /* SQLiteMemoDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000036 /* SQLiteMemoDatabase.swift */; };
+		7A2000010000000000000009 /* SharedMemoStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A2001010000000000000001 /* SharedMemoStorage.swift */; };
+		7A2000010000000000000010 /* SharedMemoTextComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A2001010000000000000002 /* SharedMemoTextComposer.swift */; };
+		7A2000010000000000000011 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000037 /* libsqlite3.tbd */; };
+		7A2000010000000000000012 /* MemoSearchQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A2001010000000000000008 /* MemoSearchQuery.swift */; };
+		7A2000010000000000000013 /* MemoSearchQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A2001010000000000000008 /* MemoSearchQuery.swift */; };
+		7A2000010000000000000014 /* DateFormatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000005 /* DateFormatters.swift */; };
+		7A3000010000000000000001 /* MemoTaskParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3001010000000000000001 /* MemoTaskParser.swift */; };
+		7A3000010000000000000002 /* MemoTaskParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3001010000000000000001 /* MemoTaskParser.swift */; };
+		7A3000010000000000000003 /* MarkdownMemoTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3001010000000000000002 /* MarkdownMemoTextView.swift */; };
+		7A4000010000000000000001 /* SaveMemoIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A4001010000000000000001 /* SaveMemoIntent.swift */; };
+		7A4000010000000000000002 /* SomeAppShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A4001010000000000000002 /* SomeAppShortcuts.swift */; };
+		7A5000010000000000000001 /* SharedAttachmentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5001010000000000000001 /* SharedAttachmentStore.swift */; };
+		7A5000010000000000000002 /* SharedAttachmentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5001010000000000000001 /* SharedAttachmentStore.swift */; };
+		7A5000010000000000000003 /* AttachmentPreviewList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5001010000000000000002 /* AttachmentPreviewList.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		7A100A010000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7A1007010000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7A1004010000000000000001;
+			remoteInfo = some;
+		};
+		7A200A010000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7A1007010000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7A2004010000000000000001;
+			remoteInfo = SomeShareExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		7A200B010000000000000001 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				7A2000010000000000000003 /* SomeShareExtension.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		7A1001010000000000000001 /* SomeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SomeApp.swift; sourceTree = "<group>"; };
+		7A1001010000000000000002 /* Memo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Memo.swift; sourceTree = "<group>"; };
+		7A1001010000000000000003 /* MemoStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoStore.swift; sourceTree = "<group>"; };
+		7A1001010000000000000004 /* TagParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagParser.swift; sourceTree = "<group>"; };
+		7A1001010000000000000005 /* DateFormatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateFormatters.swift; sourceTree = "<group>"; };
+		7A1001010000000000000006 /* Colors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
+		7A1001010000000000000007 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		7A1001010000000000000008 /* QuickCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickCaptureView.swift; sourceTree = "<group>"; };
+		7A1001010000000000000009 /* TagFilterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagFilterView.swift; sourceTree = "<group>"; };
+		7A1001010000000000000010 /* MemoRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoRowView.swift; sourceTree = "<group>"; };
+		7A1001010000000000000011 /* MemoDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoDetailView.swift; sourceTree = "<group>"; };
+		7A1001010000000000000012 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		7A1001010000000000000013 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
+		7A1001010000000000000014 /* FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLayout.swift; sourceTree = "<group>"; };
+		7A1001010000000000000015 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		7A1001010000000000000016 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		7A1001010000000000000017 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		7A1001010000000000000018 /* some.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = some.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A1001010000000000000019 /* ReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewView.swift; sourceTree = "<group>"; };
+		7A1001010000000000000020 /* StatsDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsDashboardView.swift; sourceTree = "<group>"; };
+		7A1001010000000000000021 /* SomeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SomeTests.swift; sourceTree = "<group>"; };
+		7A1001010000000000000022 /* SomeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SomeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A1001010000000000000023 /* AIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIError.swift; sourceTree = "<group>"; };
+		7A1001010000000000000024 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		7A1001010000000000000025 /* OpenAISettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAISettings.swift; sourceTree = "<group>"; };
+		7A1001010000000000000026 /* OpenAIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIClient.swift; sourceTree = "<group>"; };
+		7A1001010000000000000027 /* SemanticSearchEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticSearchEngine.swift; sourceTree = "<group>"; };
+		7A1001010000000000000028 /* AIInsightComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIInsightComposer.swift; sourceTree = "<group>"; };
+		7A1001010000000000000029 /* AIWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIWorkspaceView.swift; sourceTree = "<group>"; };
+		7A1001010000000000000030 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		7A1001010000000000000031 /* AppLockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLockView.swift; sourceTree = "<group>"; };
+		7A1001010000000000000032 /* LocalAuthentication.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = LocalAuthentication.framework; path = System/Library/Frameworks/LocalAuthentication.framework; sourceTree = SDKROOT; };
+		7A1001010000000000000033 /* ReminderManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderManager.swift; sourceTree = "<group>"; };
+		7A1001010000000000000034 /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
+		7A1001010000000000000035 /* LinkExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkExtractor.swift; sourceTree = "<group>"; };
+		7A1001010000000000000036 /* SQLiteMemoDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteMemoDatabase.swift; sourceTree = "<group>"; };
+		7A1001010000000000000037 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
+		7A1001010000000000000038 /* MemoBackupArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoBackupArchive.swift; sourceTree = "<group>"; };
+		7A2001010000000000000001 /* SharedMemoStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedMemoStorage.swift; sourceTree = "<group>"; };
+		7A2001010000000000000002 /* SharedMemoTextComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedMemoTextComposer.swift; sourceTree = "<group>"; };
+		7A2001010000000000000003 /* some.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = some.entitlements; sourceTree = "<group>"; };
+		7A2001010000000000000004 /* SomeShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SomeShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A2001010000000000000005 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		7A2001010000000000000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		7A2001010000000000000007 /* SomeShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SomeShareExtension.entitlements; sourceTree = "<group>"; };
+		7A2001010000000000000008 /* MemoSearchQuery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoSearchQuery.swift; sourceTree = "<group>"; };
+		7A3001010000000000000001 /* MemoTaskParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoTaskParser.swift; sourceTree = "<group>"; };
+		7A3001010000000000000002 /* MarkdownMemoTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownMemoTextView.swift; sourceTree = "<group>"; };
+		7A4001010000000000000001 /* SaveMemoIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveMemoIntent.swift; sourceTree = "<group>"; };
+		7A4001010000000000000002 /* SomeAppShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SomeAppShortcuts.swift; sourceTree = "<group>"; };
+		7A5001010000000000000001 /* SharedAttachmentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedAttachmentStore.swift; sourceTree = "<group>"; };
+		7A5001010000000000000002 /* AttachmentPreviewList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentPreviewList.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		7A1002010000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7A1000010000000000000027 /* Security.framework in Frameworks */,
+				7A1000010000000000000029 /* LocalAuthentication.framework in Frameworks */,
+				7A1000010000000000000031 /* UserNotifications.framework in Frameworks */,
+				7A1000010000000000000034 /* libsqlite3.tbd in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7A1002010000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7A2002010000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7A2000010000000000000011 /* libsqlite3.tbd in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		7A1003010000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				7A1003010000000000000002 /* some */,
+				7A2003010000000000000001 /* SomeShareExtension */,
+				7A1003010000000000000008 /* SomeTests */,
+				7A1003010000000000000010 /* Frameworks */,
+				7A1003010000000000000007 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		7A1003010000000000000002 /* some */ = {
+			isa = PBXGroup;
+			children = (
+				7A1001010000000000000001 /* SomeApp.swift */,
+				7A1003010000000000000003 /* Models */,
+				7A1003010000000000000004 /* Stores */,
+				7A1003010000000000000005 /* Views */,
+				7A1003010000000000000006 /* Utilities */,
+				7A1003010000000000000009 /* AI */,
+				7A4003010000000000000001 /* AppIntents */,
+				7A1001010000000000000015 /* Assets.xcassets */,
+				7A1001010000000000000016 /* PrivacyInfo.xcprivacy */,
+				7A1001010000000000000017 /* Info.plist */,
+				7A2001010000000000000003 /* some.entitlements */,
+			);
+			path = some;
+			sourceTree = "<group>";
+		};
+		7A1003010000000000000003 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				7A1001010000000000000002 /* Memo.swift */,
+				7A1001010000000000000038 /* MemoBackupArchive.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		7A1003010000000000000004 /* Stores */ = {
+			isa = PBXGroup;
+			children = (
+				7A1001010000000000000003 /* MemoStore.swift */,
+				7A1001010000000000000033 /* ReminderManager.swift */,
+				7A1001010000000000000036 /* SQLiteMemoDatabase.swift */,
+			);
+			path = Stores;
+			sourceTree = "<group>";
+		};
+		7A1003010000000000000005 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				7A1001010000000000000007 /* ContentView.swift */,
+				7A1001010000000000000008 /* QuickCaptureView.swift */,
+				7A1001010000000000000009 /* TagFilterView.swift */,
+				7A1001010000000000000010 /* MemoRowView.swift */,
+				7A1001010000000000000011 /* MemoDetailView.swift */,
+				7A1001010000000000000012 /* SettingsView.swift */,
+				7A1001010000000000000013 /* EmptyStateView.swift */,
+				7A1001010000000000000014 /* FlowLayout.swift */,
+				7A1001010000000000000019 /* ReviewView.swift */,
+				7A1001010000000000000020 /* StatsDashboardView.swift */,
+				7A1001010000000000000029 /* AIWorkspaceView.swift */,
+				7A1001010000000000000031 /* AppLockView.swift */,
+				7A3001010000000000000002 /* MarkdownMemoTextView.swift */,
+				7A5001010000000000000002 /* AttachmentPreviewList.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		7A1003010000000000000006 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				7A1001010000000000000004 /* TagParser.swift */,
+				7A1001010000000000000005 /* DateFormatters.swift */,
+				7A1001010000000000000006 /* Colors.swift */,
+				7A1001010000000000000035 /* LinkExtractor.swift */,
+				7A2001010000000000000001 /* SharedMemoStorage.swift */,
+				7A2001010000000000000002 /* SharedMemoTextComposer.swift */,
+				7A2001010000000000000008 /* MemoSearchQuery.swift */,
+				7A3001010000000000000001 /* MemoTaskParser.swift */,
+				7A5001010000000000000001 /* SharedAttachmentStore.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		7A1003010000000000000007 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				7A1001010000000000000018 /* some.app */,
+				7A2001010000000000000004 /* SomeShareExtension.appex */,
+				7A1001010000000000000022 /* SomeTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7A1003010000000000000008 /* SomeTests */ = {
+			isa = PBXGroup;
+			children = (
+				7A1001010000000000000021 /* SomeTests.swift */,
+			);
+			path = SomeTests;
+			sourceTree = "<group>";
+		};
+		7A1003010000000000000009 /* AI */ = {
+			isa = PBXGroup;
+			children = (
+				7A1001010000000000000023 /* AIError.swift */,
+				7A1001010000000000000024 /* KeychainStore.swift */,
+				7A1001010000000000000025 /* OpenAISettings.swift */,
+				7A1001010000000000000026 /* OpenAIClient.swift */,
+				7A1001010000000000000027 /* SemanticSearchEngine.swift */,
+				7A1001010000000000000028 /* AIInsightComposer.swift */,
+			);
+			path = AI;
+			sourceTree = "<group>";
+		};
+		7A4003010000000000000001 /* AppIntents */ = {
+			isa = PBXGroup;
+			children = (
+				7A4001010000000000000001 /* SaveMemoIntent.swift */,
+				7A4001010000000000000002 /* SomeAppShortcuts.swift */,
+			);
+			path = AppIntents;
+			sourceTree = "<group>";
+		};
+		7A2003010000000000000001 /* SomeShareExtension */ = {
+			isa = PBXGroup;
+			children = (
+				7A2001010000000000000005 /* ShareViewController.swift */,
+				7A2001010000000000000006 /* Info.plist */,
+				7A2001010000000000000007 /* SomeShareExtension.entitlements */,
+			);
+			path = SomeShareExtension;
+			sourceTree = "<group>";
+		};
+		7A1003010000000000000010 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				7A1001010000000000000030 /* Security.framework */,
+				7A1001010000000000000032 /* LocalAuthentication.framework */,
+				7A1001010000000000000034 /* UserNotifications.framework */,
+				7A1001010000000000000037 /* libsqlite3.tbd */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		7A1004010000000000000001 /* some */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7A1009010000000000000003 /* Build configuration list for PBXNativeTarget "some" */;
+			buildPhases = (
+				7A1005010000000000000001 /* Sources */,
+				7A1002010000000000000001 /* Frameworks */,
+				7A1006010000000000000001 /* Resources */,
+				7A200B010000000000000001 /* Embed App Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7A200A020000000000000001 /* PBXTargetDependency */,
+			);
+			name = some;
+			productName = some;
+			productReference = 7A1001010000000000000018 /* some.app */;
+			productType = "com.apple.product-type.application";
+		};
+		7A1004010000000000000002 /* SomeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7A1009010000000000000004 /* Build configuration list for PBXNativeTarget "SomeTests" */;
+			buildPhases = (
+				7A1005010000000000000002 /* Sources */,
+				7A1002010000000000000002 /* Frameworks */,
+				7A1006010000000000000002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7A100A020000000000000001 /* PBXTargetDependency */,
+			);
+			name = SomeTests;
+			productName = SomeTests;
+			productReference = 7A1001010000000000000022 /* SomeTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		7A2004010000000000000001 /* SomeShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7A2009010000000000000001 /* Build configuration list for PBXNativeTarget "SomeShareExtension" */;
+			buildPhases = (
+				7A2005010000000000000001 /* Sources */,
+				7A2002010000000000000001 /* Frameworks */,
+				7A2006010000000000000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SomeShareExtension;
+			productName = SomeShareExtension;
+			productReference = 7A2001010000000000000004 /* SomeShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		7A1007010000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					7A1004010000000000000001 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					7A1004010000000000000002 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = 7A1004010000000000000001;
+					};
+					7A2004010000000000000001 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = 7A1009010000000000000001 /* Build configuration list for PBXProject "some" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = zh-Hans;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				zh-Hans,
+				en,
+				Base,
+			);
+			mainGroup = 7A1003010000000000000001;
+			productRefGroup = 7A1003010000000000000007 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				7A1004010000000000000001 /* some */,
+				7A2004010000000000000001 /* SomeShareExtension */,
+				7A1004010000000000000002 /* SomeTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		7A1006010000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7A1000010000000000000015 /* Assets.xcassets in Resources */,
+				7A1000010000000000000016 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7A1006010000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7A2006010000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		7A1005010000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7A1000010000000000000001 /* SomeApp.swift in Sources */,
+					7A1000010000000000000002 /* Memo.swift in Sources */,
+					7A1000010000000000000035 /* MemoBackupArchive.swift in Sources */,
+					7A1000010000000000000003 /* MemoStore.swift in Sources */,
+				7A1000010000000000000004 /* TagParser.swift in Sources */,
+				7A1000010000000000000005 /* DateFormatters.swift in Sources */,
+				7A1000010000000000000006 /* Colors.swift in Sources */,
+				7A1000010000000000000007 /* ContentView.swift in Sources */,
+				7A1000010000000000000008 /* QuickCaptureView.swift in Sources */,
+				7A1000010000000000000009 /* TagFilterView.swift in Sources */,
+				7A1000010000000000000010 /* MemoRowView.swift in Sources */,
+				7A1000010000000000000011 /* MemoDetailView.swift in Sources */,
+				7A1000010000000000000012 /* SettingsView.swift in Sources */,
+				7A1000010000000000000013 /* EmptyStateView.swift in Sources */,
+				7A1000010000000000000014 /* FlowLayout.swift in Sources */,
+				7A1000010000000000000017 /* ReviewView.swift in Sources */,
+				7A1000010000000000000018 /* StatsDashboardView.swift in Sources */,
+				7A1000010000000000000020 /* AIError.swift in Sources */,
+				7A1000010000000000000021 /* KeychainStore.swift in Sources */,
+				7A1000010000000000000022 /* OpenAISettings.swift in Sources */,
+				7A1000010000000000000023 /* OpenAIClient.swift in Sources */,
+				7A1000010000000000000024 /* SemanticSearchEngine.swift in Sources */,
+				7A1000010000000000000025 /* AIInsightComposer.swift in Sources */,
+				7A1000010000000000000026 /* AIWorkspaceView.swift in Sources */,
+				7A1000010000000000000028 /* AppLockView.swift in Sources */,
+				7A1000010000000000000030 /* ReminderManager.swift in Sources */,
+				7A1000010000000000000032 /* LinkExtractor.swift in Sources */,
+				7A1000010000000000000033 /* SQLiteMemoDatabase.swift in Sources */,
+				7A2000010000000000000001 /* SharedMemoStorage.swift in Sources */,
+				7A2000010000000000000002 /* SharedMemoTextComposer.swift in Sources */,
+				7A2000010000000000000012 /* MemoSearchQuery.swift in Sources */,
+				7A3000010000000000000001 /* MemoTaskParser.swift in Sources */,
+				7A3000010000000000000003 /* MarkdownMemoTextView.swift in Sources */,
+				7A4000010000000000000001 /* SaveMemoIntent.swift in Sources */,
+				7A4000010000000000000002 /* SomeAppShortcuts.swift in Sources */,
+				7A5000010000000000000001 /* SharedAttachmentStore.swift in Sources */,
+				7A5000010000000000000003 /* AttachmentPreviewList.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7A1005010000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+				files = (
+					7A1000010000000000000019 /* SomeTests.swift in Sources */,
+				);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7A2005010000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+					7A2000010000000000000004 /* ShareViewController.swift in Sources */,
+					7A2000010000000000000005 /* Memo.swift in Sources */,
+					7A1000010000000000000036 /* MemoBackupArchive.swift in Sources */,
+					7A2000010000000000000006 /* MemoStore.swift in Sources */,
+				7A2000010000000000000007 /* TagParser.swift in Sources */,
+				7A2000010000000000000008 /* SQLiteMemoDatabase.swift in Sources */,
+				7A2000010000000000000009 /* SharedMemoStorage.swift in Sources */,
+				7A2000010000000000000010 /* SharedMemoTextComposer.swift in Sources */,
+				7A2000010000000000000013 /* MemoSearchQuery.swift in Sources */,
+				7A3000010000000000000002 /* MemoTaskParser.swift in Sources */,
+				7A2000010000000000000014 /* DateFormatters.swift in Sources */,
+				7A5000010000000000000002 /* SharedAttachmentStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		7A100A020000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7A1004010000000000000001 /* some */;
+			targetProxy = 7A100A010000000000000001 /* PBXContainerItemProxy */;
+		};
+		7A200A020000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7A2004010000000000000001 /* SomeShareExtension */;
+			targetProxy = 7A200A010000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		7A1008010000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		7A1008010000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		7A1008010000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+					ASSETCATALOG_COMPILER_ACCENT_COLOR_NAME = AccentColor;
+					ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+					APP_BUNDLE_ID = com.732642856.some;
+					APP_GROUP_IDENTIFIER = group.com.732642856.some;
+					CODE_SIGN_ENTITLEMENTS = some/some.entitlements;
+					CODE_SIGN_STYLE = Automatic;
+					CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = "";
+					GENERATE_INFOPLIST_FILE = NO;
+					INFOPLIST_FILE = some/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+					IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+					MARKETING_VERSION = 1.0;
+					PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID)";
+					PRODUCT_MODULE_NAME = Some;
+					PRODUCT_NAME = some;
+					PROVISIONING_PROFILE_SPECIFIER = "$(APP_PROVISIONING_PROFILE_SPECIFIER)";
+					SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		7A1008010000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+					ASSETCATALOG_COMPILER_ACCENT_COLOR_NAME = AccentColor;
+					ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+					APP_BUNDLE_ID = com.732642856.some;
+					APP_GROUP_IDENTIFIER = group.com.732642856.some;
+					CODE_SIGN_ENTITLEMENTS = some/some.entitlements;
+					CODE_SIGN_STYLE = Automatic;
+					CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = some/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+					IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+					MARKETING_VERSION = 1.0;
+					PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID)";
+					PRODUCT_MODULE_NAME = Some;
+					PRODUCT_NAME = some;
+					PROVISIONING_PROFILE_SPECIFIER = "$(APP_PROVISIONING_PROFILE_SPECIFIER)";
+					SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		7A1008010000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+					ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+					APP_BUNDLE_ID = com.732642856.some;
+					BUNDLE_LOADER = "$(TEST_HOST)";
+					CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+					IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+					MARKETING_VERSION = 1.0;
+					PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID).tests";
+					PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/some.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/some";
+			};
+			name = Debug;
+		};
+		7A1008010000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+					ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+					APP_BUNDLE_ID = com.732642856.some;
+					BUNDLE_LOADER = "$(TEST_HOST)";
+					CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+					IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+					MARKETING_VERSION = 1.0;
+					PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID).tests";
+					PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/some.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/some";
+			};
+			name = Release;
+		};
+		7A2008010000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+					APPLICATION_EXTENSION_API_ONLY = YES;
+					APP_BUNDLE_ID = com.732642856.some;
+					APP_GROUP_IDENTIFIER = group.com.732642856.some;
+					CODE_SIGN_ENTITLEMENTS = SomeShareExtension/SomeShareExtension.entitlements;
+					CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SomeShareExtension/Info.plist;
+					IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+					MARKETING_VERSION = 1.0;
+					PRODUCT_BUNDLE_IDENTIFIER = "$(SHARE_EXTENSION_BUNDLE_ID)";
+					PRODUCT_MODULE_NAME = SomeShareExtension;
+					PRODUCT_NAME = "$(TARGET_NAME)";
+					PROVISIONING_PROFILE_SPECIFIER = "$(SHARE_EXTENSION_PROVISIONING_PROFILE_SPECIFIER)";
+					SHARE_EXTENSION_BUNDLE_ID = "$(APP_BUNDLE_ID).share";
+					SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		7A2008010000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+					APPLICATION_EXTENSION_API_ONLY = YES;
+					APP_BUNDLE_ID = com.732642856.some;
+					APP_GROUP_IDENTIFIER = group.com.732642856.some;
+					CODE_SIGN_ENTITLEMENTS = SomeShareExtension/SomeShareExtension.entitlements;
+					CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SomeShareExtension/Info.plist;
+					IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+					MARKETING_VERSION = 1.0;
+					PRODUCT_BUNDLE_IDENTIFIER = "$(SHARE_EXTENSION_BUNDLE_ID)";
+					PRODUCT_MODULE_NAME = SomeShareExtension;
+					PRODUCT_NAME = "$(TARGET_NAME)";
+					PROVISIONING_PROFILE_SPECIFIER = "$(SHARE_EXTENSION_PROVISIONING_PROFILE_SPECIFIER)";
+					SHARE_EXTENSION_BUNDLE_ID = "$(APP_BUNDLE_ID).share";
+					SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		7A1009010000000000000001 /* Build configuration list for PBXProject "some" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7A1008010000000000000001 /* Debug */,
+				7A1008010000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7A1009010000000000000003 /* Build configuration list for PBXNativeTarget "some" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7A1008010000000000000003 /* Debug */,
+				7A1008010000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7A1009010000000000000004 /* Build configuration list for PBXNativeTarget "SomeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7A1008010000000000000005 /* Debug */,
+				7A1008010000000000000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7A2009010000000000000001 /* Build configuration list for PBXNativeTarget "SomeShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7A2008010000000000000001 /* Debug */,
+				7A2008010000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 7A1007010000000000000001 /* Project object */;
+}

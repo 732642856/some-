@@ -1,0 +1,42 @@
+name: iOS CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show versions
+        run: |
+          xcode-select -p
+          xcodebuild -version
+          swift --version
+
+      - name: Build for simulator
+        run: |
+          xcodebuild \
+            -project some.xcodeproj \
+            -scheme some \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            CODE_SIGNING_ALLOWED=NO \
+            clean build
+
+      - name: Run tests
+        run: |
+          xcodebuild \
+            -project some.xcodeproj \
+            -scheme some \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            CODE_SIGNING_ALLOWED=NO \
+            test

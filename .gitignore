@@ -1,0 +1,37 @@
+.DS_Store
+*.swp
+*.log
+
+# Xcode user state and local build output
+DerivedData/
+build/
+Build/
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad/
+*.moved-aside
+
+# Archives, exported apps, and debug symbols
+*.ipa
+*.xcarchive
+*.dSYM
+*.dSYM.zip
+
+# Local signing material. Store these in Apple Developer / GitHub secrets only.
+*.cer
+*.p12
+*.pem
+*.p8
+*.mobileprovision
+*.provisionprofile
+ExportOptions.plist
+
+# Local environment files
+.env
+.env.*
+
+# Fastlane local output, if added later
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
