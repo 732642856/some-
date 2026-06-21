@@ -46,20 +46,74 @@ jobs:
         run: |
           set -euo pipefail
           DESTINATION="${{ steps.simulator.outputs.destination }}"
+          LOG_PATH="${RUNNER_TEMP}/xcodebuild-build.log"
+          set +e
           xcodebuild \
             -project some.xcodeproj \
             -scheme some \
             -destination "$DESTINATION" \
             CODE_SIGNING_ALLOWED=NO \
-            clean build
+            clean build 2>&1 | tee "$LOG_PATH"
+          BUILD_STATUS="${PIPESTATUS[0]}"
+          set -e
+          if [ "$BUILD_STATUS" -ne 0 ]; then
+            tail -n 200 "$LOG_PATH"
+            perl -ne '
+              sub esc {
+                my $value = shift;
+                $value =~ s/%/%25/g;
+                $value =~ s/\r/%0D/g;
+                $value =~ s/\n/%0A/g;
+                return $value;
+              }
+              if (/^(.*?):(\d+):(\d+): error: (.*)$/) {
+                my ($file, $line, $column, $message) = ($1, $2, $3, $4);
+                my $workspace = $ENV{"GITHUB_WORKSPACE"} || "";
+                $file =~ s/^\Q$workspace\E\/// if $workspace ne "";
+                print "::error file=" . esc($file) . ",line=$line,col=$column::" . esc($message) . "\n";
+                $seen = 1;
+              }
+              END {
+                print "::error::xcodebuild build failed; see the last 200 log lines above.\n" unless $seen;
+              }
+            ' "$LOG_PATH"
+            exit "$BUILD_STATUS"
+          fi
 
       - name: Run tests
         run: |
           set -euo pipefail
           DESTINATION="${{ steps.simulator.outputs.destination }}"
+          LOG_PATH="${RUNNER_TEMP}/xcodebuild-test.log"
+          set +e
           xcodebuild \
             -project some.xcodeproj \
             -scheme some \
             -destination "$DESTINATION" \
             CODE_SIGNING_ALLOWED=NO \
-            test
+            test 2>&1 | tee "$LOG_PATH"
+          TEST_STATUS="${PIPESTATUS[0]}"
+          set -e
+          if [ "$TEST_STATUS" -ne 0 ]; then
+            tail -n 200 "$LOG_PATH"
+            perl -ne '
+              sub esc {
+                my $value = shift;
+                $value =~ s/%/%25/g;
+                $value =~ s/\r/%0D/g;
+                $value =~ s/\n/%0A/g;
+                return $value;
+              }
+              if (/^(.*?):(\d+):(\d+): error: (.*)$/) {
+                my ($file, $line, $column, $message) = ($1, $2, $3, $4);
+                my $workspace = $ENV{"GITHUB_WORKSPACE"} || "";
+                $file =~ s/^\Q$workspace\E\/// if $workspace ne "";
+                print "::error file=" . esc($file) . ",line=$line,col=$column::" . esc($message) . "\n";
+                $seen = 1;
+              }
+              END {
+                print "::error::xcodebuild test failed; see the last 200 log lines above.\n" unless $seen;
+              }
+            ' "$LOG_PATH"
+            exit "$TEST_STATUS"
+          fi
