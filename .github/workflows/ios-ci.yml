@@ -132,11 +132,25 @@ jobs:
             {
               echo "### xcodebuild test failed"
               echo
+              echo "#### Failing tests"
+              echo
+              echo '```text'
+              grep -nE 'Test Case .*failed|failed:|XCTAssert|Executed [0-9]+ tests|Failing tests|error:' "$LOG_PATH" | tail -n 160 || true
+              echo '```'
+              echo
               echo '```text'
               tail -n 200 "$LOG_PATH"
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
             echo "::error file=.github/workflows/ios-ci.yml,line=83::xcodebuild test failed with status ${TEST_STATUS}; see the step summary for the last 200 log lines."
+            TEST_ANNOTATION="$(
+              grep -nE 'Test Case .*failed|failed:|XCTAssert|Executed [0-9]+ tests|error:' "$LOG_PATH" \
+                | tail -n 40 \
+                | perl -0pe 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/::/%3A%3A/g'
+            )"
+            if [ -n "$TEST_ANNOTATION" ]; then
+              echo "::error file=.github/workflows/ios-ci.yml,line=83::xcodebuild failing test lines:%0A${TEST_ANNOTATION}"
+            fi
             TAIL_ANNOTATION="$(
               tail -n 80 "$LOG_PATH" \
                 | perl -0pe 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/::/%3A%3A/g'
