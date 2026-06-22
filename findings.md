@@ -18,11 +18,12 @@
 - 2026-06-23：阶段 12 开工前复查 Git 状态、全量文件清单、图片编辑模型/渲染器/UI/测试边界；再次通过 GitHub API 确认 `guoyingtao/Mantis` 为 MIT/Swift/活跃、`TimOliver/TOCropViewController` 为 MIT/Objective-C/成熟，但直接接入需要完整 Xcode/SPM 或 ObjC 桥接验证。`SwiftUI image inpainting object removal MIT` 搜索返回 0；本轮继续复用 Core Image/UIKit 自建可调裁剪与授权清理贴片。
 - 2026-06-23：阶段 12 前继续核验图片裁剪开源候选。`guoyingtao/Mantis` 为 MIT、Swift、SwiftUI topic、2026-06 仍有推送，适合作为后续自由裁剪依赖候选；`TimOliver/TOCropViewController` 为 MIT、成熟 Objective-C/UIKit 裁剪器、2026-04 有推送，适合作为备选但会增加桥接与工程维护成本。GitHub 搜索 `SwiftUI image crop editor MIT` 未找到比二者更适合直接复制进当前工程的轻量模块。
 - 2026-06-23：最新 GitHub Actions run `27962981148` 在 Build for simulator 阶段失败。日志 annotation 只显示 Share Extension 编译退出 65，但本地 cross-target 扫描发现 `SomeShareExtension` 编译 `MemoStore.swift`，而 `MemoStore.addImageEdit` 引用了 `ImageEditRenderer`；`ImageEditRenderer.swift` 只在主 App target 中，属于 P1 构建阻塞。修复策略是把 `ImageEditRenderer.swift` 补入 Share Extension Sources，不改公共数据结构。
+- 2026-06-23：阶段 13 开工前检索 `SwiftUI scrapbook collage export image MIT` 与 `iOS collage editor Swift MIT export`，GitHub API 均返回 0 个可直接复用候选；本轮不新增第三方依赖，继续基于本项目 `ScrapbookPageLayout` 和 UIKit renderer 自建导出。
 
 ## 当前缺口
 
 - 媒体预览：视频附件已有本地按需缩略图 v1；后续再补持久化缩略图缓存、批量媒体元数据和真实长列表性能验证。
 - 工作日志：已有勾选记录生成结构化日志 v1；后续可增强项目字段、周期范围、导出模板、AI 润色和多选筛选。
-- 电子手帐：已有图层 JSON、预览、详情页拖拽/缩放/旋转、独立编辑器图层新增/复制/删除/层级调整和保存回原 memo；后续缺更丰富字体/贴纸/花边、图片素材追加、导出图片/PDF 和真机手势验证。
+- 电子手帐：已有图层 JSON、预览、详情页拖拽/缩放/旋转、独立编辑器图层新增/复制/删除/层级调整、图片素材追加、PNG 导出和保存回原 memo；后续缺更丰富字体/贴纸/花边、PDF 分享入口和真机手势验证。
 - 图片编辑：已完成素材库图片编辑入口、预设比例裁剪、可调裁剪中心/缩放、授权图片瑕疵清理贴片、Core Image 滤镜、边框、文字、贴纸、输出 PNG 附件、`imageEdit` 素材索引和 `has:image-edit` 搜索；完整手势裁剪器、抠图、对象级修复、模板拼贴和导出预设仍待补。
 - 电子衣橱：已完成衣橱洞察 v1，可从现有素材索引统计分类、颜色、季节、场景、未搭配单品、常用单品，并生成可填入穿搭表单的建议；穿着日历、成本/次、洗护状态、天气与旅行打包仍待补。

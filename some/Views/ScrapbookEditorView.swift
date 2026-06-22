@@ -9,6 +9,7 @@ struct ScrapbookEditorView: View {
     let memo: Memo
     @State private var layout: ScrapbookPageLayout
     @State private var selectedLayerID: UUID?
+    @State private var selectedImageAssetID: UUID?
     @State private var statusText: String?
 
     init(memo: Memo) {
@@ -109,6 +110,13 @@ struct ScrapbookEditorView: View {
                 addLayerButton(systemImage: "square.fill", title: "色块") {
                     addShapeLayer()
                 }
+                addLayerButton(systemImage: "photo", title: "图片") {
+                    addSelectedImageLayer()
+                }
+                .disabled(selectedImageAttachment == nil)
+                addLayerButton(systemImage: "square.and.arrow.up", title: "导出") {
+                    exportLayout()
+                }
 
                 Spacer(minLength: 8)
 
@@ -118,6 +126,17 @@ struct ScrapbookEditorView: View {
                         .foregroundStyle(Color.secondaryText)
                         .lineLimit(1)
                 }
+            }
+
+            if !imageAttachmentAssets.isEmpty {
+                Picker("图片素材", selection: $selectedImageAssetID) {
+                    Text("选择图片").tag(Optional<UUID>.none)
+                    ForEach(imageAttachmentAssets) { asset in
+                        Text(asset.title).tag(Optional(asset.id))
+                    }
+                }
+                .pickerStyle(.menu)
+                .tint(Color.accentGreen)
             }
 
             if let index = selectedLayerIndex {
@@ -185,6 +204,26 @@ struct ScrapbookEditorView: View {
             return nil
         }
         return layout.layers.firstIndex { $0.id == selectedLayerID }
+    }
+
+    private var imageAttachmentAssets: [MemoAsset] {
+        store.assets.filter { asset in
+            guard (asset.kind == .attachment || asset.kind == .screenshot || asset.kind == .imageEdit),
+                  let type = asset.typeIdentifier.flatMap(UTType.init) else {
+                return false
+            }
+            return type.conforms(to: .image)
+        }
+    }
+
+    private var selectedImageAttachment: SharedAttachment? {
+        guard let selectedImageAssetID = selectedImageAssetID,
+              let asset = imageAttachmentAssets.first(where: { $0.id == selectedImageAssetID }),
+              let attachment = AttachmentReferenceResolver.attachment(from: asset) else {
+            return nil
+        }
+
+        return attachment
     }
 
     private func addLayerButton(systemImage: String, title: String, action: @escaping () -> Void) -> some View {
@@ -288,6 +327,28 @@ struct ScrapbookEditorView: View {
         selectedLayerID = layer.id
     }
 
+    private func addSelectedImageLayer() {
+        guard let attachment = selectedImageAttachment else {
+            statusText = "先选择图片素材"
+            return
+        }
+
+        let layer = ScrapbookLayer(
+            kind: .image,
+            title: attachment.displayName,
+            attachmentPath: attachment.relativePath,
+            x: layout.canvasWidth / 2,
+            y: layout.canvasHeight * 0.46,
+            width: min(760, layout.canvasWidth * 0.72),
+            height: min(620, layout.canvasHeight * 0.44),
+            cornerRadius: 24,
+            shadowOpacity: 0.12
+        )
+        layout.layers.append(layer)
+        selectedLayerID = layer.id
+        statusText = "已添加图片"
+    }
+
     private func moveSelectedLayerForward() {
         guard let index = selectedLayerIndex, index < layout.layers.count - 1 else {
             return
@@ -331,6 +392,18 @@ struct ScrapbookEditorView: View {
             return
         }
         statusText = "已保存"
+    }
+
+    private func exportLayout() {
+        guard let attachment = try? store.exportScrapbookLayout(
+            layout,
+            title: MemoReferenceParser.title(for: memo),
+            for: memo
+        ) else {
+            statusText = "导出失败"
+            return
+        }
+        statusText = "已导出 \(attachment.displayName)"
     }
 
     private func color(hex: String?) -> Color? {

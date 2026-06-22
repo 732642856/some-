@@ -1381,20 +1381,6 @@ private struct WardrobeView: View {
     }
 }
 
-private enum AttachmentReferenceResolver {
-    static func relativePath(in uri: String) -> String? {
-        guard let components = URLComponents(string: uri),
-              components.scheme == SharedAttachmentStore.referenceScheme else {
-            return nil
-        }
-
-        let encodedPath = components.host?.isEmpty == false
-            ? components.host
-            : components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        return encodedPath?.removingPercentEncoding
-    }
-}
-
 private struct StatBadge: View {
     let title: String
     let value: String

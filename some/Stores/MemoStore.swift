@@ -460,6 +460,45 @@ final class MemoStore: ObservableObject {
         return update(currentMemo, text: updatedText)
     }
 
+    #if !SOME_SHARE_EXTENSION
+    func exportScrapbookLayout(_ layout: ScrapbookPageLayout, title: String) throws -> SharedAttachment {
+        guard let data = ScrapbookRenderer.pngData(layout: layout) else {
+            throw ScrapbookExportError.renderingFailed
+        }
+
+        return try SharedAttachmentStore.save(
+            data: data,
+            suggestedFilename: ScrapbookRenderer.outputFilename(title: title),
+            typeIdentifier: UTType.png.identifier
+        )
+    }
+
+    @discardableResult
+    func exportScrapbookLayout(
+        _ layout: ScrapbookPageLayout,
+        title: String,
+        for memo: Memo
+    ) throws -> SharedAttachment {
+        let attachment = try exportScrapbookLayout(layout, title: title)
+
+        guard let currentMemo = memos.first(where: { $0.id == memo.id }),
+              var updatedText = ScrapbookPageLayout.replacingLayout(in: currentMemo.text, with: layout) else {
+            SharedAttachmentStore.delete(attachment)
+            throw ScrapbookExportError.updateFailed
+        }
+
+        let separator = updatedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "" : "\n\n"
+        updatedText.append("\(separator)导出图片：\(attachment.displayName)\n\(attachment.referenceLine)")
+
+        guard update(currentMemo, text: updatedText) else {
+            SharedAttachmentStore.delete(attachment)
+            throw ScrapbookExportError.updateFailed
+        }
+
+        return attachment
+    }
+    #endif
+
     func toggleTask(_ memo: Memo, lineIndex: Int) {
         guard let index = memos.firstIndex(where: { $0.id == memo.id }) else { return }
 
@@ -1584,6 +1623,20 @@ final class MemoStore: ObservableObject {
 
         let currentData = try Data(contentsOf: fileURL)
         try currentData.write(to: backupFileURL, options: [.atomic])
+    }
+}
+
+private enum ScrapbookExportError: LocalizedError {
+    case renderingFailed
+    case updateFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .renderingFailed:
+            return "手帐页面无法渲染为图片。"
+        case .updateFailed:
+            return "手帐导出图片已回滚，当前记录无法更新。"
+        }
     }
 }
 

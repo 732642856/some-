@@ -1844,6 +1844,63 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(store.revisions(for: updatedMemo).count, 1)
     }
 
+    func testScrapbookRendererExportsPNGData() throws {
+        let layout = ScrapbookPageLayout(
+            canvasWidth: 320,
+            canvasHeight: 420,
+            backgroundColorHex: "#FDF8FA",
+            layers: [
+                ScrapbookLayer(kind: .shape, title: "底色", x: 160, y: 210, width: 220, height: 160, backgroundColorHex: "#E8F3EE", cornerRadius: 18),
+                ScrapbookLayer(kind: .text, title: "标题", text: "六月手帐", x: 160, y: 120, width: 220, height: 70, fontSize: 28)
+            ]
+        )
+
+        let data = try XCTUnwrap(ScrapbookRenderer.pngData(layout: layout))
+
+        XCTAssertEqual(Array(data.prefix(4)), [0x89, 0x50, 0x4E, 0x47])
+    }
+
+    func testExportScrapbookLayoutCreatesPNGAttachment() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let layout = ScrapbookPageLayout(
+            canvasWidth: 240,
+            canvasHeight: 320,
+            layers: [
+                ScrapbookLayer(kind: .text, title: "标题", text: "导出", x: 120, y: 120, width: 180, height: 80, fontSize: 28)
+            ]
+        )
+
+        let attachment = try store.exportScrapbookLayout(layout, title: "六月手帐")
+        defer { SharedAttachmentStore.delete(attachment) }
+
+        XCTAssertTrue(attachment.isImage)
+        XCTAssertTrue(attachment.filename.hasSuffix(".png"))
+        XCTAssertNotNil(SharedAttachmentStore.url(for: attachment))
+    }
+
+    func testExportScrapbookLayoutReferencesAttachmentInMemo() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let memo = try XCTUnwrap(store.addScrapbookPage(
+            title: "六月手帐",
+            template: "日记",
+            note: "排版草稿"
+        ))
+        var layout = try XCTUnwrap(ScrapbookPageLayout.layout(in: memo.text))
+        layout.layers.append(
+            ScrapbookLayer(kind: .text, title: "标题", text: "已导出", x: 120, y: 120, width: 180, height: 80, fontSize: 28)
+        )
+
+        let attachment = try store.exportScrapbookLayout(layout, title: "六月手帐", for: memo)
+        defer { SharedAttachmentStore.delete(attachment) }
+        let updatedMemo = try XCTUnwrap(store.memos.first { $0.id == memo.id })
+        let updatedLayout = try XCTUnwrap(ScrapbookPageLayout.layout(in: updatedMemo.text))
+
+        XCTAssertTrue(updatedMemo.text.contains("导出图片：\(attachment.displayName)"))
+        XCTAssertTrue(updatedMemo.text.contains(attachment.referenceLine))
+        XCTAssertEqual(updatedLayout.layers.last?.text, "已导出")
+        XCTAssertEqual(store.assets(for: updatedMemo).contains { $0.kind == .attachment && $0.uri == attachment.uri }, true)
+    }
+
     func testAddAttachmentMemoDoesNotDuplicateAttachmentAlreadyInNote() throws {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         let attachment = try SharedAttachmentStore.save(

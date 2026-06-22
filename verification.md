@@ -137,6 +137,9 @@
 - 2026-06-23：已新增图片编辑 v2，`ImageEditRecipe` 向后兼容新增裁剪中心/缩放微调和授权清理贴片；渲染器会在滤镜前应用可调裁剪和本地模糊贴片清理，编辑器可添加最多 6 处清理点。
 - 2026-06-23：阶段 12 开工前已复查 Git 状态、全量文件清单、图片编辑模型/渲染器/UI/测试边界；GitHub API 复查 `Mantis` / `TOCropViewController` 并检索对象移除候选，未复制第三方源码、未新增依赖。
 - 2026-06-23：图片编辑 v2 本轮 `git diff --check`、`plutil -lint`、`xmllint --noout` 通过；旧版 `xcrun swiftc -parse` 覆盖主 App 图片编辑路径，并用 `-D SOME_SHARE_EXTENSION` 覆盖分享扩展可解析路径。
+- 2026-06-23：已新增手帐图片素材追加与 PNG 导出；编辑器可选择现有图片素材加入手帐图层，并可把当前画布渲染为 PNG 附件。
+- 2026-06-23：阶段 13 开工前已复查 Git 状态、未提交文件碎片、手帐编辑器、素材引用解析和相关测试；GitHub API 检索未找到可直接复制的 MIT SwiftUI 手帐/拼贴导出模块。
+- 2026-06-23：手帐导出本轮 `git diff --check`、`plutil -lint`、`xmllint --noout` 通过；旧版 `xcrun swiftc -parse` 覆盖 `AttachmentReferenceResolver.swift`、`ScrapbookRenderer.swift`、`ScrapbookEditorView.swift`、`ContentView.swift`、`MemoStore.swift` 和相关测试。
 - 2026-06-22：已新增衣橱洞察 v1，基于现有 `MemoAsset` 计算分类、颜色、季节、场景、未搭配单品、常用单品和搭配建议；衣橱页可将建议填入穿搭草稿，穿搭表单已补季节字段。
 - 2026-06-22：阶段 11 开工前已复查 Git 状态、全量文件清单、衣橱/穿搭模型与 UI；GitHub API 检索未找到可直接复制的现代 SwiftUI MIT 衣橱模块，旧 Swift/ObjC 项目和 Kotlin `AURA` 仅做产品参考。
 - 2026-06-22：已补充衣橱洞察统计与建议单元测试；本轮 `git diff --check`、`plutil -lint`、`xmllint --noout` 通过，旧版 `xcrun swiftc -parse` 已覆盖 `WardrobeInsightEngine.swift`、`ContentView.swift` 和 `SomeTests.swift`。

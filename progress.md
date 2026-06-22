@@ -75,3 +75,13 @@
 - 按用户要求继续检索阶段 12 图片裁剪开源候选：`Mantis` 与 `TOCropViewController` 均为 MIT 且仍活跃，适合后续自由裁剪集成评估；通用 `SwiftUI image crop editor MIT` 搜索未找到更轻量可直接复制模块。
 - 修复 P1 构建阻塞：`SomeShareExtension` 会编译 `MemoStore.swift`，而 `MemoStore.addImageEdit` 引用的 `ImageEditRenderer` 未加入扩展 target；已把 `ImageEditRenderer.swift` 加入 Share Extension Sources。
 - 本地验证通过：`git diff --check`、`plutil -lint`、`xmllint --noout`、旧 Swift parser 覆盖 `Memo.swift`、`SharedAttachmentStore.swift`、`ImageEditRenderer.swift` 和 `MemoStore.swift`。
+
+## 2026-06-23T01:10:00Z
+
+- 进入阶段 13：手帐图片素材追加与导出。
+- 开工前复查 Git 状态、未提交文件碎片、`ScrapbookEditorView`、`ScrapbookPageLayout`、`MemoStore.updateScrapbookLayout`、素材引用解析和相关测试；发现阶段 13 半成品已在本地出现并收拢。
+- GitHub API 检索 `SwiftUI scrapbook collage export image MIT` 与 `iOS collage editor Swift MIT export`，未找到可直接复制进当前 SwiftUI 工程的成熟 MIT 模块；继续复用现有手帐图层 JSON、附件存储和 UIKit 渲染。
+- 新增 `ScrapbookRenderer`，支持把手帐图层渲染为 PNG 数据，并预留 PDF 临时导出能力。
+- 新增 `AttachmentReferenceResolver`，统一解析 `some-attachment://` 引用，替换 `ContentView` 内部重复 resolver。
+- 手帐编辑器新增图片素材选择、添加图片图层和导出 PNG 操作；`MemoStore.exportScrapbookLayout` 可把渲染结果保存为本地图片附件。
+- 补充 PNG 渲染和导出附件测试；本地 `git diff --check`、`plutil -lint`、`xmllint --noout`、旧 Swift parser 覆盖新增手帐导出路径。
