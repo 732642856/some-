@@ -1,17 +1,14 @@
 # 图标生成记录
 
-使用 `imagegen` 技能的内置图像生成工具生成基础图标，然后用 Pillow 批量裁切为 Xcode AppIcon 需要的 PNG 尺寸。
+更新：2026-06-22
 
-## 最终提示词
+当前图标使用用户提供的头像参考图：
 
-Use case: logo-brand
-Asset type: iOS App Store icon base artwork, square 1024x1024 bitmap
-Primary request: Create a polished original icon for a lightweight memo capture app named some.
-Subject: A simple rounded square app icon with a stylized note card sprouting one small leaf, suggesting quick thoughts growing into a garden.
-Style/medium: clean modern iOS app icon, vector-like but rendered as a high-quality bitmap, minimal, premium productivity tool.
-Composition/framing: centered symbol, generous padding, no text, no letters, no watermark.
-Lighting/mood: calm, focused, warm daylight, subtle depth.
-Color palette: off-white background, deep green primary shape, small warm gold accent.
-Materials/textures: smooth matte surfaces, very subtle shadow, crisp edges.
-Constraints: original design, no flomo logo, no brand imitation, no text, no UI screenshot, no transparent background.
-Avoid: purple gradients, busy illustration, tiny details, photorealism, mockup device frame.
+- 源图：`/Users/wuyongnaren/Downloads/辰星话本.JPG`
+- 原始尺寸：1024x1024 JPEG
+- 视觉方向：简约、小清新、浅粉背景、雾蓝/淡紫主体、柔白高光
+- 处理方式：不重新生成，不改主体；用 Pillow 从源图批量导出 Xcode AppIcon 需要的 PNG 尺寸，并同步替换 `AppStore/icon-1024.png`
+
+## 旧版生成记录
+
+旧版曾使用 `imagegen` 生成“便签 + 叶子”的绿色图标。2026-06-22 起已被用户指定头像替换，绿色视觉也已调整为头像色系。
