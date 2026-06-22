@@ -402,12 +402,12 @@ final class SomeTests: XCTestCase {
     }
 
     func testSearchQueryParserExtractsContentFilters() {
-        let query = MemoSearchQueryParser.parse("has:link has:attachment has:reference no:task without:backlink 复盘")
+        let query = MemoSearchQueryParser.parse("has:link has:web has:ocr has:attachment has:reference no:task without:backlink 复盘")
 
         XCTAssertEqual(query.textTerms, ["复盘"])
         XCTAssertEqual(
             query.requiredContentFilters,
-            [.attachment, .link, .reference]
+            [.attachment, .link, .reference, .screenshot, .webClip]
         )
         XCTAssertEqual(
             query.excludedContentFilters,
@@ -506,15 +506,78 @@ final class SomeTests: XCTestCase {
     func testSearchCanFilterByContentTypes() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "链接资料 https://example.com/a")
+        store.addMemo(text: LinkExtractor.webClipText(
+            title: "网页资料",
+            url: URL(string: "https://example.com/web")!,
+            summary: "网页摘要",
+            highlights: []
+        ))
+        store.addMemo(text: """
+        图片文字：receipt.png
+
+        识别文字：
+        合计 128 元
+
+        [附件: receipt.png](some-attachment://receipt.png)
+        """)
         store.addMemo(text: "附件资料\n\n[附件: image.png](some-attachment://image.png)")
         store.addMemo(text: "任务资料\n- [ ] 写提纲\n- [x] 校对")
         store.addMemo(text: "普通资料")
 
         store.searchText = "has:link"
-        XCTAssertEqual(store.filteredMemos.map(\.text), ["链接资料 https://example.com/a"])
+        XCTAssertEqual(
+            Set(store.filteredMemos.map(\.text)),
+            Set([
+                "链接资料 https://example.com/a",
+                LinkExtractor.webClipText(
+                    title: "网页资料",
+                    url: URL(string: "https://example.com/web")!,
+                    summary: "网页摘要",
+                    highlights: []
+                )
+            ])
+        )
+
+        store.searchText = "has:web"
+        XCTAssertEqual(
+            store.filteredMemos.map(\.text),
+            [
+                LinkExtractor.webClipText(
+                    title: "网页资料",
+                    url: URL(string: "https://example.com/web")!,
+                    summary: "网页摘要",
+                    highlights: []
+                )
+            ]
+        )
 
         store.searchText = "has:attachment"
-        XCTAssertEqual(store.filteredMemos.map(\.text), ["附件资料\n\n[附件: image.png](some-attachment://image.png)"])
+        XCTAssertEqual(
+            Set(store.filteredMemos.map(\.text)),
+            Set([
+                """
+                图片文字：receipt.png
+
+                识别文字：
+                合计 128 元
+
+                [附件: receipt.png](some-attachment://receipt.png)
+                """,
+                "附件资料\n\n[附件: image.png](some-attachment://image.png)"
+            ])
+        )
+
+        store.searchText = "has:ocr"
+        XCTAssertEqual(store.filteredMemos.map(\.text), [
+            """
+            图片文字：receipt.png
+
+            识别文字：
+            合计 128 元
+
+            [附件: receipt.png](some-attachment://receipt.png)
+            """
+        ])
 
         store.searchText = "has:task"
         XCTAssertEqual(store.filteredMemos.map(\.text), ["任务资料\n- [ ] 写提纲\n- [x] 校对"])
@@ -917,6 +980,38 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(urls.map(\.absoluteString), ["https://example.com/a"])
     }
 
+    func testLinkExtractorParsesWebClips() {
+        let text = """
+        [网页摘录: Example Article](https://example.com/a)
+        摘要：这是一段网页摘要
+        重点：
+        - 第一条重点
+        - 第二条重点
+        """
+
+        let clips = LinkExtractor.webClips(in: text)
+
+        XCTAssertEqual(clips.count, 1)
+        XCTAssertEqual(clips[0].title, "Example Article")
+        XCTAssertEqual(clips[0].url.absoluteString, "https://example.com/a")
+        XCTAssertEqual(clips[0].summary, "这是一段网页摘要")
+        XCTAssertEqual(clips[0].highlights, ["第一条重点", "第二条重点"])
+    }
+
+    func testLinkExtractorBuildsWebClipText() {
+        let url = URL(string: "https://example.com/a")!
+        let text = LinkExtractor.webClipText(
+            title: "Example",
+            url: url,
+            summary: "摘要",
+            highlights: ["重点一", "重点二"]
+        )
+
+        XCTAssertTrue(text.contains("[网页摘录: Example](https://example.com/a)"))
+        XCTAssertTrue(text.contains("摘要：摘要"))
+        XCTAssertTrue(text.contains("- 重点一"))
+    }
+
     func testSharedMemoComposerKeepsTextAndDeduplicatesURL() {
         let text = SharedMemoTextComposer.compose(
             texts: ["  这是一段摘录  "],
@@ -1227,6 +1322,8 @@ final class SomeTests: XCTestCase {
         }
         let sourceText = """
         资料 https://example.com/a #素材
+        [网页摘录: Example](https://example.com/web)
+        摘要：网页摘要
         - [ ] 整理素材
 
         \(attachment.referenceLine)
@@ -1239,6 +1336,7 @@ final class SomeTests: XCTestCase {
         let assets = store.assets(for: source)
         XCTAssertTrue(assets.contains { $0.kind == .text && $0.summary?.contains("资料") == true })
         XCTAssertTrue(assets.contains { $0.kind == .link && $0.uri == "https://example.com/a" })
+        XCTAssertTrue(assets.contains { $0.kind == .webClip && $0.title == "Example" && $0.summary == "网页摘要" })
         XCTAssertTrue(assets.contains { $0.kind == .attachment && $0.uri?.contains(attachment.relativePath) == true })
         XCTAssertTrue(assets.contains { $0.kind == .task && $0.title == "整理素材" && $0.summary == "open" })
         XCTAssertTrue(assets.contains { $0.kind == .reference && $0.uri == "some-memo://\(target.id.uuidString)" })
@@ -1296,6 +1394,99 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(asset?.title, attachment.displayName)
         XCTAssertEqual(asset?.typeIdentifier, UTType.png.identifier)
         XCTAssertEqual(asset?.byteCount, payload.count)
+    }
+
+    func testImageTextRecognizerBuildsMemoText() {
+        let attachment = SharedAttachment(
+            id: "receipt.png",
+            filename: "receipt.png",
+            relativePath: "receipt.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 128
+        )
+
+        let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: [" 合计 128 元 ", "合计 128 元", "谢谢惠顾"]
+        )
+
+        XCTAssertEqual(
+            text,
+            """
+            图片文字：receipt.png
+
+            识别文字：
+            合计 128 元
+            谢谢惠顾
+
+            [附件: receipt.png](some-attachment://receipt.png)
+            """
+        )
+    }
+
+    func testImageTextMemoCreatesScreenshotAsset() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let attachment = try SharedAttachmentStore.save(
+            data: Data("not a real png but enough for metadata".utf8),
+            suggestedFilename: "ocr-\(UUID().uuidString).png",
+            typeIdentifier: UTType.png.identifier
+        )
+        defer { SharedAttachmentStore.delete(attachment) }
+
+        guard let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: ["合计 128 元", "谢谢惠顾"]
+        ), let memo = store.addMemo(text: text) else {
+            return XCTFail("Expected OCR memo")
+        }
+
+        let asset = store.assets(for: memo).first { $0.kind == .screenshot }
+        XCTAssertEqual(asset?.title, attachment.displayName)
+        XCTAssertEqual(asset?.summary, "合计 128 元\n谢谢惠顾")
+        XCTAssertEqual(asset?.uri, "some-attachment://\(attachment.relativePath)")
+    }
+
+    func testAddAttachmentMemoDoesNotDuplicateAttachmentAlreadyInNote() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let attachment = try SharedAttachmentStore.save(
+            data: Data("ocr payload".utf8),
+            suggestedFilename: "ocr-note-\(UUID().uuidString).png",
+            typeIdentifier: UTType.png.identifier
+        )
+        defer { SharedAttachmentStore.delete(attachment) }
+
+        guard let note = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: ["合计 128 元"]
+        ), let memo = store.addAttachmentMemo(attachment, note: note) else {
+            return XCTFail("Expected OCR attachment memo")
+        }
+
+        XCTAssertEqual(SharedAttachmentStore.attachments(in: memo.text).count, 1)
+        XCTAssertTrue(store.assets(for: memo).contains { $0.kind == .screenshot })
+    }
+
+    func testAddWebClipCreatesMemoAndWebClipAsset() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let url = URL(string: "https://example.com/article")!
+
+        guard let memo = store.addWebClip(
+            url: url,
+            title: "文章标题",
+            summary: "文章摘要",
+            highlights: ["重点一"]
+        ) else {
+            return XCTFail("Expected web clip memo")
+        }
+
+        XCTAssertTrue(memo.text.contains("[网页摘录: 文章标题](https://example.com/article)"))
+        XCTAssertTrue(memo.text.contains("摘要：文章摘要"))
+        XCTAssertTrue(memo.text.contains("- 重点一"))
+
+        let asset = store.assets(for: memo).first { $0.kind == .webClip }
+        XCTAssertEqual(asset?.title, "文章标题")
+        XCTAssertEqual(asset?.summary, "文章摘要")
+        XCTAssertEqual(asset?.uri, "https://example.com/article")
     }
 
     private func documentsURL() -> URL {

@@ -84,9 +84,12 @@
 ### 网页摘录、截图 OCR 和链接理解
 
 - `exyte/ReadabilityKit`：<https://github.com/exyte/ReadabilityKit>，MIT，Swift，网页预览/正文提取，但仓库已归档；可参考算法或少量隔离代码，正式接入前要验证现代网页、中文内容和 iOS 兼容性。
+- `scinfu/SwiftSoup`：<https://github.com/scinfu/SwiftSoup>，MIT，Swift HTML parser，维护活跃；适合后续需要可靠 DOM/CSS selector 时作为 SPM 依赖评估，不建议复制 parser 源码。
 - `aheze/OpenFind`：<https://github.com/aheze/OpenFind>，MIT，Swift/SwiftUI，Vision OCR 实际 App，可参考 OCR 工作流和交互；不需要复制完整 App。
 - `DrcKarim/SwiftOCRKit`：<https://github.com/DrcKarim/SwiftOCRKit>，MIT，较新的 Vision OCR Swift Package，可作为 OCR 封装候选；仍需验证 API 稳定性。
 - 系统能力：Vision OCR、LinkPresentation、WKWebView、URLSession、Share Extension 是网页和截图摘录的首选底座。
+
+2026-06-22 本轮网页摘录 MVP 检索决策：重新通过 GitHub API 检查 `ReadabilityKit`、`SwiftSoup`、`OpenFind`、`SwiftOCRKit` 的许可证与维护状态。`ReadabilityKit` 为 MIT 但已归档且依赖 Ji；`SwiftSoup` 为 MIT 且活跃，但当前机器仍无法可靠做 Xcode 16/SPM 完整验证；OCR 候选属于下一阶段截图能力。本轮不复制第三方源码，也不引入 SPM，先用 Apple `URLSession`、`LinkPresentation` 与本地轻量 HTML 元数据/段落提取实现网页摘录 MVP。后续若要做复杂正文清洗、中文网页适配和批量离线抓取，优先评估 `SwiftSoup` 作为依赖，而不是继续扩大正则解析。
 
 ### 电子手帐、贴纸和画布
 
@@ -166,6 +169,8 @@ P3 只参考：
 2026-06-22 本轮实现决策：继续补搜索三期第二段，参考 Joplin `created:` / `updated:` 日期过滤与“错误过滤器按普通文本处理”的交互原则。some 重新实现本地日期解析，只支持清晰的 `yyyy` / `yyyy-MM` / `yyyy-MM-dd` 和 `>` / `>=` / `<` / `<=` 边界语法，避免引入模糊自然语言日期依赖，也没有复制 Joplin 源码。
 
 2026-06-22 本轮实现决策：多模态采集入口 v1 采用 Apple `PhotosUI.PhotosPicker` 和 SwiftUI `.fileImporter`，没有复制无许可证 PhotosPicker 示例，也没有新增第三方依赖。导入结果复用现有 App Group 附件目录、memo 正文附件引用和 `MemoAsset` 索引；首页新增素材库视图作为素材整理入口。
+
+2026-06-22 本轮实现决策：网页摘录 MVP 采用正文内可迁移格式 `[网页摘录: 标题](URL)` 加摘要/重点，复用现有 memo、SQLite、备份、历史版本、搜索和素材索引；新增 `webClip` 素材与 `has:web` / `has:webclip` 精准筛选。没有复制 `ReadabilityKit` / `SwiftSoup` / OCR 项目源码；当前只抓标题、description 和段落候选，失败时回退 `LinkPresentation` 标题，再失败仍保存 URL。
 
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 

@@ -224,6 +224,31 @@ extension MemoAsset {
             )
         }
 
+        for webClip in LinkExtractor.webClips(in: memo.text) {
+            let clipSummary = webClip.summary ?? webClip.highlights.joined(separator: " · ")
+            append(
+                kind: .webClip,
+                title: webClip.title.isEmpty ? LinkExtractor.displayText(for: webClip.url) : webClip.title,
+                summary: clipSummary.isEmpty ? nil : clipSummary,
+                uri: webClip.url.absoluteString,
+                typeIdentifier: UTType.url.identifier,
+                stableKey: "webclip:\(webClip.url.absoluteString)"
+            )
+        }
+
+        if let imageText = imageTextAsset(in: visibleText),
+           let attachment = SharedAttachmentStore.attachments(in: memo.text).first(where: \.isImage) {
+            append(
+                kind: .screenshot,
+                title: imageText.title,
+                summary: imageText.summary,
+                uri: "\(SharedAttachmentStore.referenceScheme)://\(SharedAttachmentStore.encodedReferencePath(attachment.relativePath))",
+                typeIdentifier: attachment.typeIdentifier,
+                byteCount: attachment.byteCount,
+                stableKey: "image-text:\(attachment.relativePath)"
+            )
+        }
+
         for attachment in SharedAttachmentStore.attachments(in: memo.text) {
             append(
                 kind: assetKind(for: attachment),
@@ -272,6 +297,45 @@ extension MemoAsset {
         }
 
         return .attachment
+    }
+
+    private static func imageTextAsset(in text: String) -> (title: String, summary: String)? {
+        let lines = text
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        guard let firstLine = lines.first(where: { !$0.isEmpty }) else {
+            return nil
+        }
+
+        let prefixes = ["图片文字：", "图片文字:", "截图文字：", "截图文字:"]
+        guard let prefix = prefixes.first(where: { firstLine.hasPrefix($0) }) else {
+            return nil
+        }
+
+        let rawTitle = String(firstLine.dropFirst(prefix.count))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = rawTitle.isEmpty ? "图片文字" : rawTitle
+        let textStartIndex = lines.firstIndex { line in
+            line == "识别文字：" || line == "识别文字:" || line == "OCR：" || line == "OCR:"
+        }.map { $0 + 1 } ?? 1
+        let recognizedText = lines
+            .dropFirst(textStartIndex)
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n")
+        guard !recognizedText.isEmpty else {
+            return nil
+        }
+
+        return (title, limitedSummary(recognizedText))
+    }
+
+    private static func limitedSummary(_ text: String, maxLength: Int = 800) -> String {
+        guard text.count > maxLength else {
+            return text
+        }
+
+        let endIndex = text.index(text.startIndex, offsetBy: maxLength)
+        return "\(text[..<endIndex])..."
     }
 
     private static func stableID(memoID: UUID, kind: MemoAssetKind, stableKey: String) -> UUID {

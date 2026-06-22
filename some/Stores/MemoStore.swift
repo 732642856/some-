@@ -201,10 +201,14 @@ final class MemoStore: ObservableObject {
 
     @discardableResult
     func addAttachmentMemo(_ attachment: SharedAttachment, note: String? = nil) -> Memo? {
+        let noteText = note ?? "导入素材"
+        let attachments = SharedAttachmentStore.attachments(in: noteText).contains {
+            $0.relativePath == attachment.relativePath
+        } ? [] : [attachment]
         let body = SharedMemoTextComposer.compose(
-            texts: [note ?? "导入素材"],
+            texts: [noteText],
             urls: [],
-            attachments: [attachment]
+            attachments: attachments
         )
 
         guard let memo = addMemo(text: body) else {
@@ -213,6 +217,18 @@ final class MemoStore: ObservableObject {
         }
 
         return memo
+    }
+
+    @discardableResult
+    func addWebClip(url: URL, title: String? = nil, summary: String? = nil, highlights: [String] = []) -> Memo? {
+        let clipText = LinkExtractor.webClipText(
+            title: title ?? LinkExtractor.displayText(for: url),
+            url: url,
+            summary: summary,
+            highlights: highlights
+        )
+
+        return addMemo(text: clipText)
     }
 
     @discardableResult
@@ -907,6 +923,10 @@ final class MemoStore: ObservableObject {
             return !MemoReferenceParser.references(in: memo.text).isEmpty
         case .backlink:
             return !backlinkMemos(to: memo).isEmpty
+        case .webClip:
+            return !LinkExtractor.webClips(in: memo.text).isEmpty
+        case .screenshot:
+            return assets(for: memo).contains { $0.kind == .screenshot }
         }
     }
 

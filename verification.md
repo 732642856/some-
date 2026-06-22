@@ -97,6 +97,11 @@
 - 2026-06-22：已新增首页“素材”模式，按素材类型筛选文本、链接、附件、任务、引用等资产；图片附件显示本地缩略图，并可跳回来源记录。
 - 2026-06-22：已补充 `addAttachmentMemo` 单元测试，覆盖附件导入 memo、附件引用解析和素材索引字段。
 - 2026-06-22：本轮 `git diff --check`、`plutil -lint some/Info.plist some.xcodeproj/project.pbxproj` 通过；`xcrun swiftc -parse` 已覆盖 `Memo.swift`、`MemoStore.swift`、`ContentView.swift` 和 `SomeTests.swift`。`QuickCaptureView.swift` 因 PhotosPicker 数据加载使用 Swift concurrency，旧 Swift 5.4 parser 仍无法解析 `await`，需要 Xcode 16 完整验证。
+- 2026-06-22：本轮继续前已再次执行 Git 状态、未跟踪文件、全量文件清单、Documents/Codex 旧 some 目录搜索和 `diff -qr` 比对；当前主仓库仍是旧工作区功能超集，未发现需要补回的外部碎片。
+- 2026-06-22：已重新检索网页摘录/OCR相关开源项目并记录到 `docs/open-source-reuse-audit.md`：`ReadabilityKit`、`SwiftSoup`、`OpenFind`、`SwiftOCRKit` 均未直接复制；本轮采用 Apple `URLSession` / `LinkPresentation` 实现网页摘录 MVP。
+- 2026-06-22：已新增网页摘录格式解析、`addWebClip` 保存、`webClip` 素材索引和 `has:web` / `has:webclip` 搜索筛选；素材库网页条目可直接打开原链接。
+- 2026-06-22：已补充网页摘录解析、格式生成、网页素材索引、网页搜索筛选和 `addWebClip` 单元测试。
+- 2026-06-22：本轮 `git diff --check`、`plutil -lint`、`xmllint --noout` 通过；旧版 `xcrun swiftc -parse` 已覆盖 `LinkExtractor.swift`、`MemoSearchQuery.swift`、`Memo.swift`、`MemoStore.swift`、`ContentView.swift` 和 `SomeTests.swift`。`QuickCaptureView.swift` 仍因本机 Swift 5.4 不支持 async/await 无法解析，需要 Xcode 16 做完整编译和 XCTest。
 
 ## 未能在当前环境完成
 

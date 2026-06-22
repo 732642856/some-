@@ -332,10 +332,7 @@ private struct AssetLibraryView: View {
             } else {
                 ForEach(filteredAssets) { asset in
                     if let memo = memo(for: asset) {
-                        NavigationLink(value: memo.id) {
-                            AssetRowView(asset: asset, memo: memo)
-                        }
-                        .buttonStyle(.plain)
+                        AssetNavigationRow(asset: asset, memo: memo)
                     } else {
                         AssetRowView(asset: asset, memo: nil)
                     }
@@ -408,6 +405,31 @@ private struct AssetLibraryView: View {
                 )
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct AssetNavigationRow: View {
+    @Environment(\.openURL) private var openURL
+
+    let asset: MemoAsset
+    let memo: Memo
+
+    var body: some View {
+        if asset.kind == .webClip,
+           let uri = asset.uri,
+           let url = URL(string: uri) {
+            Button {
+                openURL(url)
+            } label: {
+                AssetRowView(asset: asset, memo: memo)
+            }
+            .buttonStyle(.plain)
+        } else {
+            NavigationLink(value: memo.id) {
+                AssetRowView(asset: asset, memo: memo)
+            }
+            .buttonStyle(.plain)
+        }
     }
 }
 

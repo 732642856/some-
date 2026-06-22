@@ -8,6 +8,8 @@ enum MemoContentFilter: String, CaseIterable, Hashable {
     case completedTask = "completed-task"
     case reference
     case backlink
+    case webClip = "web-clip"
+    case screenshot
 }
 
 enum MemoDateField: String, Hashable {
@@ -178,6 +180,10 @@ enum MemoSearchQueryParser {
             return .reference
         case "backlink", "backlinks", "incoming-reference", "incoming-references", "被引用", "反向引用":
             return .backlink
+        case "web", "webclip", "web-clip", "clip", "clips", "article", "articles", "网页", "网页摘录", "摘录":
+            return .webClip
+        case "ocr", "image-text", "screenshot", "screenshots", "scan", "scan-text", "图片文字", "截图", "截图文字", "识别文字":
+            return .screenshot
         default:
             return nil
         }

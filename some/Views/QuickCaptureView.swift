@@ -1,5 +1,6 @@
 import PhotosUI
 import SwiftUI
+import LinkPresentation
 import UniformTypeIdentifiers
 
 struct QuickCaptureView: View {
@@ -9,6 +10,7 @@ struct QuickCaptureView: View {
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var isShowingFileImporter = false
     @State private var isImportingMedia = false
+    @State private var isClippingWebPage = false
     @FocusState private var isFocused: Bool
 
     var body: some View {
@@ -118,7 +120,27 @@ struct QuickCaptureView: View {
                 .disabled(isImportingMedia)
                 .accessibilityLabel("导入文件")
 
+                Button {
+                    clipFirstURL()
+                } label: {
+                    Image(systemName: "doc.text.magnifyingglass")
+                        .frame(width: 34, height: 34)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.secondaryText)
+                .background(Color.subtleSurface)
+                .clipShape(Circle())
+                .disabled(isClippingWebPage || detectedURLs.isEmpty)
+                .opacity(detectedURLs.isEmpty ? 0.35 : 1)
+                .accessibilityLabel("摘录网页")
+
                 if isImportingMedia {
+                    ProgressView()
+                        .tint(Color.accentGreen)
+                        .frame(width: 28, height: 34)
+                }
+
+                if isClippingWebPage {
                     ProgressView()
                         .tint(Color.accentGreen)
                         .frame(width: 28, height: 34)
@@ -244,8 +266,9 @@ struct QuickCaptureView: View {
                         suggestedFilename: importedFilename(prefix: filenamePrefix(for: type), type: type),
                         typeIdentifier: type.identifier
                     )
+                    let note = await importNote(for: attachment, type: type, data: data)
                     let imported = await MainActor.run {
-                        store.addAttachmentMemo(attachment, note: importNote(for: type)) != nil
+                        store.addAttachmentMemo(attachment, note: note) != nil
                     }
                     importedCount += imported ? 1 : 0
                     failedCount += imported ? 0 : 1
@@ -282,8 +305,10 @@ struct QuickCaptureView: View {
                             typeIdentifier: nil
                         )
                         let type = UTType(attachment.typeIdentifier) ?? .data
+                        let data = type.conforms(to: .image) ? SharedAttachmentStore.data(for: attachment) : nil
+                        let note = await importNote(for: attachment, type: type, data: data)
                         let imported = await MainActor.run {
-                            store.addAttachmentMemo(attachment, note: importNote(for: type)) != nil
+                            store.addAttachmentMemo(attachment, note: note) != nil
                         }
                         importedCount += imported ? 1 : 0
                         failedCount += imported ? 0 : 1
@@ -342,6 +367,16 @@ struct QuickCaptureView: View {
         return "导入文件"
     }
 
+    private func importNote(for attachment: SharedAttachment, type: UTType, data: Data?) async -> String {
+        guard type.conforms(to: .image), let data = data else {
+            return importNote(for: type)
+        }
+
+        let recognizedLines = await ImageTextRecognizer.recognizeText(in: data)
+        return ImageTextRecognizer.memoText(for: attachment, recognizedLines: recognizedLines)
+            ?? importNote(for: type)
+    }
+
     private func importedFilename(prefix: String, type: UTType) -> String {
         let timestamp = Int(Date().timeIntervalSince1970)
         let suffix = String(UUID().uuidString.prefix(8))
@@ -364,5 +399,185 @@ struct QuickCaptureView: View {
         }
 
         return failed > 0 ? "没有导入素材，\(failed) 个失败。" : "没有导入素材"
+    }
+
+    private func clipFirstURL() {
+        guard let url = detectedURLs.first else { return }
+
+        isClippingWebPage = true
+        statusText = "正在摘录网页..."
+
+        Task {
+            let clip = await WebClipExtractor.clip(from: url)
+            await MainActor.run {
+                let saved = store.addWebClip(
+                    url: clip.url,
+                    title: clip.title,
+                    summary: clip.summary,
+                    highlights: clip.highlights
+                ) != nil
+                isClippingWebPage = false
+                statusText = saved ? "已保存网页摘录" : "网页摘录保存失败。"
+            }
+        }
+    }
+}
+
+private struct ExtractedWebClip {
+    let url: URL
+    let title: String?
+    let summary: String?
+    let highlights: [String]
+}
+
+private enum WebClipExtractor {
+    static func clip(from url: URL) async -> ExtractedWebClip {
+        do {
+            let html = try await fetchHTML(from: url)
+            let paragraphs = paragraphHighlights(in: html)
+            let title = firstNonEmpty(
+                metaContent(named: "og:title", in: html),
+                metaContent(named: "twitter:title", in: html),
+                titleTag(in: html),
+                LinkExtractor.displayText(for: url)
+            )
+            let summary = firstNonEmpty(
+                metaContent(named: "description", in: html),
+                metaContent(named: "og:description", in: html),
+                metaContent(named: "twitter:description", in: html),
+                paragraphs.first
+            )
+            let highlights = paragraphs
+                .filter { $0 != summary }
+                .prefix(4)
+                .map { $0 }
+            return ExtractedWebClip(url: url, title: title, summary: summary, highlights: Array(highlights))
+        } catch {
+            if let metadataTitle = try? await metadataTitle(for: url) {
+                return ExtractedWebClip(
+                    url: url,
+                    title: firstNonEmpty(metadataTitle, LinkExtractor.displayText(for: url)),
+                    summary: nil,
+                    highlights: []
+                )
+            }
+
+            return ExtractedWebClip(
+                url: url,
+                title: LinkExtractor.displayText(for: url),
+                summary: nil,
+                highlights: []
+            )
+        }
+    }
+
+    private static func fetchHTML(from url: URL) async throws -> String {
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 12
+        request.setValue(
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+            forHTTPHeaderField: "User-Agent"
+        )
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        if let response = response as? HTTPURLResponse,
+           !(200..<400).contains(response.statusCode) {
+            throw URLError(.badServerResponse)
+        }
+
+        return String(data: data, encoding: .utf8)
+            ?? String(data: data, encoding: .isoLatin1)
+            ?? ""
+    }
+
+    private static func metadataTitle(for url: URL) async throws -> String? {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<String?, Error>) in
+            let provider = LPMetadataProvider()
+            provider.startFetchingMetadata(for: url) { [provider] metadata, error in
+                _ = provider
+                if let metadata = metadata {
+                    continuation.resume(returning: metadata.title)
+                } else {
+                    continuation.resume(throwing: error ?? URLError(.cannotParseResponse))
+                }
+            }
+        }
+    }
+
+    private static func titleTag(in html: String) -> String? {
+        firstMatch(pattern: #"<title[^>]*>(.*?)</title>"#, in: html)
+    }
+
+    private static func metaContent(named name: String, in html: String) -> String? {
+        let escapedName = NSRegularExpression.escapedPattern(for: name)
+        let patterns = [
+            #"<meta[^>]*(?:name|property)\s*=\s*["']\#(escapedName)["'][^>]*content\s*=\s*["']([^"']*)["'][^>]*>"#,
+            #"<meta[^>]*content\s*=\s*["']([^"']*)["'][^>]*(?:name|property)\s*=\s*["']\#(escapedName)["'][^>]*>"#
+        ]
+
+        for pattern in patterns {
+            if let value = firstMatch(pattern: pattern, in: html) {
+                return value
+            }
+        }
+
+        return nil
+    }
+
+    private static func paragraphHighlights(in html: String) -> [String] {
+        matches(pattern: #"<p[^>]*>(.*?)</p>"#, in: html)
+            .map(cleanHTML)
+            .filter { $0.count >= 24 }
+            .reduce(into: [String]()) { result, paragraph in
+                guard !result.contains(paragraph), result.count < 5 else { return }
+                result.append(paragraph)
+            }
+    }
+
+    private static func firstMatch(pattern: String, in text: String) -> String? {
+        matches(pattern: pattern, in: text).first.map(cleanHTML)
+    }
+
+    private static func matches(pattern: String, in text: String) -> [String] {
+        guard let regex = try? NSRegularExpression(
+            pattern: pattern,
+            options: [.caseInsensitive, .dotMatchesLineSeparators]
+        ) else {
+            return []
+        }
+
+        let nsText = text as NSString
+        let range = NSRange(location: 0, length: nsText.length)
+        return regex.matches(in: text, options: [], range: range).compactMap { result in
+            guard result.numberOfRanges >= 2 else { return nil }
+            return nsText.substring(with: result.range(at: 1))
+        }
+    }
+
+    private static func cleanHTML(_ rawText: String) -> String {
+        let withoutTags = rawText.replacingOccurrences(
+            of: #"<[^>]+>"#,
+            with: " ",
+            options: .regularExpression
+        )
+        return decodeEntities(withoutTags)
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func decodeEntities(_ text: String) -> String {
+        text
+            .replacingOccurrences(of: "&nbsp;", with: " ")
+            .replacingOccurrences(of: "&amp;", with: "&")
+            .replacingOccurrences(of: "&lt;", with: "<")
+            .replacingOccurrences(of: "&gt;", with: ">")
+            .replacingOccurrences(of: "&quot;", with: "\"")
+            .replacingOccurrences(of: "&#39;", with: "'")
+    }
+
+    private static func firstNonEmpty(_ values: String?...) -> String? {
+        values
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first { !$0.isEmpty }
     }
 }
