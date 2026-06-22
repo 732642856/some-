@@ -93,9 +93,7 @@ enum ClipFragmentExtractor {
                     source: .ocr,
                     title: imageText.title,
                     text: line,
-                    uri: imageText.attachment?.map {
-                        "\(SharedAttachmentStore.referenceScheme)://\(SharedAttachmentStore.encodedReferencePath($0.relativePath))"
-                    },
+                    uri: attachmentURI(for: imageText.attachment),
                     stableKey: "ocr:\(imageText.attachment?.relativePath ?? imageText.title):\(index):\(line)"
                 )
             }
@@ -156,6 +154,14 @@ enum ClipFragmentExtractor {
     private static func imageTextTitlePrefix(in line: String) -> String? {
         let prefixes = ["图片文字：", "图片文字:", "截图文字：", "截图文字:"]
         return prefixes.first(where: { line.hasPrefix($0) })
+    }
+
+    private static func attachmentURI(for attachment: SharedAttachment?) -> String? {
+        guard let attachment = attachment else {
+            return nil
+        }
+
+        return "\(SharedAttachmentStore.referenceScheme)://\(SharedAttachmentStore.encodedReferencePath(attachment.relativePath))"
     }
 
     private static func unique(_ fragments: [ClipFragment]) -> [ClipFragment] {
