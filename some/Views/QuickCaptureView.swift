@@ -762,7 +762,7 @@ struct QuickCaptureView: View {
     }
 
     private func saveWebClip(_ clip: ExtractedWebClip, selectedFragments: [ClipFragment]) {
-        let summary = clip.summary?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let summary = selectedSummary(for: clip, selectedFragments: selectedFragments)
         let highlights = uniqueHighlights(selectedFragments.map(\.text))
             .filter { highlight in
                 guard let summary, !summary.isEmpty else { return true }
@@ -771,13 +771,24 @@ struct QuickCaptureView: View {
         let saved = store.addWebClip(
             url: clip.url,
             title: clip.title,
-            summary: clip.summary,
+            summary: summary,
             highlights: highlights
         ) != nil
         if saved {
             clearPendingWebClip()
         }
         statusText = saved ? "已保存网页摘录" : "网页摘录保存失败。"
+    }
+
+    private func selectedSummary(for clip: ExtractedWebClip, selectedFragments: [ClipFragment]) -> String? {
+        guard let summary = clip.summary?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !summary.isEmpty else {
+            return nil
+        }
+
+        return selectedFragments.contains { fragment in
+            fragment.text.trimmingCharacters(in: .whitespacesAndNewlines) == summary
+        } ? summary : nil
     }
 
     private func clearPendingWebClip() {
