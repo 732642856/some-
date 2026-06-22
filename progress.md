@@ -144,3 +144,4 @@
 - 修复衣橱洞察回归风险：没有穿着记录时，常用单品仍按历史穿搭次数显示；有穿着记录时再显示真实穿着次数、最近穿着和成本/次。
 - 衣橱页已补穿着记录表单、单品价格字段、穿着统计 badge、最近穿着和成本/次展示，并把穿着记录纳入衣橱素材列表。
 - 本轮新增测试覆盖：穿着记录 memo/素材生成、`has:wear-log` 查询、穿着次数/成本/次/最近穿着洞察，以及网页/OCR 片段保存时 OCR 不混入网页 highlights。
+- 已提交并推送 `9eb65bf Add wear logs and preserve selected clip sources`；推送后 GitHub 公共 API 返回 rate limit，暂时无法读取新 CI run 详情，下一步继续低频查询远端状态。
