@@ -67,6 +67,11 @@ jobs:
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
             echo "::error file=.github/workflows/ios-ci.yml,line=45::xcodebuild build failed with status ${BUILD_STATUS}; see the step summary for the last 200 log lines."
+            TAIL_ANNOTATION="$(
+              tail -n 80 "$LOG_PATH" \
+                | perl -0pe 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/::/%3A%3A/g'
+            )"
+            echo "::error file=.github/workflows/ios-ci.yml,line=45::Last 80 xcodebuild build log lines:%0A${TAIL_ANNOTATION}"
             tail -n 200 "$LOG_PATH"
             perl -ne '
               sub esc {
@@ -118,6 +123,11 @@ jobs:
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
             echo "::error file=.github/workflows/ios-ci.yml,line=83::xcodebuild test failed with status ${TEST_STATUS}; see the step summary for the last 200 log lines."
+            TAIL_ANNOTATION="$(
+              tail -n 80 "$LOG_PATH" \
+                | perl -0pe 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/::/%3A%3A/g'
+            )"
+            echo "::error file=.github/workflows/ios-ci.yml,line=83::Last 80 xcodebuild test log lines:%0A${TAIL_ANNOTATION}"
             tail -n 200 "$LOG_PATH"
             perl -ne '
               sub esc {
