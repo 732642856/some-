@@ -82,13 +82,14 @@ enum WardrobeInsightEngine {
             .sorted { $0.createdAt == $1.createdAt ? $0.title < $1.title : $0.createdAt > $1.createdAt }
 
         let usageByName = itemUsageCounts(in: outfits)
-        let wardrobeAssets = assets.filter { $0.kind == .wardrobeItem }
-        let items = wardrobeAssets
-            .compactMap { asset in
-                let usageCount = usageByName[wardrobeNormalizedName(asset.title)] ?? 0
-                return item(from: asset, outfitCount: usageCount)
+        var parsedItems: [WardrobeItemInsight] = []
+        for asset in assets where asset.kind == .wardrobeItem {
+            let usageCount = usageByName[wardrobeNormalizedName(asset.title)] ?? 0
+            if let parsedItem = item(from: asset, outfitCount: usageCount) {
+                parsedItems.append(parsedItem)
             }
-            .sorted { $0.createdAt == $1.createdAt ? $0.name < $1.name : $0.createdAt > $1.createdAt }
+        }
+        let items = parsedItems.sorted(by: sortItemsByDateThenName)
 
         let categories = items.map { $0.category }.filter { !$0.isEmpty }
         let colors = items.flatMap { $0.colors }
@@ -100,11 +101,11 @@ enum WardrobeInsightEngine {
         let sceneStats = stats(from: scenes)
         let unusedItems = items
             .filter { $0.outfitCount == 0 }
-            .sorted { $0.createdAt == $1.createdAt ? $0.name < $1.name : $0.createdAt > $1.createdAt }
-        let frequentItems = items
-            .filter { $0.outfitCount > 0 }
+            .sorted(by: sortItemsByDateThenName)
+        let usedItems = items.filter { $0.outfitCount > 0 }
+        let frequentItems = usedItems
             .map { WardrobeItemUsage(item: $0, count: $0.outfitCount) }
-            .sorted { $0.count == $1.count ? $0.item.name < $1.item.name : $0.count > $1.count }
+            .sorted(by: sortUsageByCountThenName)
 
         return WardrobeInsights(
             items: items,
@@ -117,6 +118,20 @@ enum WardrobeInsightEngine {
             frequentItems: Array(frequentItems.prefix(5)),
             suggestions: suggestions(items: items, outfits: outfits, unusedItems: unusedItems, sceneStats: sceneStats, seasonStats: seasonStats)
         )
+    }
+
+    private static func sortItemsByDateThenName(_ lhs: WardrobeItemInsight, _ rhs: WardrobeItemInsight) -> Bool {
+        if lhs.createdAt == rhs.createdAt {
+            return lhs.name < rhs.name
+        }
+        return lhs.createdAt > rhs.createdAt
+    }
+
+    private static func sortUsageByCountThenName(_ lhs: WardrobeItemUsage, _ rhs: WardrobeItemUsage) -> Bool {
+        if lhs.count == rhs.count {
+            return lhs.item.name < rhs.item.name
+        }
+        return lhs.count > rhs.count
     }
 
     private static func item(from asset: MemoAsset, outfitCount: Int) -> WardrobeItemInsight? {
