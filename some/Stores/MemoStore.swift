@@ -39,6 +39,7 @@ final class MemoStore: ObservableObject {
     @Published var homeMode: MemoHomeMode = .timeline
     @Published private(set) var reviewMemo: Memo?
     @Published private(set) var revisionsByMemoID: [UUID: [MemoRevision]] = [:]
+    @Published private(set) var assets: [MemoAsset] = []
     @Published private(set) var recentSearches: [String] = []
     @Published private(set) var savedSearches: [String] = []
 
@@ -294,6 +295,12 @@ final class MemoStore: ObservableObject {
 
     func revisions(for memo: Memo) -> [MemoRevision] {
         revisionsByMemoID[memo.id] ?? []
+    }
+
+    func assets(for memo: Memo) -> [MemoAsset] {
+        assets
+            .filter { $0.memoID == memo.id }
+            .sorted { $0.kind.rawValue == $1.kind.rawValue ? $0.title < $1.title : $0.kind.rawValue < $1.kind.rawValue }
     }
 
     @discardableResult
@@ -1034,6 +1041,7 @@ final class MemoStore: ObservableObject {
     private func load() {
         if storageError != nil {
             memos = []
+            assets = []
             return
         }
 
@@ -1044,6 +1052,7 @@ final class MemoStore: ObservableObject {
                 }
                 memos = try database.fetchAll()
                 loadRevisions()
+                loadAssets()
                 cleanupUnreferencedAttachments()
                 return
             } catch {
@@ -1053,6 +1062,7 @@ final class MemoStore: ObservableObject {
 
         memos = loadLegacyMemos() ?? []
         revisionsByMemoID = [:]
+        assets = derivedAssets()
         cleanupUnreferencedAttachments()
     }
 
@@ -1069,6 +1079,20 @@ final class MemoStore: ObservableObject {
         } catch {
             assertionFailure("Failed to load memo revisions: \(error)")
             revisionsByMemoID = [:]
+        }
+    }
+
+    private func loadAssets() {
+        guard let database = database else {
+            assets = derivedAssets()
+            return
+        }
+
+        do {
+            assets = try database.fetchAllAssets()
+        } catch {
+            assertionFailure("Failed to load memo assets: \(error)")
+            assets = derivedAssets()
         }
     }
 
@@ -1092,6 +1116,7 @@ final class MemoStore: ObservableObject {
                 if let revision = revision {
                     cache(revision)
                 }
+                loadAssets()
                 return true
             } catch {
                 assertionFailure("Failed to save memo in SQLite: \(error)")
@@ -1099,7 +1124,11 @@ final class MemoStore: ObservableObject {
             }
         }
 
-        return saveLegacyJSON()
+        let saved = saveLegacyJSON()
+        if saved {
+            assets = derivedAssets()
+        }
+        return saved
     }
 
     @discardableResult
@@ -1108,6 +1137,7 @@ final class MemoStore: ObservableObject {
             do {
                 let revisions = revisionsByMemoID.values.flatMap { $0 }
                 try database.replaceAll(memos: memos, revisions: revisions)
+                loadAssets()
                 return true
             } catch {
                 assertionFailure("Failed to save memos in SQLite: \(error)")
@@ -1115,13 +1145,18 @@ final class MemoStore: ObservableObject {
             }
         }
 
-        return saveLegacyJSON()
+        let saved = saveLegacyJSON()
+        if saved {
+            assets = derivedAssets()
+        }
+        return saved
     }
 
     private func deleteFromStorage(_ memo: Memo) -> Bool {
         if let database = database {
             do {
                 try database.delete(id: memo.id)
+                loadAssets()
                 return true
             } catch {
                 assertionFailure("Failed to delete memo in SQLite: \(error)")
@@ -1129,7 +1164,17 @@ final class MemoStore: ObservableObject {
             }
         }
 
-        return saveLegacyJSON()
+        let saved = saveLegacyJSON()
+        if saved {
+            assets = derivedAssets()
+        }
+        return saved
+    }
+
+    private func derivedAssets() -> [MemoAsset] {
+        memos
+            .flatMap { MemoAsset.assets(in: $0) }
+            .sorted { $0.createdAt == $1.createdAt ? $0.title < $1.title : $0.createdAt > $1.createdAt }
     }
 
     private func deleteRemovedAttachments(

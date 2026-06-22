@@ -33,6 +33,7 @@ final class SQLiteMemoDatabase {
         try execute("PRAGMA foreign_keys=ON;")
         try migrate()
         try rebuildSearchIndexIfNeeded()
+        try rebuildAssetIndex()
     }
 
     deinit {
@@ -87,6 +88,30 @@ final class SQLiteMemoDatabase {
         return revisions
     }
 
+    func fetchAllAssets() throws -> [MemoAsset] {
+        let statement = try prepare("""
+        SELECT id, memo_id, kind, title, summary, uri, type_identifier, byte_count, created_at, updated_at
+        FROM memo_assets
+        ORDER BY created_at DESC, kind ASC, title ASC;
+        """)
+        defer { sqlite3_finalize(statement) }
+
+        var assets: [MemoAsset] = []
+
+        while true {
+            let result = sqlite3_step(statement)
+            if result == SQLITE_ROW {
+                assets.append(try asset(from: statement))
+            } else if result == SQLITE_DONE {
+                break
+            } else {
+                throw DatabaseError.stepFailed(Self.errorMessage(database))
+            }
+        }
+
+        return assets
+    }
+
     func upsert(_ memo: Memo) throws {
         try upsert(memo, revision: nil)
     }
@@ -98,6 +123,7 @@ final class SQLiteMemoDatabase {
             }
             try upsertMemoRow(memo)
             try upsertSearchIndex(for: memo)
+            try replaceAssets(for: memo)
         }
     }
 
@@ -106,6 +132,7 @@ final class SQLiteMemoDatabase {
             for memo in memos {
                 try upsertMemoRow(memo)
                 try upsertSearchIndex(for: memo)
+                try replaceAssets(for: memo)
             }
         }
     }
@@ -117,6 +144,7 @@ final class SQLiteMemoDatabase {
             }
 
             try deleteRevisions(memoID: id)
+            try deleteAssets(memoID: id)
 
             let statement = try prepare("DELETE FROM memos WHERE id = ?;")
             defer { sqlite3_finalize(statement) }
@@ -142,6 +170,7 @@ final class SQLiteMemoDatabase {
             for memo in memos {
                 try upsertMemoRow(memo)
                 try upsertSearchIndex(for: memo)
+                try replaceAssets(for: memo)
             }
 
             try execute("DELETE FROM memo_revisions;")
@@ -225,6 +254,24 @@ final class SQLiteMemoDatabase {
         """)
         try execute("CREATE INDEX IF NOT EXISTS idx_memo_revisions_memo_id ON memo_revisions(memo_id);")
         try execute("CREATE INDEX IF NOT EXISTS idx_memo_revisions_created_at ON memo_revisions(created_at DESC);")
+        try execute("""
+        CREATE TABLE IF NOT EXISTS memo_assets (
+            id TEXT PRIMARY KEY NOT NULL,
+            memo_id TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            title TEXT NOT NULL,
+            summary TEXT,
+            uri TEXT,
+            type_identifier TEXT,
+            byte_count INTEGER,
+            created_at REAL NOT NULL,
+            updated_at REAL NOT NULL,
+            FOREIGN KEY(memo_id) REFERENCES memos(id) ON DELETE CASCADE
+        );
+        """)
+        try execute("CREATE INDEX IF NOT EXISTS idx_memo_assets_memo_id ON memo_assets(memo_id);")
+        try execute("CREATE INDEX IF NOT EXISTS idx_memo_assets_kind ON memo_assets(kind);")
+        try execute("CREATE INDEX IF NOT EXISTS idx_memo_assets_created_at ON memo_assets(created_at DESC);")
     }
 
     private func rebuildSearchIndexIfNeeded() throws {
@@ -237,6 +284,14 @@ final class SQLiteMemoDatabase {
         INSERT INTO memos_fts(rowid, id, text, tags)
         SELECT rowid, id, text, tags_json FROM memos;
         """)
+    }
+
+    private func rebuildAssetIndex() throws {
+        let memos = try fetchAll()
+        try execute("DELETE FROM memo_assets;")
+        for memo in memos {
+            try replaceAssets(for: memo)
+        }
     }
 
     private func rowCount(table: String) throws -> Int64 {
@@ -299,8 +354,36 @@ final class SQLiteMemoDatabase {
         try stepDone(statement)
     }
 
+    private func replaceAssets(for memo: Memo) throws {
+        try deleteAssets(memoID: memo.id)
+
+        for asset in MemoAsset.assets(in: memo) {
+            try insertAssetRow(asset)
+        }
+    }
+
+    private func insertAssetRow(_ asset: MemoAsset) throws {
+        let statement = try prepare("""
+        INSERT OR REPLACE INTO memo_assets (
+            id, memo_id, kind, title, summary, uri, type_identifier, byte_count, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """)
+        defer { sqlite3_finalize(statement) }
+
+        try bind(asset, to: statement)
+        try stepDone(statement)
+    }
+
     private func deleteRevisions(memoID: UUID) throws {
         let statement = try prepare("DELETE FROM memo_revisions WHERE memo_id = ?;")
+        defer { sqlite3_finalize(statement) }
+
+        sqlite3_bind_text(statement, 1, memoID.uuidString, -1, sqliteTransient)
+        try stepDone(statement)
+    }
+
+    private func deleteAssets(memoID: UUID) throws {
+        let statement = try prepare("DELETE FROM memo_assets WHERE memo_id = ?;")
         defer { sqlite3_finalize(statement) }
 
         sqlite3_bind_text(statement, 1, memoID.uuidString, -1, sqliteTransient)
@@ -382,6 +465,31 @@ final class SQLiteMemoDatabase {
         sqlite3_bind_double(statement, 6, revision.memoUpdatedAt.timeIntervalSince1970)
     }
 
+    private func bind(_ asset: MemoAsset, to statement: OpaquePointer?) throws {
+        sqlite3_bind_text(statement, 1, asset.id.uuidString, -1, sqliteTransient)
+        sqlite3_bind_text(statement, 2, asset.memoID.uuidString, -1, sqliteTransient)
+        sqlite3_bind_text(statement, 3, asset.kind.rawValue, -1, sqliteTransient)
+        sqlite3_bind_text(statement, 4, asset.title, -1, sqliteTransient)
+        bindNullableText(asset.summary, to: statement, index: 5)
+        bindNullableText(asset.uri, to: statement, index: 6)
+        bindNullableText(asset.typeIdentifier, to: statement, index: 7)
+        if let byteCount = asset.byteCount {
+            sqlite3_bind_int64(statement, 8, Int64(byteCount))
+        } else {
+            sqlite3_bind_null(statement, 8)
+        }
+        sqlite3_bind_double(statement, 9, asset.createdAt.timeIntervalSince1970)
+        sqlite3_bind_double(statement, 10, asset.updatedAt.timeIntervalSince1970)
+    }
+
+    private func bindNullableText(_ text: String?, to statement: OpaquePointer?, index: Int32) {
+        if let text = text {
+            sqlite3_bind_text(statement, index, text, -1, sqliteTransient)
+        } else {
+            sqlite3_bind_null(statement, index)
+        }
+    }
+
     private func stepDone(_ statement: OpaquePointer?) throws {
         guard sqlite3_step(statement) == SQLITE_DONE else {
             throw DatabaseError.stepFailed(Self.errorMessage(database))
@@ -439,11 +547,53 @@ final class SQLiteMemoDatabase {
         )
     }
 
+    private func asset(from statement: OpaquePointer?) throws -> MemoAsset {
+        let idText = Self.columnText(statement, index: 0)
+        let memoIDText = Self.columnText(statement, index: 1)
+        let kindText = Self.columnText(statement, index: 2)
+        guard let id = UUID(uuidString: idText) else {
+            throw DatabaseError.invalidID(idText)
+        }
+        guard let memoID = UUID(uuidString: memoIDText) else {
+            throw DatabaseError.invalidID(memoIDText)
+        }
+        guard let kind = MemoAssetKind(rawValue: kindText) else {
+            throw DatabaseError.stepFailed("Unknown memo asset kind: \(kindText)")
+        }
+
+        let byteCount: Int?
+        if sqlite3_column_type(statement, 7) == SQLITE_NULL {
+            byteCount = nil
+        } else {
+            byteCount = Int(sqlite3_column_int64(statement, 7))
+        }
+
+        return MemoAsset(
+            id: id,
+            memoID: memoID,
+            kind: kind,
+            title: Self.columnText(statement, index: 3),
+            summary: Self.columnOptionalText(statement, index: 4),
+            uri: Self.columnOptionalText(statement, index: 5),
+            typeIdentifier: Self.columnOptionalText(statement, index: 6),
+            byteCount: byteCount,
+            createdAt: Date(timeIntervalSince1970: sqlite3_column_double(statement, 8)),
+            updatedAt: Date(timeIntervalSince1970: sqlite3_column_double(statement, 9))
+        )
+    }
+
     private static func columnText(_ statement: OpaquePointer?, index: Int32) -> String {
         guard let text = sqlite3_column_text(statement, index) else {
             return ""
         }
         return String(cString: text)
+    }
+
+    private static func columnOptionalText(_ statement: OpaquePointer?, index: Int32) -> String? {
+        guard sqlite3_column_type(statement, index) != SQLITE_NULL else {
+            return nil
+        }
+        return columnText(statement, index: index)
     }
 
     private static func errorMessage(_ database: OpaquePointer?) -> String {

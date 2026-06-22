@@ -1213,6 +1213,67 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: recentURL.path))
     }
 
+    func testMemoAssetsIndexTextLinksAttachmentsTasksAndReferences() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let attachment = try SharedAttachmentStore.save(
+            data: Data("asset attachment".utf8),
+            suggestedFilename: "asset-\(UUID().uuidString).txt",
+            typeIdentifier: UTType.plainText.identifier
+        )
+        defer { SharedAttachmentStore.delete(attachment) }
+
+        guard let target = store.addMemo(text: "目标记录 #素材") else {
+            return XCTFail("Expected target memo")
+        }
+        let sourceText = """
+        资料 https://example.com/a #素材
+        - [ ] 整理素材
+
+        \(attachment.referenceLine)
+        \(MemoReferenceParser.referenceLine(for: target))
+        """
+        guard let source = store.addMemo(text: sourceText) else {
+            return XCTFail("Expected source memo")
+        }
+
+        let assets = store.assets(for: source)
+        XCTAssertTrue(assets.contains { $0.kind == .text && $0.summary?.contains("资料") == true })
+        XCTAssertTrue(assets.contains { $0.kind == .link && $0.uri == "https://example.com/a" })
+        XCTAssertTrue(assets.contains { $0.kind == .attachment && $0.uri?.contains(attachment.relativePath) == true })
+        XCTAssertTrue(assets.contains { $0.kind == .task && $0.title == "整理素材" && $0.summary == "open" })
+        XCTAssertTrue(assets.contains { $0.kind == .reference && $0.uri == "some-memo://\(target.id.uuidString)" })
+    }
+
+    func testMemoAssetsUpdateWhenMemoChanges() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.addMemo(text: "资料 https://example.com/a")
+        guard let memo = store.memos.first else {
+            return XCTFail("Expected memo")
+        }
+
+        XCTAssertTrue(store.assets(for: memo).contains { $0.kind == .link })
+        XCTAssertTrue(store.update(memo, text: "只有正文"))
+
+        guard let updatedMemo = store.memos.first else {
+            return XCTFail("Expected updated memo")
+        }
+        XCTAssertFalse(store.assets(for: updatedMemo).contains { $0.kind == .link })
+        XCTAssertTrue(store.assets(for: updatedMemo).contains { $0.kind == .text })
+    }
+
+    func testMemoAssetsAreRemovedWhenMemoIsDeleted() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.addMemo(text: "资料 https://example.com/a")
+        guard let memo = store.memos.first else {
+            return XCTFail("Expected memo")
+        }
+        XCTAssertFalse(store.assets(for: memo).isEmpty)
+
+        store.delete(memo)
+
+        XCTAssertTrue(store.assets.isEmpty)
+    }
+
     private func documentsURL() -> URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSTemporaryDirectory())

@@ -105,6 +105,13 @@
 - 工作日志生成更像本项目已有 memo/搜索/AI 洞察的组合，不需要先找大型开源 App；应复用现有保存搜索、日期过滤、任务项、标签、引用和 AI composer。
 - flomo 仍有未覆盖能力：禅定模式、小组件、公开 API、MCP 读写接口、AI 语音输入、AI 记忆档案、微信服务号输入替代方案。后续每项开工前继续单独检索可复用实现。
 
+### 统一素材模型（2026-06-22 实现决策）
+
+- 本轮继续检索 Swift/iOS 媒体素材模型、附件模型、衣橱模型和 SQLite/GRDB 方案。直接可复制的成熟“个人素材库数据模型”没有找到；衣橱和媒体项目多数不是 Swift/iOS、无许可证或偏完整 App，不适合直接搬。
+- `groue/GRDB.swift`：<https://github.com/groue/GRDB.swift>，MIT，成熟 SQLite toolkit，后续数据关系变复杂时仍是首选迁移目标。
+- 本轮未引入 GRDB：当前机器无法可靠完成 Xcode/SPM 依赖验证，而且项目已有 sqlite3 层。为减少依赖和返工，先在现有 SQLite 中新增 `memo_assets` 索引表。
+- 实现边界：`MemoAsset` 先索引现有 memo 中的文本、链接、附件、任务和内部引用；预留 `webClip`、`imageEdit`、`scrapbookPage`、`wardrobeItem`、`outfit`、`audio`、`video`、`screenshot` 等类型，供后续网页摘录、图片编辑、电子手帐和电子衣橱扩展。
+
 ## some 当前缺口与复用优先级
 
 P0 验证：
