@@ -1,6 +1,7 @@
 import PhotosUI
 import SwiftUI
 import LinkPresentation
+import UIKit
 import UniformTypeIdentifiers
 
 struct QuickCaptureView: View {
@@ -8,6 +9,7 @@ struct QuickCaptureView: View {
     @AppStorage("some.quickDraft") private var text = ""
     @State private var statusText: String?
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
+    @State private var isShowingCamera = false
     @State private var isShowingFileImporter = false
     @State private var isImportingMedia = false
     @State private var isClippingWebPage = false
@@ -108,6 +110,20 @@ struct QuickCaptureView: View {
                 .accessibilityLabel("导入照片或视频")
 
                 Button {
+                    isShowingCamera = true
+                } label: {
+                    Image(systemName: "camera")
+                        .frame(width: 34, height: 34)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.secondaryText)
+                .background(Color.subtleSurface)
+                .clipShape(Circle())
+                .disabled(isImportingMedia || !canUseCamera)
+                .opacity(canUseCamera ? 1 : 0.35)
+                .accessibilityLabel("拍照导入")
+
+                Button {
                     isShowingFileImporter = true
                 } label: {
                     Image(systemName: "folder")
@@ -180,6 +196,17 @@ struct QuickCaptureView: View {
         .onChange(of: selectedPhotoItems) { items in
             importPhotoItems(items)
         }
+        .fullScreenCover(isPresented: $isShowingCamera) {
+            CameraCaptureView(
+                onImage: { image in
+                    isShowingCamera = false
+                    importCapturedImage(image)
+                },
+                onCancel: {
+                    isShowingCamera = false
+                }
+            )
+        }
         .fileImporter(
             isPresented: $isShowingFileImporter,
             allowedContentTypes: importableContentTypes,
@@ -218,6 +245,10 @@ struct QuickCaptureView: View {
 
     private var importableContentTypes: [UTType] {
         [.image, .movie, .audio, .pdf, .text, .data]
+    }
+
+    private var canUseCamera: Bool {
+        UIImagePickerController.isSourceTypeAvailable(.camera)
     }
 
     private func submit() {
@@ -281,6 +312,44 @@ struct QuickCaptureView: View {
                 selectedPhotoItems = []
                 isImportingMedia = false
                 statusText = importStatus(imported: importedCount, failed: failedCount)
+            }
+        }
+    }
+
+    private func importCapturedImage(_ image: UIImage) {
+        guard let data = image.jpegData(compressionQuality: 0.92) else {
+            statusText = "拍照导入失败：无法读取图片。"
+            return
+        }
+
+        isImportingMedia = true
+        statusText = "正在导入拍摄图片..."
+
+        Task {
+            do {
+                let attachment = try SharedAttachmentStore.save(
+                    data: data,
+                    suggestedFilename: importedFilename(prefix: "camera", type: .jpeg),
+                    typeIdentifier: UTType.jpeg.identifier
+                )
+                let note = await importNote(
+                    for: attachment,
+                    type: .jpeg,
+                    data: data,
+                    fallbackNote: "拍照导入"
+                )
+                let imported = await MainActor.run {
+                    store.addAttachmentMemo(attachment, note: note) != nil
+                }
+                await MainActor.run {
+                    isImportingMedia = false
+                    statusText = importStatus(imported: imported ? 1 : 0, failed: imported ? 0 : 1)
+                }
+            } catch {
+                await MainActor.run {
+                    isImportingMedia = false
+                    statusText = "拍照导入失败：\(error.localizedDescription)"
+                }
             }
         }
     }
@@ -367,13 +436,19 @@ struct QuickCaptureView: View {
         return "导入文件"
     }
 
-    private func importNote(for attachment: SharedAttachment, type: UTType, data: Data?) async -> String {
+    private func importNote(
+        for attachment: SharedAttachment,
+        type: UTType,
+        data: Data?,
+        fallbackNote: String? = nil
+    ) async -> String {
         guard type.conforms(to: .image), let data = data else {
-            return importNote(for: type)
+            return fallbackNote ?? importNote(for: type)
         }
 
         let recognizedLines = await ImageTextRecognizer.recognizeText(in: data)
         return ImageTextRecognizer.memoText(for: attachment, recognizedLines: recognizedLines)
+            ?? fallbackNote
             ?? importNote(for: type)
     }
 
@@ -419,6 +494,51 @@ struct QuickCaptureView: View {
                 isClippingWebPage = false
                 statusText = saved ? "已保存网页摘录" : "网页摘录保存失败。"
             }
+        }
+    }
+}
+
+private struct CameraCaptureView: UIViewControllerRepresentable {
+    let onImage: (UIImage) -> Void
+    let onCancel: () -> Void
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.cameraCaptureMode = .photo
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onImage: onImage, onCancel: onCancel)
+    }
+
+    final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+        private let onImage: (UIImage) -> Void
+        private let onCancel: () -> Void
+
+        init(onImage: @escaping (UIImage) -> Void, onCancel: @escaping () -> Void) {
+            self.onImage = onImage
+            self.onCancel = onCancel
+        }
+
+        func imagePickerController(
+            _ picker: UIImagePickerController,
+            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+        ) {
+            guard let image = info[.originalImage] as? UIImage else {
+                onCancel()
+                return
+            }
+
+            onImage(image)
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            onCancel()
         }
     }
 }
