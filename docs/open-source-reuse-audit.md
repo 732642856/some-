@@ -112,13 +112,20 @@
 - 本轮未引入 GRDB：当前机器无法可靠完成 Xcode/SPM 依赖验证，而且项目已有 sqlite3 层。为减少依赖和返工，先在现有 SQLite 中新增 `memo_assets` 索引表。
 - 实现边界：`MemoAsset` 先索引现有 memo 中的文本、链接、附件、任务和内部引用；预留 `webClip`、`imageEdit`、`scrapbookPage`、`wardrobeItem`、`outfit`、`audio`、`video`、`screenshot` 等类型，供后续网页摘录、图片编辑、电子手帐和电子衣橱扩展。
 
+### 多模态采集入口和素材库（2026-06-22 实现决策）
+
+- 本轮工作前已重新扫描主仓库、未跟踪文件、Documents 下 some 相关旧目录，并检索 `SwiftUI PhotosPicker sample`、`SwiftUI fileImporter sample`、`SwiftUI journal photo attachments`、`SwiftUI memo attachment app`、`SwiftUI asset library PhotosPicker` 等关键词。
+- GitHub API 检索到的 `drawrs/PhotosPicker-PhotoUI` 是无许可证示例仓库，不能直接复制；其他 SwiftUI 附件/素材导入检索未找到成熟、许可证清晰且可直接搬进本项目的模块。
+- 本轮采用 Apple 系统能力 `PhotosUI.PhotosPicker` 和 SwiftUI `.fileImporter`，并复用项目已有 `SharedAttachmentStore`、`SharedMemoTextComposer`、`MemoAsset` 索引，不引入第三方运行时代码。
+- 实现边界：已支持从输入卡片导入相册图片/视频和文件，保存为本地附件 memo，并在首页新增素材库按类型筛选；相机拍摄、录音、截图 OCR、视频拍摄、缩略图缓存和复杂媒体元数据仍属于后续多模态采集二期。
+
 ## some 当前缺口与复用优先级
 
 P0 验证：
 
 - 完整 Xcode 编译、单元测试、模拟器/真机运行。
 - App Group、Share Extension、FTS 搜索在真机/模拟器上验证。
-- 统一素材模型：不能继续只把文字、图片、音频、视频、链接、网页、衣橱单品都塞进 memo 正文。
+- 统一素材模型：v1 已建立 `MemoAsset` 索引，但衣橱、手帐页面、网页摘录、编辑版本仍需要独立实体和关系。
 - 本地媒体存储与备份：原始素材、缩略图、编辑版本、导出版本、衣橱抠图和手帐页面需要可追踪。
 
 P1 优先复用：
@@ -157,6 +164,8 @@ P3 只参考：
 2026-06-22 本轮实现决策：继续对照 usememos/memos 的 memo relations、link metadata 和内容 payload/filter 思路，补 some 搜索三期第一段。新增 `has:*` / `-has:*` 语法复用本项目已有 `LinkExtractor`、`SharedAttachmentStore`、`MemoTaskParser`、`MemoReferenceParser`，没有复制 usememos 的 MIT 代码；选择文本语法是为了让保存搜索、最近搜索和现有 FTS 查询链都能直接组合使用。
 
 2026-06-22 本轮实现决策：继续补搜索三期第二段，参考 Joplin `created:` / `updated:` 日期过滤与“错误过滤器按普通文本处理”的交互原则。some 重新实现本地日期解析，只支持清晰的 `yyyy` / `yyyy-MM` / `yyyy-MM-dd` 和 `>` / `>=` / `<` / `<=` 边界语法，避免引入模糊自然语言日期依赖，也没有复制 Joplin 源码。
+
+2026-06-22 本轮实现决策：多模态采集入口 v1 采用 Apple `PhotosUI.PhotosPicker` 和 SwiftUI `.fileImporter`，没有复制无许可证 PhotosPicker 示例，也没有新增第三方依赖。导入结果复用现有 App Group 附件目录、memo 正文附件引用和 `MemoAsset` 索引；首页新增素材库视图作为素材整理入口。
 
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 

@@ -1,9 +1,14 @@
+import PhotosUI
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct QuickCaptureView: View {
     @EnvironmentObject private var store: MemoStore
     @AppStorage("some.quickDraft") private var text = ""
     @State private var statusText: String?
+    @State private var selectedPhotoItems: [PhotosPickerItem] = []
+    @State private var isShowingFileImporter = false
+    @State private var isImportingMedia = false
     @FocusState private var isFocused: Bool
 
     var body: some View {
@@ -62,7 +67,7 @@ struct QuickCaptureView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
 
-            if let statusText {
+            if let statusText = statusText {
                 Text(statusText)
                     .font(.caption)
                     .foregroundStyle(Color.secondaryText)
@@ -84,6 +89,40 @@ struct QuickCaptureView: View {
                 .disabled(text.isEmpty)
                 .opacity(text.isEmpty ? 0.35 : 1)
                 .accessibilityLabel("清空")
+
+                PhotosPicker(
+                    selection: $selectedPhotoItems,
+                    maxSelectionCount: 12,
+                    matching: .any(of: [.images, .videos])
+                ) {
+                    Image(systemName: "photo.on.rectangle.angled")
+                        .frame(width: 34, height: 34)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.secondaryText)
+                .background(Color.subtleSurface)
+                .clipShape(Circle())
+                .disabled(isImportingMedia)
+                .accessibilityLabel("导入照片或视频")
+
+                Button {
+                    isShowingFileImporter = true
+                } label: {
+                    Image(systemName: "folder")
+                        .frame(width: 34, height: 34)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.secondaryText)
+                .background(Color.subtleSurface)
+                .clipShape(Circle())
+                .disabled(isImportingMedia)
+                .accessibilityLabel("导入文件")
+
+                if isImportingMedia {
+                    ProgressView()
+                        .tint(Color.accentGreen)
+                        .frame(width: 28, height: 34)
+                }
 
                 Spacer()
 
@@ -116,6 +155,16 @@ struct QuickCaptureView: View {
         .task {
             isFocused = true
         }
+        .onChange(of: selectedPhotoItems) { items in
+            importPhotoItems(items)
+        }
+        .fileImporter(
+            isPresented: $isShowingFileImporter,
+            allowedContentTypes: importableContentTypes,
+            allowsMultipleSelection: true
+        ) { result in
+            importFiles(result)
+        }
     }
 
     private var trimmedText: String {
@@ -145,6 +194,10 @@ struct QuickCaptureView: View {
         return String(tail.dropFirst())
     }
 
+    private var importableContentTypes: [UTType] {
+        [.image, .movie, .audio, .pdf, .text, .data]
+    }
+
     private func submit() {
         if store.addMemo(text: text) != nil {
             text = ""
@@ -165,5 +218,151 @@ struct QuickCaptureView: View {
 
         text.replaceSubrange(range, with: "#\(tag) ")
         isFocused = true
+    }
+
+    private func importPhotoItems(_ items: [PhotosPickerItem]) {
+        guard !items.isEmpty else { return }
+
+        isImportingMedia = true
+        statusText = "正在导入素材..."
+
+        Task {
+            var importedCount = 0
+            var failedCount = 0
+
+            for item in items {
+                let type = preferredContentType(for: item)
+
+                do {
+                    guard let data = try await item.loadTransferable(type: Data.self) else {
+                        failedCount += 1
+                        continue
+                    }
+
+                    let attachment = try SharedAttachmentStore.save(
+                        data: data,
+                        suggestedFilename: importedFilename(prefix: filenamePrefix(for: type), type: type),
+                        typeIdentifier: type.identifier
+                    )
+                    let imported = await MainActor.run {
+                        store.addAttachmentMemo(attachment, note: importNote(for: type)) != nil
+                    }
+                    importedCount += imported ? 1 : 0
+                    failedCount += imported ? 0 : 1
+                } catch {
+                    failedCount += 1
+                }
+            }
+
+            await MainActor.run {
+                selectedPhotoItems = []
+                isImportingMedia = false
+                statusText = importStatus(imported: importedCount, failed: failedCount)
+            }
+        }
+    }
+
+    private func importFiles(_ result: Result<[URL], Error>) {
+        do {
+            let urls = try result.get()
+            guard !urls.isEmpty else { return }
+
+            isImportingMedia = true
+            statusText = "正在导入素材..."
+
+            Task {
+                var importedCount = 0
+                var failedCount = 0
+
+                for url in urls {
+                    do {
+                        let attachment = try SharedAttachmentStore.save(
+                            fileAt: url,
+                            suggestedFilename: nil,
+                            typeIdentifier: nil
+                        )
+                        let type = UTType(attachment.typeIdentifier) ?? .data
+                        let imported = await MainActor.run {
+                            store.addAttachmentMemo(attachment, note: importNote(for: type)) != nil
+                        }
+                        importedCount += imported ? 1 : 0
+                        failedCount += imported ? 0 : 1
+                    } catch {
+                        failedCount += 1
+                    }
+                }
+
+                await MainActor.run {
+                    isImportingMedia = false
+                    statusText = importStatus(imported: importedCount, failed: failedCount)
+                }
+            }
+        } catch {
+            statusText = "导入失败：\(error.localizedDescription)"
+        }
+    }
+
+    private func preferredContentType(for item: PhotosPickerItem) -> UTType {
+        if let type = item.supportedContentTypes.first(where: { $0.conforms(to: .movie) }) {
+            return type
+        }
+
+        if let type = item.supportedContentTypes.first(where: { $0.conforms(to: .image) }) {
+            return type
+        }
+
+        return item.supportedContentTypes.first ?? .data
+    }
+
+    private func filenamePrefix(for type: UTType) -> String {
+        if type.conforms(to: .movie) {
+            return "video"
+        }
+
+        if type.conforms(to: .image) {
+            return "photo"
+        }
+
+        return "asset"
+    }
+
+    private func importNote(for type: UTType) -> String {
+        if type.conforms(to: .movie) {
+            return "导入视频"
+        }
+
+        if type.conforms(to: .audio) {
+            return "导入音频"
+        }
+
+        if type.conforms(to: .image) {
+            return "导入图片"
+        }
+
+        return "导入文件"
+    }
+
+    private func importedFilename(prefix: String, type: UTType) -> String {
+        let timestamp = Int(Date().timeIntervalSince1970)
+        let suffix = String(UUID().uuidString.prefix(8))
+        let basename = "\(prefix)-\(timestamp)-\(suffix)"
+
+        guard let pathExtension = type.preferredFilenameExtension else {
+            return basename
+        }
+
+        return "\(basename).\(pathExtension)"
+    }
+
+    private func importStatus(imported: Int, failed: Int) -> String {
+        if imported > 0, failed > 0 {
+            return "已导入 \(imported) 个素材，\(failed) 个失败。"
+        }
+
+        if imported > 0 {
+            return "已导入 \(imported) 个素材"
+        }
+
+        return failed > 0 ? "没有导入素材，\(failed) 个失败。" : "没有导入素材"
     }
 }

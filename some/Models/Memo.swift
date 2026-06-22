@@ -78,7 +78,7 @@ struct DailyMemoStat: Identifiable, Equatable {
     var id: Date { date }
 }
 
-enum MemoAssetKind: String, Codable, CaseIterable {
+enum MemoAssetKind: String, Codable, CaseIterable, Hashable {
     case text
     case link
     case attachment
@@ -92,6 +92,44 @@ enum MemoAssetKind: String, Codable, CaseIterable {
     case audio
     case video
     case screenshot
+}
+
+extension MemoAssetKind {
+    var title: String {
+        switch self {
+        case .text: return "文本"
+        case .link: return "链接"
+        case .attachment: return "附件"
+        case .task: return "任务"
+        case .reference: return "引用"
+        case .webClip: return "网页"
+        case .imageEdit: return "图片"
+        case .scrapbookPage: return "手帐"
+        case .wardrobeItem: return "衣橱"
+        case .outfit: return "穿搭"
+        case .audio: return "音频"
+        case .video: return "视频"
+        case .screenshot: return "截图"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .text: return "text.alignleft"
+        case .link: return "link"
+        case .attachment: return "paperclip"
+        case .task: return "checklist"
+        case .reference: return "arrow.triangle.branch"
+        case .webClip: return "doc.text.magnifyingglass"
+        case .imageEdit: return "wand.and.stars"
+        case .scrapbookPage: return "rectangle.stack"
+        case .wardrobeItem: return "tshirt"
+        case .outfit: return "sparkles"
+        case .audio: return "waveform"
+        case .video: return "video"
+        case .screenshot: return "camera.viewfinder"
+        }
+    }
 }
 
 struct MemoAsset: Identifiable, Codable, Equatable {
@@ -188,7 +226,7 @@ extension MemoAsset {
 
         for attachment in SharedAttachmentStore.attachments(in: memo.text) {
             append(
-                kind: .attachment,
+                kind: assetKind(for: attachment),
                 title: attachment.displayName,
                 uri: "\(SharedAttachmentStore.referenceScheme)://\(SharedAttachmentStore.encodedReferencePath(attachment.relativePath))",
                 typeIdentifier: attachment.typeIdentifier,
@@ -218,6 +256,22 @@ extension MemoAsset {
         }
 
         return assets
+    }
+
+    private static func assetKind(for attachment: SharedAttachment) -> MemoAssetKind {
+        guard let type = UTType(attachment.typeIdentifier) else {
+            return .attachment
+        }
+
+        if type.conforms(to: .audio) {
+            return .audio
+        }
+
+        if type.conforms(to: .movie) {
+            return .video
+        }
+
+        return .attachment
     }
 
     private static func stableID(memoID: UUID, kind: MemoAssetKind, stableKey: String) -> UUID {

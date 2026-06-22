@@ -1274,6 +1274,30 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(store.assets.isEmpty)
     }
 
+    func testAddAttachmentMemoCreatesMemoAndAttachmentAsset() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let payload = Data("imported image data".utf8)
+        let attachment = try SharedAttachmentStore.save(
+            data: payload,
+            suggestedFilename: "import-\(UUID().uuidString).png",
+            typeIdentifier: UTType.png.identifier
+        )
+        defer { SharedAttachmentStore.delete(attachment) }
+
+        guard let memo = store.addAttachmentMemo(attachment, note: "导入图片") else {
+            return XCTFail("Expected imported memo")
+        }
+
+        let importedAttachments = SharedAttachmentStore.attachments(in: memo.text)
+        XCTAssertEqual(importedAttachments.first?.relativePath, attachment.relativePath)
+        XCTAssertTrue(memo.text.contains("导入图片"))
+
+        let asset = store.assets(for: memo).first { $0.kind == .attachment }
+        XCTAssertEqual(asset?.title, attachment.displayName)
+        XCTAssertEqual(asset?.typeIdentifier, UTType.png.identifier)
+        XCTAssertEqual(asset?.byteCount, payload.count)
+    }
+
     private func documentsURL() -> URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSTemporaryDirectory())

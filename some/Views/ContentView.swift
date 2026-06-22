@@ -1,4 +1,6 @@
 import SwiftUI
+import UniformTypeIdentifiers
+import UIKit
 
 struct ContentView: View {
     @EnvironmentObject private var store: MemoStore
@@ -20,6 +22,8 @@ struct ContentView: View {
                             QuickCaptureView()
                             TagFilterView()
                             MemoListView(memos: store.filteredMemos, emptyTitle: "还没有匹配的闪念")
+                        case .assets:
+                            AssetLibraryView()
                         case .ai:
                             AIWorkspaceView()
                         case .review:
@@ -214,6 +218,7 @@ private struct HeaderView: View {
     private var headerTitle: String {
         switch store.homeMode {
         case .timeline: return "今天先记下来"
+        case .assets: return "整理素材"
         case .ai: return "让 AI 帮你排版"
         case .review: return "让旧念头冒泡"
         case .stats: return "看见记录习惯"
@@ -301,5 +306,248 @@ private struct MemoListView: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+}
+
+private struct AssetLibraryView: View {
+    @EnvironmentObject private var store: MemoStore
+    @State private var selectedKind: MemoAssetKind?
+
+    private var filteredAssets: [MemoAsset] {
+        guard let selectedKind = selectedKind else {
+            return store.assets
+        }
+
+        return store.assets.filter { $0.kind == selectedKind }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            assetSummary
+            assetFilter
+
+            if filteredAssets.isEmpty {
+                EmptyStateView(title: emptyTitle)
+                    .padding(.top, 12)
+            } else {
+                ForEach(filteredAssets) { asset in
+                    if let memo = memo(for: asset) {
+                        NavigationLink(value: memo.id) {
+                            AssetRowView(asset: asset, memo: memo)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        AssetRowView(asset: asset, memo: nil)
+                    }
+                }
+            }
+        }
+    }
+
+    private var assetSummary: some View {
+        HStack(spacing: 10) {
+            StatBadge(title: "素材", value: "\(store.assets.count)", systemImage: "square.grid.2x2")
+            StatBadge(title: "附件", value: "\(assetCount(.attachment))", systemImage: "paperclip")
+            StatBadge(title: "链接", value: "\(assetCount(.link))", systemImage: "link")
+        }
+    }
+
+    private var assetFilter: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                assetFilterButton(title: "全部", systemImage: "tray.full", isSelected: selectedKind == nil) {
+                    selectedKind = nil
+                }
+
+                ForEach(visibleKinds, id: \.self) { kind in
+                    assetFilterButton(
+                        title: kind.title,
+                        systemImage: kind.systemImage,
+                        isSelected: selectedKind == kind
+                    ) {
+                        selectedKind = kind
+                    }
+                }
+            }
+        }
+    }
+
+    private var visibleKinds: [MemoAssetKind] {
+        MemoAssetKind.allCases.filter { assetCount($0) > 0 }
+    }
+
+    private var emptyTitle: String {
+        selectedKind.map { "还没有\($0.title)素材" } ?? "还没有素材"
+    }
+
+    private func assetCount(_ kind: MemoAssetKind) -> Int {
+        store.assets.filter { $0.kind == kind }.count
+    }
+
+    private func memo(for asset: MemoAsset) -> Memo? {
+        store.memos.first { $0.id == asset.memoID }
+    }
+
+    private func assetFilterButton(
+        title: String,
+        systemImage: String,
+        isSelected: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.footnote.weight(.semibold))
+                .padding(.horizontal, 11)
+                .frame(height: 34)
+                .foregroundStyle(isSelected ? Color.white : Color.secondaryText)
+                .background(isSelected ? Color.accentGreen : Color.surface)
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule()
+                        .stroke(isSelected ? Color.clear : Color.border, lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct AssetRowView: View {
+    let asset: MemoAsset
+    let memo: Memo?
+
+    var body: some View {
+        HStack(spacing: 12) {
+            preview
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Text(asset.title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.primaryText)
+                        .lineLimit(1)
+
+                    Spacer(minLength: 8)
+
+                    Text(asset.kind.title)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.accentGreen)
+                        .padding(.horizontal, 8)
+                        .frame(height: 22)
+                        .background(Color.greenTint)
+                        .clipShape(Capsule())
+                }
+
+                if let summary = summaryText {
+                    Text(summary)
+                        .font(.footnote)
+                        .foregroundStyle(Color.secondaryText)
+                        .lineLimit(2)
+                }
+
+                HStack(spacing: 6) {
+                    Image(systemName: "clock")
+                        .font(.caption2.weight(.semibold))
+                    Text(DateFormatters.row.localizedString(for: asset.createdAt, relativeTo: Date()))
+                    if let memo = memo {
+                        Text("·")
+                        Text(storeTitle(for: memo))
+                            .lineLimit(1)
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(Color.tertiaryText)
+            }
+        }
+        .padding(12)
+        .background(Color.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.border, lineWidth: 1)
+        )
+    }
+
+    @ViewBuilder
+    private var preview: some View {
+        if let attachment = attachment,
+           attachment.isImage,
+           let url = SharedAttachmentStore.url(for: attachment),
+           let image = UIImage(contentsOfFile: url.path) {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 54, height: 54)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        } else {
+            Image(systemName: iconName)
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(Color.accentGreen)
+                .frame(width: 54, height: 54)
+                .background(Color.greenTint)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+    }
+
+    private var iconName: String {
+        if let type = asset.typeIdentifier.flatMap(UTType.init) {
+            if type.conforms(to: .image) {
+                return "photo"
+            }
+
+            if type.conforms(to: .movie) {
+                return "video"
+            }
+
+            if type.conforms(to: .audio) {
+                return "waveform"
+            }
+        }
+
+        return asset.kind.systemImage
+    }
+
+    private var attachment: SharedAttachment? {
+        guard asset.kind == .attachment,
+              let uri = asset.uri,
+              let components = URLComponents(string: uri),
+              components.scheme == SharedAttachmentStore.referenceScheme,
+              let encodedPath = attachmentReferencePath(from: components),
+              let filename = encodedPath.removingPercentEncoding
+        else {
+            return nil
+        }
+
+        return SharedAttachment(
+            id: filename,
+            filename: asset.title,
+            relativePath: filename,
+            typeIdentifier: asset.typeIdentifier ?? UTType.data.identifier,
+            byteCount: asset.byteCount ?? 0
+        )
+    }
+
+    private var summaryText: String? {
+        if let summary = asset.summary, !summary.isEmpty {
+            return summary
+        }
+
+        if let byteCount = asset.byteCount, byteCount > 0 {
+            return SharedAttachmentStore.formatByteCount(byteCount)
+        }
+
+        return asset.uri
+    }
+
+    private func storeTitle(for memo: Memo) -> String {
+        MemoReferenceParser.title(for: memo)
+    }
+
+    private func attachmentReferencePath(from components: URLComponents) -> String? {
+        if let host = components.host, !host.isEmpty {
+            return host
+        }
+
+        let path = components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        return path.isEmpty ? nil : path
     }
 }

@@ -3,6 +3,7 @@ import SwiftUI
 
 enum MemoHomeMode: String, CaseIterable, Identifiable {
     case timeline
+    case assets
     case ai
     case review
     case stats
@@ -13,6 +14,7 @@ enum MemoHomeMode: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .timeline: return "记录"
+        case .assets: return "素材"
         case .ai: return "AI"
         case .review: return "回顾"
         case .stats: return "统计"
@@ -23,6 +25,7 @@ enum MemoHomeMode: String, CaseIterable, Identifiable {
     var systemImage: String {
         switch self {
         case .timeline: return "square.and.pencil"
+        case .assets: return "square.grid.2x2"
         case .ai: return "sparkles.rectangle.stack"
         case .review: return "sparkles"
         case .stats: return "chart.xyaxis.line"
@@ -193,6 +196,22 @@ final class MemoStore: ObservableObject {
             }
             return nil
         }
+        return memo
+    }
+
+    @discardableResult
+    func addAttachmentMemo(_ attachment: SharedAttachment, note: String? = nil) -> Memo? {
+        let body = SharedMemoTextComposer.compose(
+            texts: [note ?? "导入素材"],
+            urls: [],
+            attachments: [attachment]
+        )
+
+        guard let memo = addMemo(text: body) else {
+            SharedAttachmentStore.delete(attachment)
+            return nil
+        }
+
         return memo
     }
 

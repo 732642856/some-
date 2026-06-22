@@ -92,6 +92,11 @@
 - 2026-06-22：已完成统一素材模型 v1，新增 `MemoAsset` 与 SQLite `memo_assets` 表，保存、导入、更新、删除 memo 时会同步维护文本/链接/附件/任务/引用素材索引。
 - 2026-06-22：已补充素材索引单元测试：文本/链接/附件/任务/引用解析、memo 更新同步删除旧链接素材、memo 删除清空素材索引。
 - 2026-06-22：本轮素材模型开发前已复查 Git 状态、未跟踪文件、Documents 下 some 相关目录，并检索 GRDB、Swift/iOS 媒体附件模型和衣橱模型；未找到可直接复制的成熟 Swift 素材库模型，暂不引入新依赖。
+- 2026-06-22：本轮多模态采集入口开发前再次复查 Git 状态、未跟踪文件、当前文件清单和 Documents 下 some 相关旧目录；GitHub/API 检索 `SwiftUI PhotosPicker sample`、`SwiftUI fileImporter sample`、`SwiftUI journal photo attachments`、`SwiftUI memo attachment app` 等关键词，未找到许可证清晰且可直接复制的成熟模块。
+- 2026-06-22：已用 Apple `PhotosUI.PhotosPicker` 和 SwiftUI `.fileImporter` 实现快速导入入口 v1；相册图片/视频和文件会保存为本地附件 memo，并进入 `MemoAsset` 索引。
+- 2026-06-22：已新增首页“素材”模式，按素材类型筛选文本、链接、附件、任务、引用等资产；图片附件显示本地缩略图，并可跳回来源记录。
+- 2026-06-22：已补充 `addAttachmentMemo` 单元测试，覆盖附件导入 memo、附件引用解析和素材索引字段。
+- 2026-06-22：本轮 `git diff --check`、`plutil -lint some/Info.plist some.xcodeproj/project.pbxproj` 通过；`xcrun swiftc -parse` 已覆盖 `Memo.swift`、`MemoStore.swift`、`ContentView.swift` 和 `SomeTests.swift`。`QuickCaptureView.swift` 因 PhotosPicker 数据加载使用 Swift concurrency，旧 Swift 5.4 parser 仍无法解析 `await`，需要 Xcode 16 完整验证。
 
 ## 未能在当前环境完成
 
