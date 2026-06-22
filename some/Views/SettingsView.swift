@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @EnvironmentObject private var store: MemoStore
@@ -311,11 +312,8 @@ struct SettingsView: View {
 
     private func exportBackup() {
         do {
-            exportedBackup = makeExportedDocument(
-                prefix: "some-backup",
-                fileExtension: "somebackup.json",
-                content: try store.exportBackupArchive()
-            )
+            exportedBackup = ExportedDocument(url: try MemoBackupPackage.export(from: store))
+            dataStatusText = nil
         } catch {
             dataStatusText = "导出失败：\(error.localizedDescription)"
         }
@@ -346,10 +344,32 @@ private struct ImportView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var text = ""
     @State private var resultMessage: String?
+    @State private var isShowingFileImporter = false
 
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 14) {
+                Button {
+                    isShowingFileImporter = true
+                } label: {
+                    HStack {
+                        Label("选择备份文件", systemImage: "folder")
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                    }
+                    .frame(height: 46)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.primaryText)
+                .padding(.horizontal, 12)
+                .background(Color.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Color.border, lineWidth: 1)
+                )
+
                 TextEditor(text: $text)
                     .scrollContentBackground(.hidden)
                     .font(.body)
@@ -385,11 +405,49 @@ private struct ImportView: View {
                     .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
+            .fileImporter(
+                isPresented: $isShowingFileImporter,
+                allowedContentTypes: [.someBackupPackage, .json, .plainText, .data],
+                allowsMultipleSelection: false
+            ) { result in
+                importFile(result)
+            }
+        }
+    }
+
+    private func importFile(_ result: Result<[URL], Error>) {
+        do {
+            guard let url = try result.get().first else {
+                return
+            }
+
+            if url.pathExtension.localizedCaseInsensitiveCompare(MemoBackupPackage.fileExtension) == .orderedSame {
+                let count = try MemoBackupPackage.importPackage(at: url, into: store)
+                resultMessage = "已导入 \(count) 条备份记录。"
+            } else {
+                let accessed = url.startAccessingSecurityScopedResource()
+                defer {
+                    if accessed {
+                        url.stopAccessingSecurityScopedResource()
+                    }
+                }
+                let content = try String(contentsOf: url, encoding: .utf8)
+                importContent(content)
+            }
+        } catch {
+            resultMessage = "备份无法解析：\(error.localizedDescription)"
         }
     }
 
     private func importText() {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        importContent(trimmed)
+    }
+
+    private func importContent(_ content: String) {
+        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
         if trimmed.first == "[" || trimmed.first == "{" {
@@ -447,6 +505,10 @@ private struct ExportedDocument: Identifiable {
     let id = UUID()
     let url: URL
 
+    init(url: URL) {
+        self.url = url
+    }
+
     init(prefix: String, fileExtension: String, content: String) throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("some-exports", isDirectory: true)
@@ -467,6 +529,10 @@ private struct ExportedDocument: Identifiable {
         formatter.dateFormat = "yyyyMMdd-HHmmss"
         return formatter.string(from: Date())
     }
+}
+
+private extension UTType {
+    static let someBackupPackage = UTType(filenameExtension: MemoBackupPackage.fileExtension) ?? .data
 }
 
 private struct ShareSheet: UIViewControllerRepresentable {

@@ -288,24 +288,7 @@ final class MemoStore: ObservableObject {
     }
 
     func exportBackupArchive() throws -> String {
-        let sortedMemos = memos.sorted { sortMemos($0, $1) }
-        let attachments = try uniqueAttachments(in: sortedMemos).map { attachment -> MemoBackupAttachment in
-            guard let data = SharedAttachmentStore.data(for: attachment) else {
-                throw MemoBackupArchiveError.missingAttachmentData(attachment.filename)
-            }
-            return MemoBackupAttachment(
-                filename: attachment.filename,
-                relativePath: attachment.relativePath,
-                typeIdentifier: attachment.typeIdentifier,
-                base64Data: data.base64EncodedString()
-            )
-        }
-        let archive = MemoBackupArchive(
-            version: 1,
-            exportedAt: Date(),
-            memos: sortedMemos,
-            attachments: attachments
-        )
+        let archive = try makeBackupArchive(includeInlineAttachmentData: true)
 
         do {
             let data = try JSONEncoder.memoEncoder.encode(archive)
@@ -313,6 +296,36 @@ final class MemoStore: ObservableObject {
         } catch {
             throw MemoBackupArchiveError.encodingFailed
         }
+    }
+
+    func makeBackupArchive(includeInlineAttachmentData: Bool) throws -> MemoBackupArchive {
+        let sortedMemos = memos.sorted { sortMemos($0, $1) }
+        let attachments = try uniqueAttachments(in: sortedMemos).map { attachment -> MemoBackupAttachment in
+            let base64Data: String?
+            if includeInlineAttachmentData {
+                guard let data = SharedAttachmentStore.data(for: attachment) else {
+                    throw MemoBackupArchiveError.missingAttachmentData(attachment.filename)
+                }
+                base64Data = data.base64EncodedString()
+            } else {
+                guard SharedAttachmentStore.exists(attachment) else {
+                    throw MemoBackupArchiveError.missingAttachmentData(attachment.filename)
+                }
+                base64Data = nil
+            }
+            return MemoBackupAttachment(
+                filename: attachment.filename,
+                relativePath: attachment.relativePath,
+                typeIdentifier: attachment.typeIdentifier,
+                base64Data: base64Data
+            )
+        }
+        return MemoBackupArchive(
+            version: 1,
+            exportedAt: Date(),
+            memos: sortedMemos,
+            attachments: attachments
+        )
     }
 
     func importJSON(_ text: String) throws -> Int {
@@ -388,7 +401,8 @@ final class MemoStore: ObservableObject {
 
         do {
             for attachment in archive.attachments where attachmentPathsNeedingArchiveData.contains(attachment.relativePath) {
-                guard let data = Data(base64Encoded: attachment.base64Data) else {
+                guard let base64Data = attachment.base64Data,
+                      let data = Data(base64Encoded: base64Data) else {
                     throw MemoBackupArchiveError.invalidAttachmentData(attachment.filename)
                 }
 

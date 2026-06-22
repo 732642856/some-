@@ -60,6 +60,34 @@ final class SomeTests: XCTestCase {
         SharedAttachmentStore.delete(restoredAttachments[0])
     }
 
+    func testBackupPackageRoundTripRestoresAttachments() throws {
+        let source = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let attachment = try SharedAttachmentStore.save(
+            data: Data("zip package attachment".utf8),
+            suggestedFilename: "zip-\(UUID().uuidString).txt",
+            typeIdentifier: UTType.plainText.identifier
+        )
+        defer { SharedAttachmentStore.delete(attachment) }
+
+        source.addMemo(text: "ZIP 完整备份 #导出\n\n\(attachment.referenceLine)")
+        let packageURL = try MemoBackupPackage.export(from: source)
+        defer { try? FileManager.default.removeItem(at: packageURL) }
+        XCTAssertEqual(packageURL.pathExtension, MemoBackupPackage.fileExtension)
+        SharedAttachmentStore.delete(attachment)
+
+        let target = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let imported = try MemoBackupPackage.importPackage(at: packageURL, into: target)
+
+        XCTAssertEqual(imported, 1)
+        let restoredAttachments = SharedAttachmentStore.attachments(in: target.memos.first?.text ?? "")
+        XCTAssertEqual(restoredAttachments.count, 1)
+        XCTAssertEqual(
+            SharedAttachmentStore.data(for: restoredAttachments[0]),
+            Data("zip package attachment".utf8)
+        )
+        SharedAttachmentStore.delete(restoredAttachments[0])
+    }
+
     func testBackupArchiveExportFailsWhenReferencedAttachmentIsMissing() throws {
         let source = MemoStore(filename: "test-\(UUID().uuidString).json")
         let attachment = try SharedAttachmentStore.save(
@@ -71,6 +99,19 @@ final class SomeTests: XCTestCase {
         SharedAttachmentStore.delete(attachment)
 
         XCTAssertThrowsError(try source.exportBackupArchive())
+    }
+
+    func testBackupPackageExportFailsWhenReferencedAttachmentIsMissing() throws {
+        let source = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let attachment = try SharedAttachmentStore.save(
+            data: Data("missing zip export".utf8),
+            suggestedFilename: "missing-package-\(UUID().uuidString).txt",
+            typeIdentifier: UTType.plainText.identifier
+        )
+        source.addMemo(text: "ZIP 导出前丢失附件\n\n\(attachment.referenceLine)")
+        SharedAttachmentStore.delete(attachment)
+
+        XCTAssertThrowsError(try MemoBackupPackage.export(from: source))
     }
 
     func testBackupArchiveRejectsMissingAttachmentDataForImportedMemo() throws {
