@@ -14,6 +14,8 @@ struct MemoDetailView: View {
     @State private var isShowingReferencePicker = false
     @State private var editErrorMessage: String?
     @State private var historyErrorMessage: String?
+    @State private var transcriptionStatusText: String?
+    @State private var transcribingAttachmentID: String?
     @FocusState private var isFocused: Bool
 
     init(memo: Memo) {
@@ -68,6 +70,13 @@ struct MemoDetailView: View {
                                 }
 
                                 AttachmentPreviewList(attachments: attachments)
+
+                                if !audioAttachments(in: attachments).isEmpty {
+                                    audioTranscriptionSection(
+                                        attachments: audioAttachments(in: attachments),
+                                        memo: currentMemo
+                                    )
+                                }
                             }
                             .padding(.vertical, 4)
                         }
@@ -272,6 +281,102 @@ struct MemoDetailView: View {
 
     private func links(in text: String) -> [URL] {
         LinkExtractor.urls(in: text)
+    }
+
+    private func audioAttachments(in attachments: [SharedAttachment]) -> [SharedAttachment] {
+        attachments.filter(\.isAudio)
+    }
+
+    private func audioTranscriptionSection(attachments: [SharedAttachment], memo: Memo) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("语音转写")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+
+            ForEach(attachments) { attachment in
+                Button {
+                    transcribe(attachment, in: memo)
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: transcribingAttachmentID == attachment.id ? "hourglass" : "text.bubble")
+                            .font(.caption.weight(.semibold))
+                        Text(transcribingAttachmentID == attachment.id ? "正在转写..." : "转写 \(attachment.displayName)")
+                            .lineLimit(1)
+                        Spacer(minLength: 8)
+                    }
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.accentGreen)
+                    .padding(.horizontal, 12)
+                    .frame(height: 38)
+                    .background(Color.greenTint)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .disabled(transcribingAttachmentID != nil)
+            }
+
+            if let transcriptionStatusText = transcriptionStatusText {
+                Text(transcriptionStatusText)
+                    .font(.caption)
+                    .foregroundStyle(Color.secondaryText)
+            }
+        }
+    }
+
+    private func transcribe(_ attachment: SharedAttachment, in memo: Memo) {
+        guard transcribingAttachmentID == nil else { return }
+        guard let url = SharedAttachmentStore.url(for: attachment) else {
+            transcriptionStatusText = "找不到本地音频文件。"
+            return
+        }
+
+        transcribingAttachmentID = attachment.id
+        transcriptionStatusText = "正在请求语音识别..."
+
+        Task {
+            do {
+                let transcript = try await AudioTranscriber.transcribe(fileURL: url)
+                let appendedText = AudioTranscriber.memoText(for: attachment, transcript: transcript)
+                await MainActor.run {
+                    defer {
+                        transcribingAttachmentID = nil
+                    }
+
+                    guard let appendedText = appendedText else {
+                        transcriptionStatusText = "没有识别出可保存的文字。"
+                        return
+                    }
+
+                    let updatedText = memo.text.appendingMemoSection(appendedText)
+                    if store.update(memo, text: updatedText),
+                       let updatedMemo = store.memos.first(where: { $0.id == memo.id }) {
+                        text = updatedMemo.text
+                        transcriptionStatusText = "已追加语音转写"
+                    } else {
+                        transcriptionStatusText = "语音转写保存失败。"
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    transcribingAttachmentID = nil
+                    transcriptionStatusText = "语音转写失败：\(error.localizedDescription)"
+                }
+            }
+        }
+    }
+}
+
+private extension String {
+    func appendingMemoSection(_ section: String) -> String {
+        let trimmedBase = trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedSection = section.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedBase.isEmpty else {
+            return trimmedSection
+        }
+        guard !trimmedSection.isEmpty else {
+            return trimmedBase
+        }
+        return "\(trimmedBase)\n\n\(trimmedSection)"
     }
 }
 

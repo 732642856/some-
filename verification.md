@@ -115,6 +115,7 @@
 - 2026-06-22：本轮 `git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme` 通过；旧版 `xcrun swiftc -parse` 已覆盖 `LinkExtractor.swift`、`MemoSearchQuery.swift`、`SharedAttachmentStore.swift`、`Memo.swift`、`MemoStore.swift`、`AttachmentPreviewList.swift` 和 `SomeTests.swift`。
 - 2026-06-22：已新增手帐图层底座：`ScrapbookPageLayout` / `ScrapbookLayer` 会随手帐页面写入正文内可迁移 JSON，覆盖图片、文字、贴纸、边框、背景色、位置、尺寸、旋转、字体和颜色等字段；手帐列表新增页面预览。
 - 2026-06-22：本轮手帐画布开发前已重新复查 Git 状态、未跟踪文件和手帐现有边界，并通过 GitHub API 检索 SwiftUI/Swift 贴纸、拼贴、图层画布候选；未找到可直接复制的成熟 SwiftUI MIT 手帐画布，本轮未新增第三方依赖。
+- 2026-06-22：已修复工程引用但 Git 未包含 `AudioTranscriber.swift` 的 P0 构建风险；语音转写工具现已纳入 App target，`Info.plist` 补充 `NSSpeechRecognitionUsageDescription`，详情页可对音频附件发起系统 Speech 转写并追加到原 memo。
 
 ## 未能在当前环境完成
 

@@ -1518,6 +1518,26 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(asset?.byteCount, payload.count)
     }
 
+    func testAudioTranscriberBuildsMemoText() {
+        let attachment = SharedAttachment(
+            id: "voice.m4a",
+            filename: "voice.m4a",
+            relativePath: "voice.m4a",
+            typeIdentifier: UTType.mpeg4Audio.identifier,
+            byteCount: 42
+        )
+
+        XCTAssertEqual(
+            AudioTranscriber.memoText(for: attachment, transcript: "  今天要整理产品方向  "),
+            """
+            语音转写：voice.m4a
+
+            今天要整理产品方向
+            """
+        )
+        XCTAssertNil(AudioTranscriber.memoText(for: attachment, transcript: "   "))
+    }
+
     func testImageTextRecognizerBuildsMemoText() {
         let attachment = SharedAttachment(
             id: "receipt.png",
@@ -1691,6 +1711,26 @@ final class SomeTests: XCTestCase {
 
         XCTAssertEqual(SharedAttachmentStore.attachments(in: memo.text).count, 1)
         XCTAssertTrue(store.assets(for: memo).contains { $0.kind == .screenshot })
+    }
+
+    func testAudioTranscriberBuildsMemoText() {
+        let attachment = SharedAttachment(
+            id: "voice.m4a",
+            filename: "voice.m4a",
+            relativePath: "voice.m4a",
+            typeIdentifier: UTType.mpeg4Audio.identifier,
+            byteCount: 128
+        )
+
+        XCTAssertEqual(
+            AudioTranscriber.memoText(for: attachment, transcript: "  今天整理了三个想法。 "),
+            """
+            语音转写：voice.m4a
+
+            今天整理了三个想法。
+            """
+        )
+        XCTAssertNil(AudioTranscriber.memoText(for: attachment, transcript: "   "))
     }
 
     func testAddWebClipCreatesMemoAndWebClipAsset() {

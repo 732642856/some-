@@ -38,6 +38,7 @@
 		7A1000010000000000000029 /* LocalAuthentication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000032 /* LocalAuthentication.framework */; };
 		7A1000010000000000000030 /* ReminderManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000033 /* ReminderManager.swift */; };
 		7A1000010000000000000031 /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000034 /* UserNotifications.framework */; };
+		7A1000010000000000000037 /* Speech.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000039 /* Speech.framework */; };
 		7A1000010000000000000032 /* LinkExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000035 /* LinkExtractor.swift */; };
 		7A1000010000000000000033 /* SQLiteMemoDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000036 /* SQLiteMemoDatabase.swift */; };
 		7A1000010000000000000034 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000037 /* libsqlite3.tbd */; };
@@ -74,6 +75,7 @@
 		7A8000010000000000000002 /* MemoReferenceParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A8001010000000000000001 /* MemoReferenceParser.swift */; };
 		7A9000010000000000000001 /* LinkExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000035 /* LinkExtractor.swift */; };
 		7AA000010000000000000001 /* ImageTextRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AA001010000000000000001 /* ImageTextRecognizer.swift */; };
+		7AB000010000000000000001 /* AudioTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AB001010000000000000001 /* AudioTranscriber.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -146,6 +148,7 @@
 		7A1001010000000000000036 /* SQLiteMemoDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteMemoDatabase.swift; sourceTree = "<group>"; };
 		7A1001010000000000000037 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		7A1001010000000000000038 /* MemoBackupArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoBackupArchive.swift; sourceTree = "<group>"; };
+		7A1001010000000000000039 /* Speech.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Speech.framework; path = System/Library/Frameworks/Speech.framework; sourceTree = SDKROOT; };
 		7A7001010000000000000001 /* MemoRevision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoRevision.swift; sourceTree = "<group>"; };
 		7A2001010000000000000001 /* SharedMemoStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedMemoStorage.swift; sourceTree = "<group>"; };
 		7A2001010000000000000002 /* SharedMemoTextComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedMemoTextComposer.swift; sourceTree = "<group>"; };
@@ -164,6 +167,7 @@
 		7A6001010000000000000001 /* MemoBackupPackage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoBackupPackage.swift; sourceTree = "<group>"; };
 		7A8001010000000000000001 /* MemoReferenceParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoReferenceParser.swift; sourceTree = "<group>"; };
 		7AA001010000000000000001 /* ImageTextRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageTextRecognizer.swift; sourceTree = "<group>"; };
+		7AB001010000000000000001 /* AudioTranscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioTranscriber.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -174,6 +178,7 @@
 				7A1000010000000000000027 /* Security.framework in Frameworks */,
 				7A1000010000000000000029 /* LocalAuthentication.framework in Frameworks */,
 				7A1000010000000000000031 /* UserNotifications.framework in Frameworks */,
+				7A1000010000000000000037 /* Speech.framework in Frameworks */,
 				7A1000010000000000000034 /* libsqlite3.tbd in Frameworks */,
 				7A6000010000000000000002 /* ZIPFoundation in Frameworks */,
 			);
@@ -282,6 +287,7 @@
 				7A5001010000000000000001 /* SharedAttachmentStore.swift */,
 				7A8001010000000000000001 /* MemoReferenceParser.swift */,
 				7AA001010000000000000001 /* ImageTextRecognizer.swift */,
+				7AB001010000000000000001 /* AudioTranscriber.swift */,
 				7A6001010000000000000001 /* MemoBackupPackage.swift */,
 			);
 			path = Utilities;
@@ -343,6 +349,7 @@
 				7A1001010000000000000030 /* Security.framework */,
 				7A1001010000000000000032 /* LocalAuthentication.framework */,
 				7A1001010000000000000034 /* UserNotifications.framework */,
+				7A1001010000000000000039 /* Speech.framework */,
 				7A1001010000000000000037 /* libsqlite3.tbd */,
 			);
 			name = Frameworks;
@@ -527,6 +534,7 @@
 				7A5000010000000000000001 /* SharedAttachmentStore.swift in Sources */,
 				7A8000010000000000000001 /* MemoReferenceParser.swift in Sources */,
 				7AA000010000000000000001 /* ImageTextRecognizer.swift in Sources */,
+				7AB000010000000000000001 /* AudioTranscriber.swift in Sources */,
 				7A6000010000000000000001 /* MemoBackupPackage.swift in Sources */,
 				7A5000010000000000000003 /* AttachmentPreviewList.swift in Sources */,
 			);
