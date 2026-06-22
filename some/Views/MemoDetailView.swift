@@ -11,6 +11,7 @@ struct MemoDetailView: View {
     @State private var isEditing = false
     @State private var isShowingDeleteConfirmation = false
     @State private var isShowingHistory = false
+    @State private var isShowingReferencePicker = false
     @State private var editErrorMessage: String?
     @State private var historyErrorMessage: String?
     @FocusState private var isFocused: Bool
@@ -23,8 +24,12 @@ struct MemoDetailView: View {
     var body: some View {
         let currentMemo = store.memos.first(where: { $0.id == memo.id }) ?? memo
         let displayText = isEditing ? text : currentMemo.text
-        let readableText = SharedAttachmentStore.displayTextWithoutAttachmentReferences(displayText)
+        let readableText = MemoReferenceParser.displayTextWithoutReferences(
+            SharedAttachmentStore.displayTextWithoutAttachmentReferences(displayText)
+        )
         let attachments = SharedAttachmentStore.attachments(in: displayText)
+        let referencedMemos = store.referencedMemos(from: currentMemo)
+        let backlinkMemos = store.backlinkMemos(to: currentMemo)
 
         ZStack {
             Color.appBackground.ignoresSafeArea()
@@ -116,6 +121,16 @@ struct MemoDetailView: View {
                         }
                     }
 
+                    if !isEditing {
+                        MemoRelationSection(
+                            referencedMemos: referencedMemos,
+                            backlinkMemos: backlinkMemos,
+                            onAddReference: {
+                                isShowingReferencePicker = true
+                            }
+                        )
+                    }
+
                     if !links(in: readableText).isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("链接")
@@ -169,6 +184,18 @@ struct MemoDetailView: View {
                 Spacer()
             }
             .padding(18)
+        }
+        .sheet(isPresented: $isShowingReferencePicker) {
+            MemoReferencePickerView(
+                candidates: store.referenceCandidates(for: currentMemo),
+                onSelect: { targetMemo in
+                    if store.addReference(from: currentMemo, to: targetMemo),
+                       let updatedMemo = store.memos.first(where: { $0.id == currentMemo.id }) {
+                        text = updatedMemo.text
+                    }
+                    isShowingReferencePicker = false
+                }
+            )
         }
         .navigationTitle(isEditing ? "编辑" : "详情")
         .navigationBarTitleDisplayMode(.inline)
@@ -245,6 +272,144 @@ struct MemoDetailView: View {
 
     private func links(in text: String) -> [URL] {
         LinkExtractor.urls(in: text)
+    }
+}
+
+private struct MemoRelationSection: View {
+    let referencedMemos: [Memo]
+    let backlinkMemos: [Memo]
+    let onAddReference: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("引用")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.secondaryText)
+
+                Spacer()
+
+                Button(action: onAddReference) {
+                    Label("添加", systemImage: "plus.circle")
+                        .labelStyle(.iconOnly)
+                        .frame(width: 32, height: 30)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.accentGreen)
+                .accessibilityLabel("添加引用")
+            }
+
+            if !referencedMemos.isEmpty {
+                relationGroup(title: "指向", memos: referencedMemos, systemImage: "arrow.up.forward")
+            }
+
+            if !backlinkMemos.isEmpty {
+                relationGroup(title: "被引用", memos: backlinkMemos, systemImage: "arrow.down.backward")
+            }
+        }
+    }
+
+    private func relationGroup(title: String, memos: [Memo], systemImage: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(title, systemImage: systemImage)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.tertiaryText)
+
+            ForEach(memos) { memo in
+                NavigationLink(value: memo.id) {
+                    HStack(spacing: 9) {
+                        Image(systemName: "doc.text")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.accentGreen)
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(MemoReferenceParser.title(for: memo))
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(Color.primaryText)
+                                .lineLimit(1)
+
+                            Text(DateFormatters.row.localizedString(for: memo.createdAt, relativeTo: Date()))
+                                .font(.caption2)
+                                .foregroundStyle(Color.secondaryText)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.tertiaryText)
+                    }
+                    .padding(.horizontal, 10)
+                    .frame(height: 48)
+                    .background(Color.subtleSurface)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
+private struct MemoReferencePickerView: View {
+    let candidates: [Memo]
+    let onSelect: (Memo) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.appBackground.ignoresSafeArea()
+
+                if filteredCandidates.isEmpty {
+                    EmptyStateView(title: candidates.isEmpty ? "没有可引用的记录" : "没有匹配的记录")
+                        .padding(18)
+                } else {
+                    List(filteredCandidates) { candidate in
+                        Button {
+                            onSelect(candidate)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(MemoReferenceParser.title(for: candidate))
+                                    .font(.body.weight(.semibold))
+                                    .foregroundStyle(Color.primaryText)
+                                    .lineLimit(2)
+
+                                Text(DateFormatters.row.localizedString(for: candidate.createdAt, relativeTo: Date()))
+                                    .font(.caption)
+                                    .foregroundStyle(Color.secondaryText)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                }
+            }
+            .navigationTitle("添加引用")
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText, prompt: "搜索要引用的记录")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("关闭") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private var filteredCandidates: [Memo] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else {
+            return candidates
+        }
+
+        return candidates.filter { candidate in
+            candidate.text.localizedCaseInsensitiveContains(query)
+                || candidate.tags.contains { $0.localizedCaseInsensitiveContains(query) }
+        }
     }
 }
 

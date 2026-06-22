@@ -39,6 +39,7 @@
 - Markdown 阅读渲染：列表和详情页支持加粗、链接等系统 Markdown 样式
 - Markdown 任务项：识别 `- [ ]` / `- [x]`，详情页可直接勾选并写回
 - App Intents / Shortcuts：支持通过快捷指令保存新随记
+- 卡片引用：详情页可添加 `some-memo://` 内部引用，并显示正向引用与反向引用
 
 ## 搜索语法
 
@@ -83,6 +84,8 @@ Markdown 阅读渲染当前使用 iOS 系统 `AttributedString(markdown:)`，任
 快捷指令能力通过 App Intents 实现，默认提供“存到 some / 新建随记”入口；内容仍保存在本机 SQLite，不需要账号或云同步。
 
 Share Extension 对网页标题的支持依赖系统分享项提供的标题/摘要；当前不会主动联网抓取网页 HTML。
+
+卡片引用当前用 Markdown 链接格式写入 memo 正文，例如 `[引用: 目标](some-memo://UUID)`；这样导出、备份、历史版本和普通文本迁移都能保留关系。阅读详情页会把独立引用行折叠到“引用”区域展示。
 
 ## 对标审计
 

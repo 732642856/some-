@@ -70,6 +70,9 @@
 - 2026-06-22：`Info.plist`、`PrivacyInfo.xcprivacy`、主 App/扩展 entitlements、Share Extension `Info.plist`、`project.pbxproj` 通过 `plutil -lint`。
 - 2026-06-22：`some.xcscheme` 通过 `xmllint --noout`。
 - 2026-06-22：已扫描 `text.magnifyingglass`、`TODO`、`FIXME`、`try!`、`as!`，未发现命中。
+- 2026-06-22：已对照 usememos `MemoRelation` / `REFERENCE` / `COMMENT` 与 flomo 101 引用批注，新增卡片引用 v1。
+- 2026-06-22：已新增 `MemoReferenceParser`，并确认纳入主 App 与 Share Extension sources。
+- 2026-06-22：已补充内部引用解析、隐藏引用行、添加引用、反向引用、引用去重、普通链接过滤内部引用相关单元测试。
 
 ## 未能在当前环境完成
 

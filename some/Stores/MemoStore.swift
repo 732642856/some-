@@ -392,6 +392,54 @@ final class MemoStore: ObservableObject {
         return excerptPrefix(displayText, maxLength: contextLength * 2 + 16)
     }
 
+    func memoTitle(for memo: Memo) -> String {
+        MemoReferenceParser.title(for: memo)
+    }
+
+    func referencedMemos(from memo: Memo) -> [Memo] {
+        let referencedIDs = MemoReferenceParser.references(in: memo.text).map(\.memoID)
+        return referencedIDs.compactMap { id in
+            memos.first { $0.id == id }
+        }
+    }
+
+    func backlinkMemos(to memo: Memo) -> [Memo] {
+        memos
+            .filter { candidate in
+                candidate.id != memo.id
+                    && MemoReferenceParser.references(in: candidate.text).contains { $0.memoID == memo.id }
+            }
+            .sorted { sortMemos($0, $1) }
+    }
+
+    func referenceCandidates(for memo: Memo) -> [Memo] {
+        let existingIDs = Set(MemoReferenceParser.references(in: memo.text).map(\.memoID))
+        return memos
+            .filter { candidate in
+                candidate.id != memo.id
+                    && !candidate.isArchived
+                    && !existingIDs.contains(candidate.id)
+            }
+            .sorted { sortMemos($0, $1) }
+    }
+
+    @discardableResult
+    func addReference(from sourceMemo: Memo, to targetMemo: Memo) -> Bool {
+        guard sourceMemo.id != targetMemo.id,
+              memos.contains(where: { $0.id == targetMemo.id }) else {
+            return false
+        }
+
+        let existingIDs = Set(MemoReferenceParser.references(in: sourceMemo.text).map(\.memoID))
+        guard !existingIDs.contains(targetMemo.id) else {
+            return true
+        }
+
+        let referenceLine = MemoReferenceParser.referenceLine(for: targetMemo)
+        let separator = sourceMemo.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "" : "\n\n"
+        return update(sourceMemo, text: "\(sourceMemo.text)\(separator)\(referenceLine)")
+    }
+
     func pickRandomReviewMemo() {
         reviewMemo = activeMemos.randomElement()
     }

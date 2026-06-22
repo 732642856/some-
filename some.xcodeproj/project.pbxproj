@@ -70,6 +70,8 @@
 		7A5000010000000000000001 /* SharedAttachmentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5001010000000000000001 /* SharedAttachmentStore.swift */; };
 		7A5000010000000000000002 /* SharedAttachmentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5001010000000000000001 /* SharedAttachmentStore.swift */; };
 		7A5000010000000000000003 /* AttachmentPreviewList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5001010000000000000002 /* AttachmentPreviewList.swift */; };
+		7A8000010000000000000001 /* MemoReferenceParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A8001010000000000000001 /* MemoReferenceParser.swift */; };
+		7A8000010000000000000002 /* MemoReferenceParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A8001010000000000000001 /* MemoReferenceParser.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -158,6 +160,7 @@
 		7A5001010000000000000001 /* SharedAttachmentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedAttachmentStore.swift; sourceTree = "<group>"; };
 		7A5001010000000000000002 /* AttachmentPreviewList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentPreviewList.swift; sourceTree = "<group>"; };
 		7A6001010000000000000001 /* MemoBackupPackage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoBackupPackage.swift; sourceTree = "<group>"; };
+		7A8001010000000000000001 /* MemoReferenceParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoReferenceParser.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -274,6 +277,7 @@
 				7A2001010000000000000008 /* MemoSearchQuery.swift */,
 				7A3001010000000000000001 /* MemoTaskParser.swift */,
 				7A5001010000000000000001 /* SharedAttachmentStore.swift */,
+				7A8001010000000000000001 /* MemoReferenceParser.swift */,
 				7A6001010000000000000001 /* MemoBackupPackage.swift */,
 			);
 			path = Utilities;
@@ -517,6 +521,7 @@
 				7A4000010000000000000001 /* SaveMemoIntent.swift in Sources */,
 				7A4000010000000000000002 /* SomeAppShortcuts.swift in Sources */,
 				7A5000010000000000000001 /* SharedAttachmentStore.swift in Sources */,
+				7A8000010000000000000001 /* MemoReferenceParser.swift in Sources */,
 				7A6000010000000000000001 /* MemoBackupPackage.swift in Sources */,
 				7A5000010000000000000003 /* AttachmentPreviewList.swift in Sources */,
 			);
@@ -547,6 +552,7 @@
 				7A3000010000000000000002 /* MemoTaskParser.swift in Sources */,
 				7A2000010000000000000014 /* DateFormatters.swift in Sources */,
 				7A5000010000000000000002 /* SharedAttachmentStore.swift in Sources */,
+				7A8000010000000000000002 /* MemoReferenceParser.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

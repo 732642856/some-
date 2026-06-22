@@ -507,6 +507,58 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(snippet, "...然后出现关键命中词，再继续...")
     }
 
+    func testMemoReferenceParserExtractsAndHidesReferenceLines() {
+        let id = UUID()
+        let text = "正文 #关系\n\n[引用: 目标记录](some-memo://\(id.uuidString))"
+
+        let references = MemoReferenceParser.references(in: text)
+
+        XCTAssertEqual(references, [MemoReference(memoID: id, title: "目标记录")])
+        XCTAssertEqual(MemoReferenceParser.displayTextWithoutReferences(text), "正文 #关系")
+    }
+
+    func testStoreCanAddReferencesAndFindBacklinks() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.addMemo(text: "源记录 #关系")
+        store.addMemo(text: "目标记录 #关系")
+
+        guard let source = store.memos.first(where: { $0.text.contains("源记录") }),
+              let target = store.memos.first(where: { $0.text.contains("目标记录") }) else {
+            return XCTFail("Expected memos")
+        }
+
+        XCTAssertTrue(store.addReference(from: source, to: target))
+        guard let updatedSource = store.memos.first(where: { $0.id == source.id }) else {
+            return XCTFail("Expected updated source")
+        }
+
+        XCTAssertEqual(store.referencedMemos(from: updatedSource).map(\.id), [target.id])
+        XCTAssertEqual(store.backlinkMemos(to: target).map(\.id), [source.id])
+        XCTAssertFalse(store.referenceCandidates(for: updatedSource).contains { $0.id == target.id })
+    }
+
+    func testStoreDoesNotDuplicateExistingReference() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.addMemo(text: "源记录 #关系")
+        store.addMemo(text: "目标记录 #关系")
+
+        guard let source = store.memos.first(where: { $0.text.contains("源记录") }),
+              let target = store.memos.first(where: { $0.text.contains("目标记录") }) else {
+            return XCTFail("Expected memos")
+        }
+
+        XCTAssertTrue(store.addReference(from: source, to: target))
+        guard let updatedSource = store.memos.first(where: { $0.id == source.id }) else {
+            return XCTFail("Expected updated source")
+        }
+        XCTAssertTrue(store.addReference(from: updatedSource, to: target))
+
+        guard let finalSource = store.memos.first(where: { $0.id == source.id }) else {
+            return XCTFail("Expected final source")
+        }
+        XCTAssertEqual(MemoReferenceParser.references(in: finalSource.text).count, 1)
+    }
+
     func testMemoUpdateRejectsEmptyTextAndKeepsExistingMemo() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "保留原文 #编辑")
@@ -712,6 +764,14 @@ final class SomeTests: XCTestCase {
 
     func testLinkExtractorIgnoresAttachmentReferences() {
         let text = "资料 https://example.com/a\n\n[附件: image.png](some-attachment://image.png)"
+        let urls = LinkExtractor.urls(in: text)
+
+        XCTAssertEqual(urls.map(\.absoluteString), ["https://example.com/a"])
+    }
+
+    func testLinkExtractorIgnoresMemoReferences() {
+        let id = UUID()
+        let text = "资料 https://example.com/a\n\n[引用: 目标](some-memo://\(id.uuidString))"
         let urls = LinkExtractor.urls(in: text)
 
         XCTAssertEqual(urls.map(\.absoluteString), ["https://example.com/a"])

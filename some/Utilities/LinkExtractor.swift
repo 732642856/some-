@@ -13,6 +13,7 @@ enum LinkExtractor {
         detector.enumerateMatches(in: text, options: [], range: range) { result, _, _ in
             guard let url = result?.url else { return }
             guard url.scheme != SharedAttachmentStore.referenceScheme else { return }
+            guard url.scheme != MemoReferenceParser.scheme else { return }
             let key = url.absoluteString
 
             if seen.insert(key).inserted {
