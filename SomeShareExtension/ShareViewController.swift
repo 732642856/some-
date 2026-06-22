@@ -163,6 +163,14 @@ final class ShareCaptureViewModel: ObservableObject {
             UTType(identifier)?.conforms(to: .image) == true
         } ?? UTType.image.identifier
 
+        if let attachment = await loadFileOrDataAttachment(
+            from: provider,
+            typeIdentifier: typeIdentifier,
+            suggestedFilename: provider.suggestedName
+        ) {
+            return attachment
+        }
+
         if let data = await loadDataRepresentation(from: provider, typeIdentifier: typeIdentifier) {
             return try? SharedAttachmentStore.save(
                 data: data,
@@ -171,11 +179,7 @@ final class ShareCaptureViewModel: ObservableObject {
             )
         }
 
-        return await loadFileOrDataAttachment(
-            from: provider,
-            typeIdentifier: typeIdentifier,
-            suggestedFilename: provider.suggestedName
-        )
+        return nil
     }
 
     private func loadFileAttachment(from provider: NSItemProvider) async -> SharedAttachment? {

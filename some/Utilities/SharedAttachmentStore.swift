@@ -69,14 +69,28 @@ enum SharedAttachmentStore {
         }
 
         let values = try? sourceURL.resourceValues(forKeys: [.nameKey, .contentTypeKey, .fileSizeKey])
-        let data = try Data(contentsOf: sourceURL)
-        let resolvedType = values?.contentType?.identifier ?? typeIdentifier
+        let resolvedType = values?.contentType?.identifier
+            ?? (typeIdentifier == UTType.fileURL.identifier ? nil : typeIdentifier)
         let resolvedFilename = suggestedFilename ?? values?.name ?? sourceURL.lastPathComponent
-        return try save(
-            data: data,
+        let type = resolvedType.flatMap(UTType.init)
+        let filename = makeUniqueFilename(
             suggestedFilename: resolvedFilename,
-            typeIdentifier: resolvedType,
+            type: type,
             fileManager: fileManager
+        )
+        let directory = try attachmentsDirectory(fileManager: fileManager)
+        let destinationURL = directory.appendingPathComponent(filename, isDirectory: false)
+        try copyFileAtomically(from: sourceURL, to: destinationURL, fileManager: fileManager)
+        let byteCount = destinationURL.fileByteCount(fileManager: fileManager)
+            ?? values?.fileSize
+            ?? 0
+
+        return SharedAttachment(
+            id: filename,
+            filename: filename,
+            relativePath: filename,
+            typeIdentifier: type?.identifier ?? resolvedType ?? UTType.data.identifier,
+            byteCount: byteCount
         )
     }
 
@@ -392,6 +406,24 @@ enum SharedAttachmentStore {
         return candidate
     }
 
+    private static func copyFileAtomically(
+        from sourceURL: URL,
+        to destinationURL: URL,
+        fileManager: FileManager
+    ) throws {
+        let temporaryURL = destinationURL
+            .deletingLastPathComponent()
+            .appendingPathComponent(".\(destinationURL.lastPathComponent).\(UUID().uuidString).tmp")
+        defer {
+            if fileManager.fileExists(atPath: temporaryURL.path) {
+                try? fileManager.removeItem(at: temporaryURL)
+            }
+        }
+
+        try fileManager.copyItem(at: sourceURL, to: temporaryURL)
+        try fileManager.moveItem(at: temporaryURL, to: destinationURL)
+    }
+
     private static func sanitizedFilename(_ suggestedFilename: String?, type: UTType?) -> String {
         let rawCandidate = suggestedFilename?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let trimmed = rawCandidate
@@ -414,5 +446,16 @@ enum SharedAttachmentStore {
 
     private static func decodedReferencePath(_ path: String) -> String {
         path.removingPercentEncoding ?? path
+    }
+}
+
+private extension URL {
+    func fileByteCount(fileManager: FileManager) -> Int? {
+        if let resourceSize = try? resourceValues(forKeys: [.fileSizeKey]).fileSize {
+            return resourceSize
+        }
+
+        let attributes = try? fileManager.attributesOfItem(atPath: path)
+        return (attributes?[.size] as? NSNumber)?.intValue
     }
 }

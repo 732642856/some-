@@ -523,6 +523,25 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(second.filename, "same-name-2.txt")
     }
 
+    func testAttachmentStoreCopiesFileAttachmentsWithoutChangingSource() throws {
+        let sourceURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("shared-source-\(UUID().uuidString).txt")
+        try Data("copied from file".utf8).write(to: sourceURL, options: [.atomic])
+        defer { try? FileManager.default.removeItem(at: sourceURL) }
+
+        let attachment = try SharedAttachmentStore.save(
+            fileAt: sourceURL,
+            suggestedFilename: "file-copy.txt",
+            typeIdentifier: UTType.plainText.identifier
+        )
+        defer { SharedAttachmentStore.delete(attachment) }
+
+        XCTAssertEqual(attachment.filename, "file-copy.txt")
+        XCTAssertEqual(attachment.byteCount, Data("copied from file".utf8).count)
+        XCTAssertEqual(SharedAttachmentStore.data(for: attachment), Data("copied from file".utf8))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: sourceURL.path))
+    }
+
     func testMemoUpdateDeletesRemovedAttachmentFile() throws {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         let attachment = try SharedAttachmentStore.save(
