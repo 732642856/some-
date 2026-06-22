@@ -15,6 +15,9 @@ struct QuickCaptureView: View {
     @State private var isShowingFileImporter = false
     @State private var isImportingMedia = false
     @State private var isClippingWebPage = false
+    @State private var pendingWebClip: ExtractedWebClip?
+    @State private var pendingClipFragments: [ClipFragment] = []
+    @State private var selectedClipFragmentIDs: Set<String> = []
     @StateObject private var audioRecorder = QuickAudioRecorder()
     @FocusState private var isFocused: Bool
 
@@ -72,6 +75,10 @@ struct QuickCaptureView: View {
                 .frame(height: 30)
                 .background(Color.subtleSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+
+            if let pendingWebClip {
+                webClipSelectionView(pendingWebClip)
             }
 
             if let statusText = statusText {
@@ -322,6 +329,7 @@ struct QuickCaptureView: View {
         if store.addMemo(text: text) != nil {
             text = ""
             statusText = "已保存"
+            clearPendingWebClip()
         } else {
             statusText = "保存失败，草稿已保留。"
         }
@@ -636,19 +644,156 @@ struct QuickCaptureView: View {
 
         isClippingWebPage = true
         statusText = "正在摘录网页..."
+        clearPendingWebClip()
 
         Task {
             let clip = await RemoteWebClipFetcher.clip(from: url)
             await MainActor.run {
-                let saved = store.addWebClip(
-                    url: clip.url,
-                    title: clip.title,
-                    summary: clip.summary,
-                    highlights: clip.highlights
-                ) != nil
                 isClippingWebPage = false
-                statusText = saved ? "已保存网页摘录" : "网页摘录保存失败。"
+                let fragments = clipFragments(for: clip)
+                if fragments.isEmpty {
+                    saveWebClip(clip, selectedFragments: [])
+                } else {
+                    pendingWebClip = clip
+                    pendingClipFragments = fragments
+                    selectedClipFragmentIDs = Set(fragments.prefix(4).map(\.id))
+                    statusText = "已提取网页重点，选择片段后保存。"
+                }
             }
+        }
+    }
+
+    private func clipFragments(for clip: ExtractedWebClip) -> [ClipFragment] {
+        let webText = LinkExtractor.webClipText(
+            title: clip.title ?? LinkExtractor.displayText(for: clip.url),
+            url: clip.url,
+            summary: clip.summary,
+            highlights: clip.highlights
+        )
+        let combinedText = [webText, text]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n\n")
+        return ClipFragmentExtractor.fragments(in: combinedText)
+    }
+
+    @ViewBuilder
+    private func webClipSelectionView(_ clip: ExtractedWebClip) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "text.quote")
+                    .foregroundStyle(Color.accentGreen)
+                Text(clip.title ?? LinkExtractor.displayText(for: clip.url))
+                    .font(.caption.weight(.semibold))
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                Text("\(selectedClipFragmentIDs.count)/\(pendingClipFragments.count)")
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(Color.tertiaryText)
+            }
+
+            ForEach(pendingClipFragments) { fragment in
+                Button {
+                    toggleClipFragment(fragment)
+                } label: {
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: selectedClipFragmentIDs.contains(fragment.id) ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(selectedClipFragmentIDs.contains(fragment.id) ? Color.accentGreen : Color.tertiaryText)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(fragment.source == .web ? "网页" : "OCR")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(fragment.source == .web ? Color.accentGreen : Color.accentGold)
+                            Text(fragment.text)
+                                .font(.caption)
+                                .foregroundStyle(Color.primaryText)
+                                .lineLimit(3)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+
+            HStack(spacing: 10) {
+                Button {
+                    saveWebClip(clip, selectedFragments: selectedClipFragments())
+                } label: {
+                    Label("保存摘录", systemImage: "tray.and.arrow.down.fill")
+                        .font(.caption.weight(.semibold))
+                        .frame(height: 30)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.white)
+                .padding(.horizontal, 12)
+                .background(selectedClipFragmentIDs.isEmpty ? Color.disabled : Color.accentGreen)
+                .clipShape(Capsule())
+                .disabled(selectedClipFragmentIDs.isEmpty)
+
+                Button {
+                    clearPendingWebClip()
+                    statusText = "已取消网页摘录。"
+                } label: {
+                    Image(systemName: "xmark")
+                        .frame(width: 30, height: 30)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.secondaryText)
+                .background(Color.surface)
+                .clipShape(Circle())
+
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(10)
+        .background(Color.subtleSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private func toggleClipFragment(_ fragment: ClipFragment) {
+        if selectedClipFragmentIDs.contains(fragment.id) {
+            selectedClipFragmentIDs.remove(fragment.id)
+        } else {
+            selectedClipFragmentIDs.insert(fragment.id)
+        }
+    }
+
+    private func selectedClipFragments() -> [ClipFragment] {
+        pendingClipFragments.filter { selectedClipFragmentIDs.contains($0.id) }
+    }
+
+    private func saveWebClip(_ clip: ExtractedWebClip, selectedFragments: [ClipFragment]) {
+        let summary = clip.summary?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let highlights = uniqueHighlights(selectedFragments.map(\.text))
+            .filter { highlight in
+                guard let summary, !summary.isEmpty else { return true }
+                return highlight != summary
+            }
+        let saved = store.addWebClip(
+            url: clip.url,
+            title: clip.title,
+            summary: clip.summary,
+            highlights: highlights
+        ) != nil
+        if saved {
+            clearPendingWebClip()
+        }
+        statusText = saved ? "已保存网页摘录" : "网页摘录保存失败。"
+    }
+
+    private func clearPendingWebClip() {
+        pendingWebClip = nil
+        pendingClipFragments = []
+        selectedClipFragmentIDs = []
+    }
+
+    private func uniqueHighlights(_ highlights: [String]) -> [String] {
+        var seen = Set<String>()
+        return highlights.compactMap { highlight in
+            let trimmed = highlight.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty, seen.insert(trimmed).inserted else {
+                return nil
+            }
+            return trimmed
         }
     }
 }

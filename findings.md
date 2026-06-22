@@ -21,6 +21,7 @@
 - 2026-06-23：阶段 13 开工前检索 `SwiftUI scrapbook collage export image MIT` 与 `iOS collage editor Swift MIT export`，GitHub API 均返回 0 个可直接复用候选；本轮不新增第三方依赖，继续基于本项目 `ScrapbookPageLayout` 和 UIKit renderer 自建导出。
 - 2026-06-23：阶段 14 开工前检索 `SwiftUI video thumbnail cache MIT`、`AVAssetImageGenerator thumbnail cache Swift`、`Swift media metadata AVAsset MIT iOS`、`iOS local video thumbnail Swift MIT` 等关键词，精确查询均返回 0。放宽到 `video thumbnail swift` 后发现 `HHK1/PryntTrimmerView`（MIT、Swift、视频裁剪/帧选择）、`luispadron/LPThumbnailView`（MIT、Swift/UIKit、已归档）、`krad/memento`（MIT、小型 Swift 视频缩略图工具）等候选；这些项目不覆盖 some 当前“本地附件 URI、素材索引、详情页/素材库复用、离线缓存失效”的架构，不直接复制源码。本轮优先复用 Apple AVFoundation 与现有 `SharedAttachmentStore` / `VideoThumbnailGenerator`，自建小型持久缩略图缓存和媒体元数据摘要。
 - 2026-06-23：阶段 15 开工前复查网页摘录链路并检索网页正文清洗候选。`scinfu/SwiftSoup` 为 MIT、Swift、2026-06 仍活跃，适合作为后续完整 HTML DOM 解析依赖候选；`exyte/ReadabilityKit` 为 MIT、Swift，但仓库已归档且 2023 后未推送；`Swift readability html article extractor MIT` 与 `SwiftSoup readability article extractor` 搜索未找到更合适的可复制模块。本轮不复制第三方源码、不引入 SPM，先扩展 some 内置的轻量 HTML 清洗、段落评分和摘录卡结构。
+- 2026-06-23：阶段 16 开工前检索 SwiftUI 文本高亮/摘录选择、Vision OCR 文本选择、网页文章 highlight、VisionKit 文档扫描等候选，GitHub API 多轮搜索均返回 0 个可直接复用模块。当前先不引入 UI 高亮依赖，优先建立 `ClipFragment` 纯模型，把网页摘录重点、摘要和 OCR 行统一成可勾选/可合并候选。
 
 ## 当前缺口
 
@@ -29,5 +30,5 @@
 - 电子手帐：已有图层 JSON、预览、详情页拖拽/缩放/旋转、独立编辑器图层新增/复制/删除/层级调整、图片素材追加、PNG 导出和保存回原 memo；后续缺更丰富字体/贴纸/花边、PDF 分享入口和真机手势验证。
 - 图片编辑：已完成素材库图片编辑入口、预设比例裁剪、可调裁剪中心/缩放、授权图片瑕疵清理贴片、Core Image 滤镜、边框、文字、贴纸、输出 PNG 附件、`imageEdit` 素材索引和 `has:image-edit` 搜索；完整手势裁剪器、抠图、对象级修复、模板拼贴和导出预设仍待补。
 - 电子衣橱：已完成衣橱洞察 v1，可从现有素材索引统计分类、颜色、季节、场景、未搭配单品、常用单品，并生成可填入穿搭表单的建议；穿着日历、成本/次、洗护状态、天气与旅行打包仍待补。
-- 网页摘录：已有标题/description、正文清洗、段落评分、来源、摘录卡和重点候选 v2；下一步优先补可勾选摘录片段、批量网页导入和截图/OCR 摘录合并。
+- 网页摘录：已有标题/description、正文清洗、段落评分、来源、摘录卡、重点候选、网页/OCR 统一摘录片段和快速输入片段勾选；后续再做批量网页导入、截图/OCR 区域选择和摘录片段独立素材索引。
 - CI 测试稳定性：GitHub iPhone 16 Pro 模拟器默认图片 renderer scale 可能不是 1，像素尺寸测试必须显式设置 `UIGraphicsImageRendererFormat.scale = 1` 或断言比例；视频/媒体测试应使用真实保存文件，不应手工构造不存在的 `SharedAttachment`。

@@ -1160,6 +1160,45 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(clip.highlights, ["另一段正文提供补充材料和关键引用，应该保留为重点摘录。"])
     }
 
+    func testClipFragmentExtractorBuildsWebAndOCRFragments() {
+        let webText = LinkExtractor.webClipText(
+            title: "Example",
+            url: URL(string: "https://example.com/a")!,
+            summary: "网页摘要",
+            highlights: ["重点一", "重点一", "重点二"]
+        )
+        let ocrText = """
+        图片文字：receipt.png
+
+        识别文字：
+        合计 128 元
+        谢谢惠顾
+
+        [附件: receipt.png](some-attachment://receipt.png)
+        """
+
+        let fragments = ClipFragmentExtractor.fragments(in: "\(webText)\n\n\(ocrText)")
+
+        XCTAssertEqual(fragments.map(\.source), [.web, .web, .web, .ocr, .ocr])
+        XCTAssertEqual(fragments.map(\.text), ["网页摘要", "重点一", "重点二", "合计 128 元", "谢谢惠顾"])
+        XCTAssertEqual(fragments.first?.uri, "https://example.com/a")
+        XCTAssertEqual(fragments.last?.uri, "some-attachment://receipt.png")
+    }
+
+    func testClipFragmentExtractorBuildsMergedText() throws {
+        let fragments = [
+            ClipFragment(source: .web, title: "文章", text: "网页摘要", uri: "https://example.com/a", stableKey: "web"),
+            ClipFragment(source: .ocr, title: "截图", text: "合计 128 元", uri: "some-attachment://receipt.png", stableKey: "ocr")
+        ]
+
+        let text = try XCTUnwrap(ClipFragmentExtractor.mergedText(title: "资料卡", fragments: fragments))
+
+        XCTAssertTrue(text.contains("摘录片段：资料卡"))
+        XCTAssertTrue(text.contains("来源：网页1 · OCR1"))
+        XCTAssertTrue(text.contains("- [网页] 1. 网页摘要"))
+        XCTAssertTrue(text.contains("- [OCR] 2. 合计 128 元"))
+    }
+
     func testSharedMemoComposerKeepsTextAndDeduplicatesURL() {
         let text = SharedMemoTextComposer.compose(
             texts: ["  这是一段摘录  "],
@@ -1721,6 +1760,24 @@ final class SomeTests: XCTestCase {
 
             [附件: receipt.png](some-attachment://receipt.png)
             """
+        )
+    }
+
+    func testImageTextRecognizerExtractsHighlightsFromMemoText() {
+        let text = """
+        图片文字：receipt.png
+
+        识别文字：
+        合计 128 元
+        合计 128 元
+        谢谢惠顾
+
+        [附件: receipt.png](some-attachment://receipt.png)
+        """
+
+        XCTAssertEqual(
+            ImageTextRecognizer.extractedHighlights(from: text, limit: 3),
+            ["合计 128 元", "谢谢惠顾"]
         )
     }
 

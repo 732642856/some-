@@ -116,3 +116,13 @@
 - 修复视频缩略图缺失文件边界：`VideoThumbnailGenerator.image` 在进入 AVFoundation 前先确认文件存在，避免不存在 URL 触发不稳定取帧。
 - 修复媒体元数据 byteCount 兜底：`MediaMetadataExtractor` 在 `resourceValues.fileSize` 为空时使用 `FileManager.attributesOfItem`。
 - 修复 CI 脆弱测试：视频素材测试改用真实 `SharedAttachmentStore.save` 文件；图片元数据测试固定 renderer scale=1；图片编辑渲染断言改为不依赖模拟器默认 scale；缩略图缓存 key 测试移除不必要的 `sleep(1)`。
+
+## 2026-06-23T11:45:00+08:00
+
+- 进入阶段 16：网页摘录片段选择与截图/OCR 合并。
+- 开工前复查 Git 状态、OCR 文本生成、网页摘录格式、素材索引、搜索筛选和相关测试；确认当前工作树干净且本地与 `origin/master` 同步。
+- GitHub API 检索 `SwiftUI text highlight selection annotation MIT`、`iOS OCR text selection Vision Swift MIT`、`SwiftUI web clip article highlight MIT`、`VisionKit document scanner SwiftUI MIT` 等关键词，未找到可直接复制的成熟 SwiftUI/MIT 模块。
+- 决策：先做项目内可迁移的“摘录片段”结构层，把网页重点和 OCR 行统一成候选片段；后续 UI 勾选与截图/OCR 合并可以直接复用，不先大改交互。
+- 新增 `ClipFragment` / `ClipFragmentExtractor`，可从网页摘录和 OCR memo 中抽取统一片段，并生成“摘录片段”合并文本。
+- `QuickCaptureView` 的网页摘录保存前新增片段选择卡；网页摘要/重点和当前草稿里的 OCR 行会合并为可勾选候选，保存时只写选中片段。
+- `ImageTextRecognizer` 新增 `extractedHighlights`，为 OCR 摘录片段和后续截图/OCR 合并复用去重行提取。

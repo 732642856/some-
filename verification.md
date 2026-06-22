@@ -104,6 +104,8 @@
 - 2026-06-22：本轮 `git diff --check`、`plutil -lint`、`xmllint --noout` 通过；旧版 `xcrun swiftc -parse` 已覆盖 `LinkExtractor.swift`、`MemoSearchQuery.swift`、`Memo.swift`、`MemoStore.swift`、`ContentView.swift` 和 `SomeTests.swift`。`QuickCaptureView.swift` 仍因本机 Swift 5.4 不支持 async/await 无法解析，需要 Xcode 16 做完整编译和 XCTest。
 - 2026-06-23：已新增网页摘录 v2，`WebClipExtractor` 负责本地 HTML 清洗、正文段落抽取、噪音过滤、实体解码和段落评分，快速输入保存时写入来源与摘录卡行。
 - 2026-06-23：网页摘录 v2 已补充正文清洗、去重、噪音过滤、摘要回退和摘录卡格式测试；本轮 `git diff --check`、`plutil -lint`、`xmllint --noout` 通过，旧版 `xcrun swiftc -parse` 覆盖 `LinkExtractor.swift`、`WebClipExtractor.swift`、`Memo.swift`、`MemoStore.swift` 和 `SomeTests.swift`。`QuickCaptureView.swift` 仍因本机 Swift 5.4 不支持 async/await 无法完整解析，需要 Xcode 16 做完整编译和 XCTest。
+- 2026-06-23：已新增网页/OCR 统一摘录片段 v1，`ClipFragmentExtractor` 可从网页摘要/重点和 OCR 行生成统一候选，快速输入网页摘录会展示片段选择卡，保存时只写选中片段。
+- 2026-06-23：摘录片段阶段已补充网页+OCR 片段抽取、合并文本生成和 OCR 行去重测试；本轮 `git diff --check`、`plutil -lint` 通过，旧版 `xcrun swiftc -parse` 覆盖 `LinkExtractor.swift`、`WebClipExtractor.swift`、`ClipFragmentExtractor.swift`、`Memo.swift` 和 `SomeTests.swift`。`ImageTextRecognizer.swift` / `QuickCaptureView.swift` 仍因本机 Swift 5.4 不支持 async/await 无法完整解析，需要 Xcode 16 做完整编译和 XCTest。
 - 2026-06-22：已新增图片/截图 OCR v1，导入图片后使用 Apple Vision `VNRecognizeTextRequest` 在本机识别文字，识别成功会保存为“图片文字” memo 并保留原附件引用。
 - 2026-06-22：已新增 `ImageTextRecognizer.swift`，并确认纳入主 App target；OCR 记录会生成 `screenshot` 素材，搜索支持 `has:ocr` / `has:screenshot` / `has:图片文字`。
 - 2026-06-22：已补充 OCR memo 生成、去重、图片文字素材索引、`has:ocr` 搜索和避免重复附件引用相关单元测试。

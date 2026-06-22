@@ -95,6 +95,8 @@
 
 2026-06-23 网页摘录正文清洗与摘录卡检索决策：阶段 15 继续前复查 `LinkExtractor`、`QuickCaptureView`、`webClip` 素材索引和现有测试，并通过 GitHub API 核验 `scinfu/SwiftSoup` 与 `exyte/ReadabilityKit`。`SwiftSoup` 仍为 MIT 且 2026-06 活跃，适合作为后续 DOM/CSS selector 依赖候选；`ReadabilityKit` 为 MIT 但已归档，当前不作为直接依赖。继续检索 `Swift readability html article extractor MIT` 与 `SwiftSoup readability article extractor` 未找到更合适可复制模块。本轮未复制第三方源码，新增项目内 `WebClipExtractor`，用本地 HTML 清洗、段落评分、噪音过滤和摘录卡文本扩展现有可迁移网页摘录格式。
 
+2026-06-23 网页/OCR 摘录片段检索决策：阶段 16 继续前检索 `SwiftUI text highlight selection annotation MIT`、`iOS OCR text selection Vision Swift MIT`、`SwiftUI web clip article highlight MIT`、`VisionKit document scanner SwiftUI MIT` 等关键词，多轮 GitHub API 查询均返回 0 个可直接复用模块。本轮未复制第三方代码，先新增项目内 `ClipFragment` / `ClipFragmentExtractor` 纯模型，把网页摘要、网页重点和 OCR 行统一成可勾选片段；快速输入的网页摘录卡已可选择片段后保存。
+
 2026-06-22 本轮图片/截图 OCR MVP 检索决策：再次检索 `VNRecognizeTextRequest`、`OpenFind`、`SwiftOCRKit` 和 Swift Vision OCR MIT 候选。`OpenFind` 是完整 App，可参考工作流但不适合复制进当前项目；`SwiftOCRKit` 是较新的 MIT 封装，仍需在 Xcode 16/SPM 环境验证 API、维护性和体量。本轮不复制第三方 OCR 源码，也不新增依赖，直接使用 Apple Vision `VNRecognizeTextRequest` 在本机识别导入图片文字，并把结果复用现有 memo、附件、备份、搜索和 `MemoAsset.screenshot` 索引。后续如要做批量 OCR、框选区域、置信度、语言配置和扫描校正，再评估是否引入 `SwiftOCRKit` 或参考 `OpenFind` 的交互。
 
 ### 电子手帐、贴纸和画布
@@ -159,7 +161,7 @@ P1 优先复用：
 
 - 多模态采集：PhotosUI / PHPicker、AVFoundation、Share Extension、Files importer。
 - 图片裁剪/编辑：优先评估 `Mantis`、`TOCropViewController`、`HXPhotoPicker` 与系统 Core Image / Vision。
-- 网页和截图摘录：网页摘录 v2 与图片 OCR v1 已用系统能力落地；后续完整 DOM/CSS selector、阅读模式质量和批量离线网页导入优先评估 SwiftSoup，批量/交互式 OCR 再评估 OpenFind / SwiftOCRKit 的可复用部分。
+- 网页和截图摘录：网页摘录 v2 与图片 OCR v1 已用系统能力落地，并已有网页/OCR 统一摘录片段候选；后续完整 DOM/CSS selector、阅读模式质量和批量离线网页导入优先评估 SwiftSoup，批量/交互式 OCR 再评估 OpenFind / SwiftOCRKit 的可复用部分。
 - 电子手帐：先建本地页面/图层模型，画布交互每个子能力单独检索，不复制无许可证素材。
 - 电子衣橱：先建 Swift 数据模型和本地存储；Android/Web 衣橱项目只做产品参考。
 - 工作日志：复用现有任务项、日期筛选、保存搜索、引用和 AI composer。

@@ -31,6 +31,42 @@ enum ImageTextRecognizer {
         """
     }
 
+    static func extractedHighlights(from text: String, limit: Int = 3) -> [String] {
+        let lines = text.components(separatedBy: .newlines)
+        var isInRecognizedText = false
+        var candidates: [String] = []
+
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.hasPrefix("识别文字：")
+                || trimmed.hasPrefix("识别文字:")
+                || trimmed.hasPrefix("OCR：")
+                || trimmed.hasPrefix("OCR:") {
+                isInRecognizedText = true
+                continue
+            }
+
+            guard isInRecognizedText else {
+                continue
+            }
+
+            if trimmed.isEmpty {
+                if !candidates.isEmpty {
+                    break
+                }
+                continue
+            }
+
+            if trimmed.hasPrefix("[附件:") || trimmed.hasPrefix("some-attachment://") {
+                break
+            }
+
+            candidates.append(trimmed)
+        }
+
+        return Array(uniqueLines(candidates).prefix(limit))
+    }
+
     private static func makeRequest() -> VNRecognizeTextRequest {
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
