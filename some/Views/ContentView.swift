@@ -1709,6 +1709,11 @@ private struct AssetRowView: View {
             return summary
         }
 
+        if let attachment = attachment,
+           let mediaSummary = MediaMetadataExtractor.summary(for: attachment) {
+            return mediaSummary
+        }
+
         if let byteCount = asset.byteCount, byteCount > 0 {
             return SharedAttachmentStore.formatByteCount(byteCount)
         }
