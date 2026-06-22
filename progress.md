@@ -233,3 +233,19 @@
 - 避免分享扩展 target 风险：`ClipFragmentExtractor` 不再依赖 `ImageTextRecognizer`，分享扩展条件编译解析时不需要 Vision OCR 文件。
 - 新增测试覆盖：内容筛选解析、`has:clip` 搜索、摘录片段块反解析、摘录片段素材索引和 `has:摘录片段` 中文搜索。
 - 本地验证通过：`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`、旧 Swift parser 覆盖 `ClipFragmentExtractor.swift` / `LinkExtractor.swift` / `MemoReferenceParser.swift` / `MemoTaskParser.swift` / `SharedAttachmentStore.swift` / `MemoSearchQuery.swift` / `Memo.swift` / `SomeTests.swift`，并用 `-D SOME_SHARE_EXTENSION` 覆盖 `MemoStore.swift` 分享扩展路径。
+- 已提交并推送 `99fd00a Add clip fragment asset indexing`，推送后工作树恢复干净。
+
+## 2026-06-23T04:50:00+08:00
+
+- 进入阶段 27：多链接批量网页摘录。继续前复查 Git 状态、计划/发现/进度文件、QuickCapture 链接摘录链路、`MemoStore.addWebClip` 和网页摘录相关测试。
+- 当前现状：输入卡片已能识别多个 URL 并显示 `+N`，但摘录按钮只会处理第一个 URL；这会影响用户一次导入多条网址/链接后的整理效率。
+- 因同类外部查询刚被审批服务 503 拦截，本轮不重复联网检索，沿用此前 SwiftSoup、ReadabilityKit、usememos 等开源对标结论；实现继续基于项目现有 `RemoteWebClipFetcher`、`LinkExtractor.webClipText`、`ClipFragmentExtractor` 和 `MemoStore`。
+- `MemoStore` 新增 `addWebClip(_:, selectedFragments:)`，单链接和批量入口共用同一套结构化网页摘录/摘录片段保存逻辑。
+- `QuickCaptureView` 的摘录按钮现在会在多个 URL 时逐条抓取并分别保存网页摘录；单个 URL 仍保留原来的片段勾选确认卡。批量路径只使用网页片段，避免把草稿里同一段 OCR 文本重复写入每个链接。
+- 新增测试覆盖：带选中片段的 `ExtractedWebClip` 保存、未选中重点不写入、摘录片段素材索引，以及多个 `ExtractedWebClip` 分别保存为多条网页素材并可用 `has:web` 检索。
+
+## 2026-06-23T04:50:12+08:00
+
+- 完成阶段 27。为避免 Share Extension 再次出现 target 缺源码问题，已把 `ClipFragmentExtractor.swift` 加入 SomeShareExtension Sources；`MemoAsset.assets` 在主 App 和分享扩展路径都能解析摘录片段素材。
+- 本地验证通过：`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`、旧 Swift parser 覆盖 `WebClipExtractor.swift` / `LinkExtractor.swift` / `ClipFragmentExtractor.swift` / `MemoReferenceParser.swift` / `MemoTaskParser.swift` / `SharedAttachmentStore.swift` / `MemoSearchQuery.swift` / `Memo.swift` / `MemoStore.swift` / `SomeTests.swift`，并用 `-D SOME_SHARE_EXTENSION` 覆盖分享扩展路径。
+- 单独解析 `QuickCaptureView.swift` 仍被本机旧 Swift 5.4 parser 的既有 async/await 与新式 `if let` 语法限制阻止，需要 Xcode 16 / GitHub Actions 做完整 typecheck；核心批量保存逻辑已用 Store 层测试覆盖。

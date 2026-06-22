@@ -42,6 +42,7 @@
 		7A1000010000000000000032 /* LinkExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000035 /* LinkExtractor.swift */; };
 		7A1000010000000000000038 /* WebClipExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000040 /* WebClipExtractor.swift */; };
 		7A1000010000000000000041 /* ClipFragmentExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000041 /* ClipFragmentExtractor.swift */; };
+		7A1000010000000000000042 /* ClipFragmentExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000041 /* ClipFragmentExtractor.swift */; };
 		7A1000010000000000000033 /* SQLiteMemoDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000036 /* SQLiteMemoDatabase.swift */; };
 		7A1000010000000000000034 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000037 /* libsqlite3.tbd */; };
 		7A1000010000000000000035 /* MemoBackupArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000038 /* MemoBackupArchive.swift */; };
@@ -607,6 +608,7 @@
 				7A5000010000000000000002 /* SharedAttachmentStore.swift in Sources */,
 				7A8000010000000000000002 /* MemoReferenceParser.swift in Sources */,
 				7A9000010000000000000001 /* LinkExtractor.swift in Sources */,
+				7A1000010000000000000042 /* ClipFragmentExtractor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

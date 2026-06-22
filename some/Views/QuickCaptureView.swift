@@ -185,9 +185,9 @@ struct QuickCaptureView: View {
                     .accessibilityLabel("导入文件")
 
                     Button {
-                        clipFirstURL()
+                        clipURLs()
                     } label: {
-                        Image(systemName: "doc.text.magnifyingglass")
+                        Image(systemName: detectedURLs.count > 1 ? "square.stack.3d.up" : "doc.text.magnifyingglass")
                             .frame(width: 34, height: 34)
                     }
                     .buttonStyle(.plain)
@@ -196,7 +196,7 @@ struct QuickCaptureView: View {
                     .clipShape(Circle())
                     .disabled(isClippingWebPage || detectedURLs.isEmpty || audioRecorder.isRecording)
                     .opacity(detectedURLs.isEmpty ? 0.35 : 1)
-                    .accessibilityLabel("摘录网页")
+                    .accessibilityLabel(detectedURLs.count > 1 ? "批量摘录网页" : "摘录网页")
 
                     if isImportingMedia {
                         ProgressView()
@@ -639,8 +639,19 @@ struct QuickCaptureView: View {
         return failed > 0 ? "没有导入素材，\(failed) 个失败。" : "没有导入素材"
     }
 
-    private func clipFirstURL() {
-        guard let url = detectedURLs.first else { return }
+    private func clipURLs() {
+        let urls = detectedURLs
+        guard let firstURL = urls.first else { return }
+
+        if urls.count > 1 {
+            clipMultipleURLs(urls)
+        } else {
+            clipSingleURL(firstURL)
+        }
+    }
+
+    private func clipSingleURL(_ url: URL) {
+        guard !isClippingWebPage else { return }
 
         isClippingWebPage = true
         statusText = "正在摘录网页..."
@@ -659,6 +670,38 @@ struct QuickCaptureView: View {
                     selectedClipFragmentIDs = Set(fragments.prefix(4).map(\.id))
                     statusText = "已提取网页重点，选择片段后保存。"
                 }
+            }
+        }
+    }
+
+    private func clipMultipleURLs(_ urls: [URL]) {
+        guard !isClippingWebPage else { return }
+
+        isClippingWebPage = true
+        statusText = "正在批量摘录 \(urls.count) 个网页..."
+        clearPendingWebClip()
+
+        Task {
+            var savedCount = 0
+            var failedCount = 0
+
+            for url in urls {
+                let clip = await RemoteWebClipFetcher.clip(from: url)
+                let fragments = clipFragments(for: clip).filter { $0.source == .web }
+                let selected = Array(fragments.prefix(4))
+                let saved = await MainActor.run {
+                    store.addWebClip(clip, selectedFragments: selected) != nil
+                }
+                savedCount += saved ? 1 : 0
+                failedCount += saved ? 0 : 1
+            }
+
+            await MainActor.run {
+                isClippingWebPage = false
+                if savedCount > 0 {
+                    text = ""
+                }
+                statusText = webClipBatchStatus(saved: savedCount, failed: failedCount)
             }
         }
     }
@@ -762,27 +805,23 @@ struct QuickCaptureView: View {
     }
 
     private func saveWebClip(_ clip: ExtractedWebClip, selectedFragments: [ClipFragment]) {
-        let title = clip.title ?? LinkExtractor.displayText(for: clip.url)
-        let content = ClipFragmentExtractor.selectedWebClipContent(
-            title: title,
-            summary: clip.summary,
-            fragments: selectedFragments
-        )
-        let clipText = LinkExtractor.webClipText(
-            title: title,
-            url: clip.url,
-            summary: content.summary,
-            highlights: content.highlights
-        )
-        let memoText = [clipText, content.mergedFragmentsText]
-            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-            .joined(separator: "\n\n")
-        let saved = store.addMemo(text: memoText) != nil
+        let saved = store.addWebClip(clip, selectedFragments: selectedFragments) != nil
         if saved {
             clearPendingWebClip()
         }
         statusText = saved ? "已保存网页摘录" : "网页摘录保存失败。"
+    }
+
+    private func webClipBatchStatus(saved: Int, failed: Int) -> String {
+        if saved > 0, failed > 0 {
+            return "已批量保存 \(saved) 条网页摘录，\(failed) 条失败。"
+        }
+
+        if saved > 0 {
+            return "已批量保存 \(saved) 条网页摘录"
+        }
+
+        return failed > 0 ? "批量摘录失败，\(failed) 条未保存。" : "没有保存网页摘录"
     }
 
     private func clearPendingWebClip() {

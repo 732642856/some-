@@ -244,6 +244,27 @@ final class MemoStore: ObservableObject {
 
     #if !SOME_SHARE_EXTENSION
     @discardableResult
+    func addWebClip(_ clip: ExtractedWebClip, selectedFragments: [ClipFragment] = []) -> Memo? {
+        let title = clip.title ?? LinkExtractor.displayText(for: clip.url)
+        let content = ClipFragmentExtractor.selectedWebClipContent(
+            title: title,
+            summary: clip.summary,
+            fragments: selectedFragments
+        )
+        let clipText = LinkExtractor.webClipText(
+            title: title,
+            url: clip.url,
+            summary: selectedFragments.isEmpty ? clip.summary : content.summary,
+            highlights: selectedFragments.isEmpty ? clip.highlights : content.highlights
+        )
+        let memoText = [clipText, content.mergedFragmentsText]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n\n")
+        return addMemo(text: memoText)
+    }
+
+    @discardableResult
     func addImageEdit(
         title: String,
         sourceAttachment: SharedAttachment,

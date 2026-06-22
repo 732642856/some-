@@ -2824,6 +2824,60 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(asset?.uri, "https://example.com/article")
     }
 
+    func testAddExtractedWebClipWithSelectedFragmentsCreatesClipAsset() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let clip = ExtractedWebClip(
+            url: URL(string: "https://example.com/article")!,
+            title: "文章标题",
+            summary: "文章摘要",
+            highlights: ["重点一", "重点二"]
+        )
+        let selected = [
+            ClipFragment(source: .web, title: "文章标题", text: "文章摘要", uri: "https://example.com/article", stableKey: "summary"),
+            ClipFragment(source: .web, title: "文章标题", text: "重点一", uri: "https://example.com/article", stableKey: "highlight")
+        ]
+
+        let memo = try XCTUnwrap(store.addWebClip(clip, selectedFragments: selected))
+
+        XCTAssertTrue(memo.text.contains("[网页摘录: 文章标题](https://example.com/article)"))
+        XCTAssertTrue(memo.text.contains("摘要：文章摘要"))
+        XCTAssertTrue(memo.text.contains("- 重点一"))
+        XCTAssertFalse(memo.text.contains("- 重点二"))
+        XCTAssertTrue(memo.text.contains("摘录片段：文章标题"))
+
+        let assets = store.assets(for: memo)
+        XCTAssertTrue(assets.contains { $0.kind == .webClip && $0.title == "文章标题" })
+        XCTAssertTrue(assets.contains { $0.kind == .clipFragment && $0.summary == "文章摘要 · 重点一" })
+    }
+
+    func testAddingMultipleExtractedWebClipsCreatesSeparateWebAssets() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let clips = [
+            ExtractedWebClip(
+                url: URL(string: "https://example.com/a")!,
+                title: "A",
+                summary: "A 摘要",
+                highlights: ["A 重点"]
+            ),
+            ExtractedWebClip(
+                url: URL(string: "https://example.com/b")!,
+                title: "B",
+                summary: "B 摘要",
+                highlights: ["B 重点"]
+            )
+        ]
+
+        for clip in clips {
+            XCTAssertNotNil(store.addWebClip(clip))
+        }
+
+        XCTAssertEqual(store.memos.count, 2)
+        XCTAssertEqual(store.assets.filter { $0.kind == .webClip }.count, 2)
+
+        store.searchText = "has:web"
+        XCTAssertEqual(Set(store.filteredMemos.map(\.text)), Set(store.memos.map(\.text)))
+    }
+
     private func documentsURL() -> URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSTemporaryDirectory())
