@@ -124,6 +124,8 @@
 - 本轮采用 Apple 系统能力 `PhotosUI.PhotosPicker` 和 SwiftUI `.fileImporter`，并复用项目已有 `SharedAttachmentStore`、`SharedMemoTextComposer`、`MemoAsset` 索引，不引入第三方运行时代码。
 - 实现边界：已支持从输入卡片导入相册图片/视频和文件，保存为本地附件 memo；图片导入会尝试本地 Vision OCR 并生成“图片文字”素材；首页素材库可按类型筛选。相机拍摄、录音、视频拍摄、批量扫描、缩略图缓存和复杂媒体元数据仍属于后续多模态采集二期。
 
+2026-06-22 相机拍照入口检索决策：本轮继续前已重新检查 Git 状态、未跟踪文件、当前文件清单和 Documents 下旧 some 目录。联网检索 `SwiftUI camera UIImagePickerController MIT`、`SwiftUI AVCapturePhotoOutput camera MIT`、`iOS document scanner VisionKit MIT SwiftUI`，GitHub API 返回 0 个可直接复用的成熟候选；Apple 系统能力 `UIImagePickerController` / `AVCapturePhotoOutput` / VisionKit 仍是首选。本轮不复制第三方源码，也不新增 SPM，先用 `UIImagePickerController` 的系统相机做拍照导入 v1，拿到 JPEG 后复用现有 `SharedAttachmentStore`、本地 OCR 和 `MemoAsset` 索引。后续如果要做自定义取景框、连续拍摄、扫描边缘校正或实时 OCR，再评估 AVFoundation / VisionKit 二期。
+
 ## some 当前缺口与复用优先级
 
 P0 验证：
@@ -170,7 +172,7 @@ P3 只参考：
 
 2026-06-22 本轮实现决策：继续补搜索三期第二段，参考 Joplin `created:` / `updated:` 日期过滤与“错误过滤器按普通文本处理”的交互原则。some 重新实现本地日期解析，只支持清晰的 `yyyy` / `yyyy-MM` / `yyyy-MM-dd` 和 `>` / `>=` / `<` / `<=` 边界语法，避免引入模糊自然语言日期依赖，也没有复制 Joplin 源码。
 
-2026-06-22 本轮实现决策：多模态采集入口 v1 采用 Apple `PhotosUI.PhotosPicker` 和 SwiftUI `.fileImporter`，没有复制无许可证 PhotosPicker 示例，也没有新增第三方依赖。导入结果复用现有 App Group 附件目录、memo 正文附件引用和 `MemoAsset` 索引；首页新增素材库视图作为素材整理入口。
+2026-06-22 本轮实现决策：多模态采集入口 v1 采用 Apple `PhotosUI.PhotosPicker`、SwiftUI `.fileImporter` 和 UIKit `UIImagePickerController`，没有复制无许可证 PhotosPicker 示例，也没有新增第三方依赖。导入结果复用现有 App Group 附件目录、memo 正文附件引用和 `MemoAsset` 索引；首页新增素材库视图作为素材整理入口。拍照导入保存 JPEG，并复用图片 OCR 生成“图片文字”素材。
 
 2026-06-22 本轮实现决策：网页摘录 MVP 采用正文内可迁移格式 `[网页摘录: 标题](URL)` 加摘要/重点，复用现有 memo、SQLite、备份、历史版本、搜索和素材索引；新增 `webClip` 素材与 `has:web` / `has:webclip` 精准筛选。没有复制 `ReadabilityKit` / `SwiftSoup` / OCR 项目源码；当前只抓标题、description 和段落候选，失败时回退 `LinkPresentation` 标题，再失败仍保存 URL。
 

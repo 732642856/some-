@@ -106,6 +106,7 @@
 - 2026-06-22：已新增 `ImageTextRecognizer.swift`，并确认纳入主 App target；OCR 记录会生成 `screenshot` 素材，搜索支持 `has:ocr` / `has:screenshot` / `has:图片文字`。
 - 2026-06-22：已补充 OCR memo 生成、去重、图片文字素材索引、`has:ocr` 搜索和避免重复附件引用相关单元测试。
 - 2026-06-22：本轮 `git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme` 通过；旧版 `xcrun swiftc -parse` 已覆盖 `LinkExtractor.swift`、`MemoSearchQuery.swift`、`Memo.swift`、`MemoStore.swift` 和 `SomeTests.swift`。
+- 2026-06-22：已新增拍照导入 v1：快速输入工具栏相机按钮使用系统 `UIImagePickerController` 拍摄单张图片，保存为本地 JPEG 附件，并复用现有 OCR、附件 memo、素材索引和备份链路；`Info.plist` 已补充 `NSCameraUsageDescription`。
 
 ## 未能在当前环境完成
 
@@ -113,6 +114,7 @@
 - 当前 Command Line Tools 的 Swift 编译器为旧版 Swift 5.4，无法 typecheck Swift concurrency 代码；本轮只完成了 plist、scheme、target 引用和源码静态扫描。
 - 2026-06-22 复查：`xcodebuild -version` 仍失败，提示 active developer directory 为 `/Library/Developer/CommandLineTools`；`xcrun swiftc -version` 为 Apple Swift 5.4。
 - 2026-06-22：`xcrun swiftc -parse some/Utilities/ImageTextRecognizer.swift` 与 `xcrun swiftc -parse some/Views/QuickCaptureView.swift` 均因 Swift 5.4 不支持当前代码中的 async/await 报错；需要 Xcode 16 或更新版本做完整编译、typecheck 和 XCTest。
+- 2026-06-22：拍照导入需要真机或带可用相机的运行环境验证；当前机器无法打开模拟器/真机相机，也无法用旧 CLT 完整编译 SwiftUI + UIKit bridge。
 - Share Extension 的真实分享面板、App Group 容器和签名能力需要在完整 Xcode + Apple Developer Team 环境里实机或模拟器验证。
 - 旧版 `xcrun swiftc -parse` 只能做语法层检查，不能替代 Xcode 16 的完整 typecheck、XCTest 或 Share Extension 真机验证。
 

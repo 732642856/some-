@@ -77,110 +77,121 @@ struct QuickCaptureView: View {
                     .foregroundStyle(Color.secondaryText)
             }
 
-            HStack(spacing: 10) {
-                Button {
-                    text = ""
-                    statusText = nil
-                    isFocused = true
-                } label: {
-                    Image(systemName: "xmark")
-                        .frame(width: 34, height: 34)
+            VStack(spacing: 10) {
+                HStack(spacing: 10) {
+                    Button {
+                        text = ""
+                        statusText = nil
+                        isFocused = true
+                    } label: {
+                        Image(systemName: "xmark")
+                            .frame(width: 34, height: 34)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.secondaryText)
+                    .background(Color.subtleSurface)
+                    .clipShape(Circle())
+                    .disabled(text.isEmpty)
+                    .opacity(text.isEmpty ? 0.35 : 1)
+                    .accessibilityLabel("清空")
+
+                    PhotosPicker(
+                        selection: $selectedPhotoItems,
+                        maxSelectionCount: 12,
+                        matching: .any(of: [.images, .videos])
+                    ) {
+                        Image(systemName: "photo.on.rectangle.angled")
+                            .frame(width: 34, height: 34)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.secondaryText)
+                    .background(Color.subtleSurface)
+                    .clipShape(Circle())
+                    .disabled(isImportingMedia)
+                    .accessibilityLabel("导入照片或视频")
+
+                    Button {
+                        guard canUseCamera else {
+                            statusText = "当前设备不可用相机。"
+                            return
+                        }
+                        isShowingCamera = true
+                    } label: {
+                        Image(systemName: "camera")
+                            .frame(width: 34, height: 34)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.secondaryText)
+                    .background(Color.subtleSurface)
+                    .clipShape(Circle())
+                    .disabled(isImportingMedia || !canUseCamera)
+                    .opacity(canUseCamera ? 1 : 0.35)
+                    .accessibilityLabel("拍照导入")
+
+                    Button {
+                        isShowingFileImporter = true
+                    } label: {
+                        Image(systemName: "folder")
+                            .frame(width: 34, height: 34)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.secondaryText)
+                    .background(Color.subtleSurface)
+                    .clipShape(Circle())
+                    .disabled(isImportingMedia)
+                    .accessibilityLabel("导入文件")
+
+                    Button {
+                        clipFirstURL()
+                    } label: {
+                        Image(systemName: "doc.text.magnifyingglass")
+                            .frame(width: 34, height: 34)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.secondaryText)
+                    .background(Color.subtleSurface)
+                    .clipShape(Circle())
+                    .disabled(isClippingWebPage || detectedURLs.isEmpty)
+                    .opacity(detectedURLs.isEmpty ? 0.35 : 1)
+                    .accessibilityLabel("摘录网页")
+
+                    if isImportingMedia {
+                        ProgressView()
+                            .tint(Color.accentGreen)
+                            .frame(width: 28, height: 34)
+                    }
+
+                    if isClippingWebPage {
+                        ProgressView()
+                            .tint(Color.accentGreen)
+                            .frame(width: 28, height: 34)
+                    }
+
+                    Spacer(minLength: 0)
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(Color.secondaryText)
-                .background(Color.subtleSurface)
-                .clipShape(Circle())
-                .disabled(text.isEmpty)
-                .opacity(text.isEmpty ? 0.35 : 1)
-                .accessibilityLabel("清空")
 
-                PhotosPicker(
-                    selection: $selectedPhotoItems,
-                    maxSelectionCount: 12,
-                    matching: .any(of: [.images, .videos])
-                ) {
-                    Image(systemName: "photo.on.rectangle.angled")
-                        .frame(width: 34, height: 34)
+                HStack {
+                    Text("草稿自动保存")
+                        .font(.caption)
+                        .foregroundStyle(Color.tertiaryText)
+                        .lineLimit(1)
+
+                    Spacer(minLength: 12)
+
+                    Button {
+                        submit()
+                    } label: {
+                        Label("保存并继续", systemImage: "paperplane.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .frame(minWidth: 112)
+                            .frame(height: 38)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.white)
+                    .background(trimmedText.isEmpty ? Color.disabled : Color.accentGreen)
+                    .clipShape(Capsule())
+                    .disabled(trimmedText.isEmpty)
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(Color.secondaryText)
-                .background(Color.subtleSurface)
-                .clipShape(Circle())
-                .disabled(isImportingMedia)
-                .accessibilityLabel("导入照片或视频")
-
-                Button {
-                    isShowingCamera = true
-                } label: {
-                    Image(systemName: "camera")
-                        .frame(width: 34, height: 34)
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(Color.secondaryText)
-                .background(Color.subtleSurface)
-                .clipShape(Circle())
-                .disabled(isImportingMedia || !canUseCamera)
-                .opacity(canUseCamera ? 1 : 0.35)
-                .accessibilityLabel("拍照导入")
-
-                Button {
-                    isShowingFileImporter = true
-                } label: {
-                    Image(systemName: "folder")
-                        .frame(width: 34, height: 34)
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(Color.secondaryText)
-                .background(Color.subtleSurface)
-                .clipShape(Circle())
-                .disabled(isImportingMedia)
-                .accessibilityLabel("导入文件")
-
-                Button {
-                    clipFirstURL()
-                } label: {
-                    Image(systemName: "doc.text.magnifyingglass")
-                        .frame(width: 34, height: 34)
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(Color.secondaryText)
-                .background(Color.subtleSurface)
-                .clipShape(Circle())
-                .disabled(isClippingWebPage || detectedURLs.isEmpty)
-                .opacity(detectedURLs.isEmpty ? 0.35 : 1)
-                .accessibilityLabel("摘录网页")
-
-                if isImportingMedia {
-                    ProgressView()
-                        .tint(Color.accentGreen)
-                        .frame(width: 28, height: 34)
-                }
-
-                if isClippingWebPage {
-                    ProgressView()
-                        .tint(Color.accentGreen)
-                        .frame(width: 28, height: 34)
-                }
-
-                Spacer()
-
-                Text("草稿自动保存")
-                    .font(.caption)
-                    .foregroundStyle(Color.tertiaryText)
-
-                Button {
-                    submit()
-                } label: {
-                    Label("保存并继续", systemImage: "paperplane.fill")
-                        .font(.system(size: 15, weight: .semibold))
-                        .frame(minWidth: 112)
-                        .frame(height: 38)
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(Color.white)
-                .background(trimmedText.isEmpty ? Color.disabled : Color.accentGreen)
-                .clipShape(Capsule())
-                .disabled(trimmedText.isEmpty)
             }
         }
         .padding(16)

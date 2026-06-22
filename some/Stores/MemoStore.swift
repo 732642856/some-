@@ -4,6 +4,7 @@ import SwiftUI
 enum MemoHomeMode: String, CaseIterable, Identifiable {
     case timeline
     case assets
+    case wardrobe
     case ai
     case review
     case stats
@@ -15,6 +16,7 @@ enum MemoHomeMode: String, CaseIterable, Identifiable {
         switch self {
         case .timeline: return "记录"
         case .assets: return "素材"
+        case .wardrobe: return "衣橱"
         case .ai: return "AI"
         case .review: return "回顾"
         case .stats: return "统计"
@@ -26,6 +28,7 @@ enum MemoHomeMode: String, CaseIterable, Identifiable {
         switch self {
         case .timeline: return "square.and.pencil"
         case .assets: return "square.grid.2x2"
+        case .wardrobe: return "tshirt"
         case .ai: return "sparkles.rectangle.stack"
         case .review: return "sparkles"
         case .stats: return "chart.xyaxis.line"
@@ -229,6 +232,50 @@ final class MemoStore: ObservableObject {
         )
 
         return addMemo(text: clipText)
+    }
+
+    @discardableResult
+    func addWardrobeItem(
+        name: String,
+        category: String,
+        colors: [String] = [],
+        seasons: [String] = [],
+        scenes: [String] = [],
+        attachment: SharedAttachment? = nil
+    ) -> Memo? {
+        let cleanedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanedName.isEmpty else {
+            return nil
+        }
+
+        var lines = ["衣橱单品：\(cleanedName)"]
+        appendField("分类", value: category, to: &lines)
+        appendField("颜色", values: colors, to: &lines)
+        appendField("季节", values: seasons, to: &lines)
+        appendField("场景", values: scenes, to: &lines)
+        return addStructuredMemo(lines: lines, attachment: attachment)
+    }
+
+    @discardableResult
+    func addOutfit(
+        title: String,
+        itemNames: [String],
+        scenes: [String] = [],
+        seasons: [String] = [],
+        note: String? = nil
+    ) -> Memo? {
+        let cleanedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanedItems = cleanedValues(itemNames)
+        guard !cleanedTitle.isEmpty, !cleanedItems.isEmpty else {
+            return nil
+        }
+
+        var lines = ["穿搭组合：\(cleanedTitle)"]
+        appendField("单品", values: cleanedItems, to: &lines)
+        appendField("场景", values: scenes, to: &lines)
+        appendField("季节", values: seasons, to: &lines)
+        appendField("备注", value: note, to: &lines)
+        return addStructuredMemo(lines: lines, attachment: nil)
     }
 
     @discardableResult
@@ -927,6 +974,10 @@ final class MemoStore: ObservableObject {
             return !LinkExtractor.webClips(in: memo.text).isEmpty
         case .screenshot:
             return assets(for: memo).contains { $0.kind == .screenshot }
+        case .wardrobe:
+            return assets(for: memo).contains { $0.kind == .wardrobeItem }
+        case .outfit:
+            return assets(for: memo).contains { $0.kind == .outfit }
         }
     }
 
@@ -1103,6 +1154,47 @@ final class MemoStore: ObservableObject {
         revisionsByMemoID = [:]
         assets = derivedAssets()
         cleanupUnreferencedAttachments()
+    }
+
+    @discardableResult
+    private func addStructuredMemo(lines: [String], attachment: SharedAttachment?) -> Memo? {
+        let body = SharedMemoTextComposer.compose(
+            texts: [lines.joined(separator: "\n")],
+            urls: [],
+            attachments: attachment.map { [$0] } ?? []
+        )
+        guard let memo = addMemo(text: body) else {
+            if let attachment = attachment {
+                SharedAttachmentStore.delete(attachment)
+            }
+            return nil
+        }
+
+        return memo
+    }
+
+    private func appendField(_ label: String, value: String?, to lines: inout [String]) {
+        guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !value.isEmpty else {
+            return
+        }
+
+        lines.append("\(label)：\(value)")
+    }
+
+    private func appendField(_ label: String, values: [String], to lines: inout [String]) {
+        let cleaned = cleanedValues(values)
+        guard !cleaned.isEmpty else {
+            return
+        }
+
+        lines.append("\(label)：\(cleaned.joined(separator: "、"))")
+    }
+
+    private func cleanedValues(_ values: [String]) -> [String] {
+        values
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
     }
 
     private func loadRevisions() {

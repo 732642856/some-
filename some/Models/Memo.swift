@@ -249,6 +249,37 @@ extension MemoAsset {
             )
         }
 
+        if let wardrobeItem = wardrobeItemAsset(in: visibleText),
+           let attachment = SharedAttachmentStore.attachments(in: memo.text).first(where: \.isImage) {
+            append(
+                kind: .wardrobeItem,
+                title: wardrobeItem.title,
+                summary: wardrobeItem.summary,
+                uri: "\(SharedAttachmentStore.referenceScheme)://\(SharedAttachmentStore.encodedReferencePath(attachment.relativePath))",
+                typeIdentifier: attachment.typeIdentifier,
+                byteCount: attachment.byteCount,
+                stableKey: "wardrobe:\(attachment.relativePath):\(wardrobeItem.title)"
+            )
+        } else if let wardrobeItem = wardrobeItemAsset(in: visibleText) {
+            append(
+                kind: .wardrobeItem,
+                title: wardrobeItem.title,
+                summary: wardrobeItem.summary,
+                typeIdentifier: UTType.text.identifier,
+                stableKey: "wardrobe:\(wardrobeItem.title)"
+            )
+        }
+
+        if let outfit = outfitAsset(in: visibleText) {
+            append(
+                kind: .outfit,
+                title: outfit.title,
+                summary: outfit.summary,
+                typeIdentifier: UTType.text.identifier,
+                stableKey: "outfit:\(outfit.title):\(outfit.summary ?? "")"
+            )
+        }
+
         for attachment in SharedAttachmentStore.attachments(in: memo.text) {
             append(
                 kind: assetKind(for: attachment),
@@ -327,6 +358,35 @@ extension MemoAsset {
         }
 
         return (title, limitedSummary(recognizedText))
+    }
+
+    private static func wardrobeItemAsset(in text: String) -> (title: String, summary: String?)? {
+        structuredAsset(in: text, prefixes: ["衣橱单品：", "衣橱单品:", "单品：", "单品:"])
+    }
+
+    private static func outfitAsset(in text: String) -> (title: String, summary: String?)? {
+        structuredAsset(in: text, prefixes: ["穿搭组合：", "穿搭组合:", "穿搭：", "穿搭:"])
+    }
+
+    private static func structuredAsset(in text: String, prefixes: [String]) -> (title: String, summary: String?)? {
+        let lines = text
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        guard let firstLine = lines.first(where: { !$0.isEmpty }),
+              let prefix = prefixes.first(where: { firstLine.hasPrefix($0) }) else {
+            return nil
+        }
+
+        let rawTitle = String(firstLine.dropFirst(prefix.count))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = rawTitle.isEmpty ? "未命名" : rawTitle
+        let summary = lines
+            .dropFirst()
+            .filter { line in
+                !line.isEmpty && SharedAttachmentStore.attachments(in: line).isEmpty
+            }
+            .joined(separator: " · ")
+        return (title, summary.isEmpty ? nil : limitedSummary(summary, maxLength: 500))
     }
 
     private static func limitedSummary(_ text: String, maxLength: Int = 800) -> String {

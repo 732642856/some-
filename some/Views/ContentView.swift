@@ -24,6 +24,8 @@ struct ContentView: View {
                             MemoListView(memos: store.filteredMemos, emptyTitle: "还没有匹配的闪念")
                         case .assets:
                             AssetLibraryView()
+                        case .wardrobe:
+                            WardrobeView()
                         case .ai:
                             AIWorkspaceView()
                         case .review:
@@ -219,11 +221,286 @@ private struct HeaderView: View {
         switch store.homeMode {
         case .timeline: return "今天先记下来"
         case .assets: return "整理素材"
+        case .wardrobe: return "搭出今天"
         case .ai: return "让 AI 帮你排版"
         case .review: return "让旧念头冒泡"
         case .stats: return "看见记录习惯"
         case .archive: return "暂时收进抽屉"
         }
+    }
+}
+
+private struct WardrobeView: View {
+    @EnvironmentObject private var store: MemoStore
+    @State private var itemName = ""
+    @State private var itemCategory = "上装"
+    @State private var itemColors = ""
+    @State private var itemSeasons = ""
+    @State private var itemScenes = ""
+    @State private var selectedPhotoAssetID: UUID?
+    @State private var outfitTitle = ""
+    @State private var outfitItems = ""
+    @State private var outfitScenes = ""
+    @State private var statusText: String?
+
+    private let categories = ["上装", "下装", "连衣裙", "外套", "鞋履", "包包", "饰品", "其他"]
+
+    private var wardrobeAssets: [MemoAsset] {
+        store.assets.filter { $0.kind == .wardrobeItem }
+    }
+
+    private var outfitAssets: [MemoAsset] {
+        store.assets.filter { $0.kind == .outfit }
+    }
+
+    private var imageAttachmentAssets: [MemoAsset] {
+        store.assets.filter { asset in
+            guard asset.kind == .attachment,
+                  let type = asset.typeIdentifier.flatMap(UTType.init) else {
+                return false
+            }
+            return type.conforms(to: .image)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 10) {
+                StatBadge(title: "单品", value: "\(wardrobeAssets.count)", systemImage: "tshirt")
+                StatBadge(title: "穿搭", value: "\(outfitAssets.count)", systemImage: "sparkles")
+            }
+
+            wardrobeItemForm
+            outfitForm
+            wardrobeList
+        }
+    }
+
+    private var wardrobeItemForm: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("新单品", systemImage: "plus.circle")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+
+            TextField("名称，例如 白色衬衫", text: $itemName)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            Picker("分类", selection: $itemCategory) {
+                ForEach(categories, id: \.self) { category in
+                    Text(category).tag(category)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            HStack(spacing: 8) {
+                TextField("颜色：白、蓝", text: $itemColors)
+                TextField("季节：春、秋", text: $itemSeasons)
+            }
+            .textFieldStyle(.plain)
+            .padding(10)
+            .background(Color.subtleSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            TextField("场景：通勤、约会、旅行", text: $itemScenes)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            if !imageAttachmentAssets.isEmpty {
+                Picker("照片", selection: $selectedPhotoAssetID) {
+                    Text("不绑定照片").tag(Optional<UUID>.none)
+                    ForEach(imageAttachmentAssets) { asset in
+                        Text(asset.title).tag(Optional(asset.id))
+                    }
+                }
+                .pickerStyle(.menu)
+                .tint(Color.accentGreen)
+            }
+
+            actionRow(
+                buttonTitle: "保存单品",
+                systemImage: "checkmark.circle.fill",
+                disabled: itemName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ) {
+                saveWardrobeItem()
+            }
+        }
+        .padding(14)
+        .background(Color.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.border, lineWidth: 1)
+        )
+    }
+
+    private var outfitForm: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("新穿搭", systemImage: "sparkles")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+
+            TextField("名称，例如 周一通勤", text: $outfitTitle)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            TextField("单品：白色衬衫、牛仔裤、黑色包", text: $outfitItems)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            TextField("场景：通勤、聚餐", text: $outfitScenes)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            actionRow(
+                buttonTitle: "保存穿搭",
+                systemImage: "checkmark.circle.fill",
+                disabled: outfitTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    || outfitItems.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ) {
+                saveOutfit()
+            }
+        }
+        .padding(14)
+        .background(Color.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.border, lineWidth: 1)
+        )
+    }
+
+    private var wardrobeList: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("衣橱素材", systemImage: "square.grid.2x2")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+
+            let assets = (wardrobeAssets + outfitAssets)
+                .sorted { $0.createdAt == $1.createdAt ? $0.title < $1.title : $0.createdAt > $1.createdAt }
+
+            if assets.isEmpty {
+                EmptyStateView(title: "还没有衣橱单品")
+            } else {
+                ForEach(assets) { asset in
+                    if let memo = store.memos.first(where: { $0.id == asset.memoID }) {
+                        AssetNavigationRow(asset: asset, memo: memo)
+                    }
+                }
+            }
+        }
+    }
+
+    private func actionRow(
+        buttonTitle: String,
+        systemImage: String,
+        disabled: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        HStack(spacing: 10) {
+            if let statusText = statusText {
+                Text(statusText)
+                    .font(.caption)
+                    .foregroundStyle(Color.secondaryText)
+            }
+
+            Spacer()
+
+            Button(action: action) {
+                Label(buttonTitle, systemImage: systemImage)
+                    .font(.footnote.weight(.semibold))
+                    .frame(height: 34)
+                    .padding(.horizontal, 12)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Color.white)
+            .background(disabled ? Color.disabled : Color.accentGreen)
+            .clipShape(Capsule())
+            .disabled(disabled)
+        }
+    }
+
+    private func saveWardrobeItem() {
+        guard store.addWardrobeItem(
+            name: itemName,
+            category: itemCategory,
+            colors: splitValues(itemColors),
+            seasons: splitValues(itemSeasons),
+            scenes: splitValues(itemScenes),
+            attachment: selectedPhotoAttachment()
+        ) != nil else {
+            statusText = "单品保存失败。"
+            return
+        }
+
+        itemName = ""
+        itemColors = ""
+        itemSeasons = ""
+        itemScenes = ""
+        selectedPhotoAssetID = nil
+        statusText = "已保存单品"
+    }
+
+    private func saveOutfit() {
+        guard store.addOutfit(
+            title: outfitTitle,
+            itemNames: splitValues(outfitItems),
+            scenes: splitValues(outfitScenes)
+        ) != nil else {
+            statusText = "穿搭保存失败。"
+            return
+        }
+
+        outfitTitle = ""
+        outfitItems = ""
+        outfitScenes = ""
+        statusText = "已保存穿搭"
+    }
+
+    private func splitValues(_ text: String) -> [String] {
+        text
+            .components(separatedBy: CharacterSet(charactersIn: "、,，/ "))
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
+    private func selectedPhotoAttachment() -> SharedAttachment? {
+        guard let selectedPhotoAssetID = selectedPhotoAssetID,
+              let asset = imageAttachmentAssets.first(where: { $0.id == selectedPhotoAssetID }),
+              let uri = asset.uri,
+              let relativePath = attachmentRelativePath(in: uri) else {
+            return nil
+        }
+
+        return SharedAttachment(
+            id: relativePath,
+            filename: asset.title,
+            relativePath: relativePath,
+            typeIdentifier: asset.typeIdentifier ?? UTType.data.identifier,
+            byteCount: asset.byteCount ?? 0
+        )
+    }
+
+    private func attachmentRelativePath(in uri: String) -> String? {
+        guard let components = URLComponents(string: uri),
+              components.scheme == SharedAttachmentStore.referenceScheme else {
+            return nil
+        }
+
+        let encodedPath = components.host?.isEmpty == false
+            ? components.host
+            : components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        return encodedPath?.removingPercentEncoding
     }
 }
 

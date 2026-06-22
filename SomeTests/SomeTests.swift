@@ -402,12 +402,12 @@ final class SomeTests: XCTestCase {
     }
 
     func testSearchQueryParserExtractsContentFilters() {
-        let query = MemoSearchQueryParser.parse("has:link has:web has:ocr has:attachment has:reference no:task without:backlink 复盘")
+        let query = MemoSearchQueryParser.parse("has:link has:web has:ocr has:attachment has:reference has:wardrobe has:outfit no:task without:backlink 复盘")
 
         XCTAssertEqual(query.textTerms, ["复盘"])
         XCTAssertEqual(
             query.requiredContentFilters,
-            [.attachment, .link, .reference, .screenshot, .webClip]
+            [.attachment, .link, .outfit, .reference, .screenshot, .wardrobe, .webClip]
         )
         XCTAssertEqual(
             query.excludedContentFilters,
@@ -522,6 +522,8 @@ final class SomeTests: XCTestCase {
         """)
         store.addMemo(text: "附件资料\n\n[附件: image.png](some-attachment://image.png)")
         store.addMemo(text: "任务资料\n- [ ] 写提纲\n- [x] 校对")
+        store.addMemo(text: "衣橱单品：白衬衫\n分类：上装\n颜色：白")
+        store.addMemo(text: "穿搭组合：周一通勤\n单品：白衬衫、黑裤")
         store.addMemo(text: "普通资料")
 
         store.searchText = "has:link"
@@ -587,6 +589,12 @@ final class SomeTests: XCTestCase {
 
         store.searchText = "has:completed-task"
         XCTAssertEqual(store.filteredMemos.map(\.text), ["任务资料\n- [ ] 写提纲\n- [x] 校对"])
+
+        store.searchText = "has:wardrobe"
+        XCTAssertEqual(store.filteredMemos.map(\.text), ["衣橱单品：白衬衫\n分类：上装\n颜色：白"])
+
+        store.searchText = "has:outfit"
+        XCTAssertEqual(store.filteredMemos.map(\.text), ["穿搭组合：周一通勤\n单品：白衬衫、黑裤"])
     }
 
     func testSearchCanExcludeContentTypes() {
@@ -1396,6 +1404,27 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(asset?.byteCount, payload.count)
     }
 
+    func testCameraCaptureAttachmentCreatesJPEGAsset() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let payload = Data("captured jpeg data".utf8)
+        let attachment = try SharedAttachmentStore.save(
+            data: payload,
+            suggestedFilename: "camera-\(UUID().uuidString).jpg",
+            typeIdentifier: UTType.jpeg.identifier
+        )
+        defer { SharedAttachmentStore.delete(attachment) }
+
+        guard let memo = store.addAttachmentMemo(attachment, note: "拍照导入") else {
+            return XCTFail("Expected camera memo")
+        }
+
+        XCTAssertTrue(memo.text.contains("拍照导入"))
+        let asset = store.assets(for: memo).first { $0.kind == .attachment }
+        XCTAssertEqual(asset?.title, attachment.displayName)
+        XCTAssertEqual(asset?.typeIdentifier, UTType.jpeg.identifier)
+        XCTAssertEqual(asset?.byteCount, payload.count)
+    }
+
     func testImageTextRecognizerBuildsMemoText() {
         let attachment = SharedAttachment(
             id: "receipt.png",
@@ -1444,6 +1473,65 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(asset?.title, attachment.displayName)
         XCTAssertEqual(asset?.summary, "合计 128 元\n谢谢惠顾")
         XCTAssertEqual(asset?.uri, "some-attachment://\(attachment.relativePath)")
+    }
+
+    func testAddWardrobeItemCreatesStructuredMemoAndAsset() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let attachment = try SharedAttachmentStore.save(
+            data: Data("wardrobe image".utf8),
+            suggestedFilename: "shirt-\(UUID().uuidString).jpg",
+            typeIdentifier: UTType.jpeg.identifier
+        )
+        defer { SharedAttachmentStore.delete(attachment) }
+
+        guard let memo = store.addWardrobeItem(
+            name: "白衬衫",
+            category: "上装",
+            colors: ["白", "蓝"],
+            seasons: ["春", "秋"],
+            scenes: ["通勤"],
+            attachment: attachment
+        ) else {
+            return XCTFail("Expected wardrobe memo")
+        }
+
+        XCTAssertTrue(memo.text.contains("衣橱单品：白衬衫"))
+        XCTAssertTrue(memo.text.contains("分类：上装"))
+        XCTAssertTrue(memo.text.contains("颜色：白、蓝"))
+        XCTAssertTrue(memo.text.contains("季节：春、秋"))
+        XCTAssertTrue(memo.text.contains("场景：通勤"))
+        XCTAssertEqual(SharedAttachmentStore.attachments(in: memo.text).first?.relativePath, attachment.relativePath)
+
+        let asset = store.assets(for: memo).first { $0.kind == .wardrobeItem }
+        XCTAssertEqual(asset?.title, "白衬衫")
+        XCTAssertEqual(asset?.summary, "分类：上装 · 颜色：白、蓝 · 季节：春、秋 · 场景：通勤")
+        XCTAssertEqual(asset?.uri, "some-attachment://\(attachment.relativePath)")
+        XCTAssertEqual(asset?.typeIdentifier, UTType.jpeg.identifier)
+    }
+
+    func testAddOutfitCreatesStructuredMemoAndAsset() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+
+        guard let memo = store.addOutfit(
+            title: "周一通勤",
+            itemNames: ["白衬衫", "黑裤"],
+            scenes: ["通勤"],
+            seasons: ["春"],
+            note: "轻便"
+        ) else {
+            return XCTFail("Expected outfit memo")
+        }
+
+        XCTAssertTrue(memo.text.contains("穿搭组合：周一通勤"))
+        XCTAssertTrue(memo.text.contains("单品：白衬衫、黑裤"))
+        XCTAssertTrue(memo.text.contains("场景：通勤"))
+        XCTAssertTrue(memo.text.contains("季节：春"))
+        XCTAssertTrue(memo.text.contains("备注：轻便"))
+
+        let asset = store.assets(for: memo).first { $0.kind == .outfit }
+        XCTAssertEqual(asset?.title, "周一通勤")
+        XCTAssertEqual(asset?.summary, "单品：白衬衫、黑裤 · 场景：通勤 · 季节：春 · 备注：轻便")
+        XCTAssertEqual(asset?.typeIdentifier, UTType.text.identifier)
     }
 
     func testAddAttachmentMemoDoesNotDuplicateAttachmentAlreadyInNote() throws {
