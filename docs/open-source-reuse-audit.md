@@ -89,7 +89,9 @@
 - `DrcKarim/SwiftOCRKit`：<https://github.com/DrcKarim/SwiftOCRKit>，MIT，较新的 Vision OCR Swift Package，可作为 OCR 封装候选；仍需验证 API 稳定性。
 - 系统能力：Vision OCR、LinkPresentation、WKWebView、URLSession、Share Extension 是网页和截图摘录的首选底座。
 
-2026-06-22 本轮网页摘录 MVP 检索决策：重新通过 GitHub API 检查 `ReadabilityKit`、`SwiftSoup`、`OpenFind`、`SwiftOCRKit` 的许可证与维护状态。`ReadabilityKit` 为 MIT 但已归档且依赖 Ji；`SwiftSoup` 为 MIT 且活跃，但当前机器仍无法可靠做 Xcode 16/SPM 完整验证；OCR 候选属于下一阶段截图能力。本轮不复制第三方源码，也不引入 SPM，先用 Apple `URLSession`、`LinkPresentation` 与本地轻量 HTML 元数据/段落提取实现网页摘录 MVP。后续若要做复杂正文清洗、中文网页适配和批量离线抓取，优先评估 `SwiftSoup` 作为依赖，而不是继续扩大正则解析。
+2026-06-22 本轮网页摘录 / OCR MVP 检索决策：重新通过 GitHub API 检查 `ReadabilityKit`、`SwiftSoup`、`OpenFind`、`SwiftOCRKit` 的许可证与维护状态。`ReadabilityKit` 为 MIT 但已归档且依赖 Ji；`SwiftSoup` 为 MIT 且活跃，但当前机器仍无法可靠做 Xcode 16/SPM 完整验证；`OpenFind` / `SwiftOCRKit` 可参考 Vision OCR 工作流。本轮不复制第三方源码，也不引入 SPM，先用 Apple `URLSession`、`LinkPresentation`、`Vision` 与本地轻量 HTML 元数据/段落提取实现网页摘录和导入图片 OCR v1。后续若要做复杂正文清洗、中文网页适配和批量离线抓取，优先评估 `SwiftSoup` 作为依赖，而不是继续扩大正则解析。
+
+2026-06-22 本轮图片/截图 OCR MVP 检索决策：再次检索 `VNRecognizeTextRequest`、`OpenFind`、`SwiftOCRKit` 和 Swift Vision OCR MIT 候选。`OpenFind` 是完整 App，可参考工作流但不适合复制进当前项目；`SwiftOCRKit` 是较新的 MIT 封装，仍需在 Xcode 16/SPM 环境验证 API、维护性和体量。本轮不复制第三方 OCR 源码，也不新增依赖，直接使用 Apple Vision `VNRecognizeTextRequest` 在本机识别导入图片文字，并把结果复用现有 memo、附件、备份、搜索和 `MemoAsset.screenshot` 索引。后续如要做批量 OCR、框选区域、置信度、语言配置和扫描校正，再评估是否引入 `SwiftOCRKit` 或参考 `OpenFind` 的交互。
 
 ### 电子手帐、贴纸和画布
 
@@ -120,7 +122,7 @@
 - 本轮工作前已重新扫描主仓库、未跟踪文件、Documents 下 some 相关旧目录，并检索 `SwiftUI PhotosPicker sample`、`SwiftUI fileImporter sample`、`SwiftUI journal photo attachments`、`SwiftUI memo attachment app`、`SwiftUI asset library PhotosPicker` 等关键词。
 - GitHub API 检索到的 `drawrs/PhotosPicker-PhotoUI` 是无许可证示例仓库，不能直接复制；其他 SwiftUI 附件/素材导入检索未找到成熟、许可证清晰且可直接搬进本项目的模块。
 - 本轮采用 Apple 系统能力 `PhotosUI.PhotosPicker` 和 SwiftUI `.fileImporter`，并复用项目已有 `SharedAttachmentStore`、`SharedMemoTextComposer`、`MemoAsset` 索引，不引入第三方运行时代码。
-- 实现边界：已支持从输入卡片导入相册图片/视频和文件，保存为本地附件 memo，并在首页新增素材库按类型筛选；相机拍摄、录音、截图 OCR、视频拍摄、缩略图缓存和复杂媒体元数据仍属于后续多模态采集二期。
+- 实现边界：已支持从输入卡片导入相册图片/视频和文件，保存为本地附件 memo；图片导入会尝试本地 Vision OCR 并生成“图片文字”素材；首页素材库可按类型筛选。相机拍摄、录音、视频拍摄、批量扫描、缩略图缓存和复杂媒体元数据仍属于后续多模态采集二期。
 
 ## some 当前缺口与复用优先级
 
@@ -135,7 +137,7 @@ P1 优先复用：
 
 - 多模态采集：PhotosUI / PHPicker、AVFoundation、Share Extension、Files importer。
 - 图片裁剪/编辑：优先评估 `Mantis`、`TOCropViewController`、`HXPhotoPicker` 与系统 Core Image / Vision。
-- 网页和截图摘录：优先评估 Vision OCR、LinkPresentation、ReadabilityKit、OpenFind / SwiftOCRKit 的可复用部分。
+- 网页和截图摘录：网页摘录 v1 与图片 OCR v1 已用系统能力落地；后续复杂正文清洗优先评估 SwiftSoup，批量/交互式 OCR 再评估 OpenFind / SwiftOCRKit 的可复用部分。
 - 电子手帐：先建本地页面/图层模型，画布交互每个子能力单独检索，不复制无许可证素材。
 - 电子衣橱：先建 Swift 数据模型和本地存储；Android/Web 衣橱项目只做产品参考。
 - 工作日志：复用现有任务项、日期筛选、保存搜索、引用和 AI composer。
@@ -172,13 +174,15 @@ P3 只参考：
 
 2026-06-22 本轮实现决策：网页摘录 MVP 采用正文内可迁移格式 `[网页摘录: 标题](URL)` 加摘要/重点，复用现有 memo、SQLite、备份、历史版本、搜索和素材索引；新增 `webClip` 素材与 `has:web` / `has:webclip` 精准筛选。没有复制 `ReadabilityKit` / `SwiftSoup` / OCR 项目源码；当前只抓标题、description 和段落候选，失败时回退 `LinkPresentation` 标题，再失败仍保存 URL。
 
+2026-06-22 本轮实现决策：图片/截图 OCR MVP 采用 Apple Vision `VNRecognizeTextRequest`，导入图片后异步识别文字，识别成功则保存为“图片文字” memo 并保留原附件引用；素材索引新增 `screenshot` 类型，搜索新增 `has:ocr` / `has:screenshot` / `has:图片文字`。没有复制 `OpenFind` 或 `SwiftOCRKit` 源码，也没有引入未验证的 SPM 依赖。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：
 
 1. 统一素材模型与媒体存储：扩展 SQLite schema 或迁移到更适合复杂关系的 GRDB，覆盖文本、图片、音频、视频、链接、网页、衣橱单品、手帐页面。
 2. 多模态采集入口：相机/相册/录音/视频/文件/截图/网页分享统一进入素材库。
-3. 网页摘录与截图 OCR MVP：先用系统能力和可复用库提取标题、正文、OCR 文本、摘要和引用片段。
+3. 网页摘录与截图 OCR 二期：已完成标题/摘要/段落候选和图片 OCR v1；下一步补引用片段选择、正文清洗、批量网页导入、扫描校正和区域 OCR。
 4. 电子衣橱 MVP：单品建档、分类、颜色/季节/场景、饰品/包包、搭配组合、穿着记录。
 5. 电子手帐与图片编辑 MVP：素材选择、页面画布、裁剪、滤镜、边框、文字、贴纸、基础排版。
 6. 再回补 flomo 缺口：小组件、禅定模式、MCP/API、AI 语音、AI 记忆档案、引用批注二期。
