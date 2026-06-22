@@ -193,3 +193,11 @@
 - 已把 `ScrapbookRenderer` 的 PDF 能力整理为 `pdfData` / `data(layout:format:)`，PNG 和 PDF 共用统一文件名与导出数据入口。
 - `MemoStore.exportScrapbookLayout` 支持 `format: .png/.pdf`，PDF 作为 `UTType.pdf` 本地附件保存，并在手帐 memo 中追加“导出PDF”引用，备份和素材库可继续追踪。
 - 手帐编辑器新增 PDF 导出按钮；补充 PDF 数据头、PDF 附件保存、PDF 引用写回和素材索引测试。
+
+## 2026-06-23T16:30:00+08:00
+
+- 进入阶段 23：衣橱天气推荐、自动打包建议与洗护提醒。开工前复查 Git 状态、规划文件、`WardrobeInsightEngine`、衣橱 UI、结构化保存和衣橱相关测试；本地未发现未跟踪文件碎片。
+- 按用户要求继续全网/GitHub 检索衣橱、穿搭、打包清单和洗护提醒 Swift/iOS/MIT 候选；`wardrobe outfit planner MIT`、`virtual closet swift MIT`、`outfit planner swift MIT`、`packing list swiftui MIT`、`laundry reminder swift MIT` 均未找到可直接复制的成熟模块。
+- 已扩展 `WardrobeInsightEngine`，解析洗护记录为 `WardrobeLaundryLogInsight`，生成 `WardrobeCareReminder` 和 `WardrobePackingSuggestion`，并在天气穿搭/场景/季节/打包建议中避开待清洗、送洗、待熨烫和待修补单品。
+- 衣橱洞察 UI 新增提醒数量、洗护提醒和打包建议；穿搭建议仍填入穿搭草稿，打包建议可一键填入旅行打包表单。
+- 新增测试覆盖：最近天气生成天气穿搭、待洗/送洗单品不进入推荐、洗护提醒带备注、打包建议复用可用单品且避开不可用单品。

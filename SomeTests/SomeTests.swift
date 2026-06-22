@@ -2108,6 +2108,115 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(frequent?.lastWornAt, secondDate)
     }
 
+    func testWardrobeInsightsSuggestWeatherOutfitAndAvoidUnavailableLaundryItems() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let wornDate = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+        let laundryDate = DateFormatters.wardrobeDay.date(from: "2026-06-24")!
+        store.addWardrobeItem(
+            name: "白衬衫",
+            category: "上装",
+            colors: ["白"],
+            seasons: ["夏"],
+            scenes: ["通勤"]
+        )
+        store.addWardrobeItem(
+            name: "黑裤",
+            category: "下装",
+            colors: ["黑"],
+            seasons: ["春", "秋"],
+            scenes: ["通勤"]
+        )
+        store.addWardrobeItem(
+            name: "薄外套",
+            category: "外套",
+            colors: ["蓝"],
+            seasons: ["春", "秋"],
+            scenes: ["通勤"]
+        )
+        store.addWearLog(
+            itemNames: ["白衬衫", "黑裤"],
+            date: wornDate,
+            scenes: ["通勤"],
+            weather: "晴 28C"
+        )
+        store.addLaundryLog(
+            itemNames: ["黑裤"],
+            status: "待清洗",
+            date: laundryDate,
+            note: "明早处理"
+        )
+
+        let insights = WardrobeInsightEngine.insights(for: store.assets)
+
+        XCTAssertEqual(insights.laundryLogs.count, 1)
+        XCTAssertEqual(insights.careReminders.map(\.itemName), ["黑裤"])
+        XCTAssertTrue(insights.careReminders.first?.detail.contains("明早处理") == true)
+        let weatherSuggestion = insights.suggestions.first { $0.id == "weather-晴 28C" }
+        XCTAssertEqual(weatherSuggestion?.title, "晴 28C 天气穿搭")
+        XCTAssertTrue(weatherSuggestion?.itemNames.contains("白衬衫") == true)
+        XCTAssertFalse(weatherSuggestion?.itemNames.contains("黑裤") == true)
+    }
+
+    func testWardrobePackingSuggestionsUseAvailableItemsAndLatestOutfit() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let wornDate = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+        let laundryDate = DateFormatters.wardrobeDay.date(from: "2026-06-24")!
+        store.addWardrobeItem(
+            name: "白衬衫",
+            category: "上装",
+            colors: ["白"],
+            seasons: ["夏"],
+            scenes: ["旅行", "通勤"]
+        )
+        store.addWardrobeItem(
+            name: "牛仔裤",
+            category: "下装",
+            colors: ["蓝"],
+            seasons: ["春", "夏"],
+            scenes: ["旅行"]
+        )
+        store.addWardrobeItem(
+            name: "小白鞋",
+            category: "鞋履",
+            colors: ["白"],
+            seasons: ["春", "夏"],
+            scenes: ["旅行"]
+        )
+        store.addWardrobeItem(
+            name: "帆布包",
+            category: "包包",
+            colors: ["米"],
+            seasons: ["春", "夏"],
+            scenes: ["旅行"]
+        )
+        store.addWearLog(
+            itemNames: ["白衬衫", "牛仔裤"],
+            date: wornDate,
+            scenes: ["旅行"],
+            weather: "多云 22C"
+        )
+        store.addLaundryLog(
+            itemNames: ["牛仔裤"],
+            status: "送洗",
+            date: laundryDate
+        )
+        store.addOutfit(
+            title: "杭州周末",
+            itemNames: ["白衬衫", "牛仔裤", "小白鞋"],
+            scenes: ["旅行"],
+            seasons: ["夏"]
+        )
+
+        let insights = WardrobeInsightEngine.insights(for: store.assets)
+
+        XCTAssertFalse(insights.packingSuggestions.isEmpty)
+        XCTAssertTrue(insights.packingSuggestions.first?.itemNames.contains("白衬衫") == true)
+        XCTAssertFalse(insights.packingSuggestions.first?.itemNames.contains("牛仔裤") == true)
+        XCTAssertEqual(insights.packingSuggestions.first?.weather, "多云 22C")
+        let outfitPacking = insights.packingSuggestions.first { $0.title == "杭州周末 打包" }
+        XCTAssertEqual(outfitPacking?.itemNames, ["白衬衫", "小白鞋"])
+    }
+
     func testAddScrapbookPageCreatesStructuredMemoAndAsset() throws {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         let attachment = try SharedAttachmentStore.save(

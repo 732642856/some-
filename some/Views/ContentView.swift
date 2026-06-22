@@ -1061,6 +1061,7 @@ private struct WardrobeView: View {
                     StatBadge(title: "穿着", value: "\(insights.wearLogs.count)", systemImage: "calendar.badge.clock")
                     StatBadge(title: "洗护", value: "\(laundryLogAssets.count)", systemImage: "washer")
                     StatBadge(title: "打包", value: "\(packingListAssets.count)", systemImage: "suitcase")
+                    StatBadge(title: "提醒", value: "\(insights.careReminders.count)", systemImage: "bell.badge")
                     StatBadge(title: "未搭配", value: "\(insights.unusedItems.count)", systemImage: "arrow.triangle.2.circlepath")
                     StatBadge(title: "场景", value: "\(insights.sceneStats.count)", systemImage: "scope")
                 }
@@ -1116,6 +1117,15 @@ private struct WardrobeView: View {
                     )
                 }
 
+                if !insights.careReminders.isEmpty {
+                    namedStrip(
+                        title: "洗护提醒",
+                        values: insights.careReminders.map { reminder in
+                            "\(reminder.itemName) · \(reminder.status) · \(reminder.detail)"
+                        }
+                    )
+                }
+
                 if !insights.suggestions.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("建议")
@@ -1149,6 +1159,49 @@ private struct WardrobeView: View {
                                     Label("填入", systemImage: "wand.and.stars")
                                         .font(.caption.weight(.semibold))
                                         .foregroundStyle(Color.accentGreen)
+                                }
+                                .padding(10)
+                                .background(Color.subtleSurface)
+                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+
+                if !insights.packingSuggestions.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("打包建议")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.secondaryText)
+
+                        ForEach(insights.packingSuggestions) { suggestion in
+                            Button {
+                                applyPackingSuggestion(suggestion)
+                            } label: {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "suitcase.rolling")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundStyle(Color.accentGold)
+                                        .frame(width: 24, height: 24)
+                                        .background(Color.appBackground)
+                                        .clipShape(Circle())
+
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(suggestion.title)
+                                            .font(.footnote.weight(.semibold))
+                                            .foregroundStyle(Color.primaryText)
+                                        Text(suggestion.itemNames.joined(separator: "、"))
+                                            .font(.caption)
+                                            .lineLimit(2)
+                                            .foregroundStyle(Color.secondaryText)
+                                    }
+
+                                    Spacer()
+
+                                    Label("填入", systemImage: "list.bullet.clipboard")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(Color.accentGold)
                                 }
                                 .padding(10)
                                 .background(Color.subtleSurface)
@@ -1592,6 +1645,15 @@ private struct WardrobeView: View {
         outfitScenes = suggestion.scenes.joined(separator: "、")
         outfitSeasons = suggestion.seasons.joined(separator: "、")
         statusText = "已填入穿搭草稿"
+    }
+
+    private func applyPackingSuggestion(_ suggestion: WardrobePackingSuggestion) {
+        packingTitle = suggestion.title
+        packingDestination = suggestion.destination ?? packingDestination
+        packingItems = suggestion.itemNames.joined(separator: "、")
+        packingWeather = suggestion.weather ?? packingWeather
+        packingNote = suggestion.note ?? packingNote
+        statusText = "已填入打包草稿"
     }
 
     private func metricStrip(title: String, metrics: [WardrobeInsightMetric]) -> some View {

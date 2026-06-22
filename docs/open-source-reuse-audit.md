@@ -112,6 +112,7 @@
 - `denzariu/outfit-planner`、`DaveShaffer/WDI6-outfttr`、`taliacs22/Capsule---Outfit-Planner` 等搜索结果多为旧项目、Web/React Native/Ruby 或无许可证；只做产品参考，不复制代码。
 - 初步策略：some 自建 Swift 数据模型：衣物、饰品、包包、鞋履、品牌/购买信息、颜色、材质、季节、场景、照片、抠图版本、搭配组合、穿着日期、旅行清单和统计。实现前继续搜索可用的 Swift 图像抠图、颜色提取、标签选择和日历组件。
 - 2026-06-22 阶段 11 复查：GitHub API 检索 `SwiftUI wardrobe outfit planner MIT`、`wardrobe outfit planner ios swift` 返回 0；`virtual closet swift ios` 返回 `upandey3/VirtualClosetAI`（Objective-C、无许可证、2017 年停更）和 `thankmelater23/MyFitZ`（MIT、Swift4/iOS10、2017 年停更）。再次复查 `Jean-Regis-M/AURA`，MIT、Kotlin/Android、2026-06 新建，适合参考“颜色/场景/天气/穿着平衡”产品思路，但不直接复制代码。本轮继续自建 Swift 洞察层。
+- 2026-06-23 阶段 23 复查：继续检索 `wardrobe outfit planner MIT`、`virtual closet swift MIT`、`outfit planner swift MIT`、`packing list swiftui MIT`、`laundry reminder swift MIT` 等关键词，GitHub API 返回 0 个可直接复制进当前 SwiftUI/iOS 工程的成熟 MIT 模块。当前功能继续复用 some 的结构化 memo、`MemoAsset` 和 `WardrobeInsightEngine`：从最近穿着天气、最新洗护状态、场景/季节统计和已有穿搭中推导天气穿搭、打包草稿和洗护提醒，不新增第三方依赖。
 
 ### 工作日志和 flomo 补漏
 

@@ -40,6 +40,17 @@ struct WardrobeWearLogInsight: Identifiable, Equatable {
     var createdAt: Date
 }
 
+struct WardrobeLaundryLogInsight: Identifiable, Equatable {
+    var id: UUID
+    var memoID: UUID
+    var title: String
+    var itemNames: [String]
+    var status: String
+    var note: String?
+    var loggedAt: Date
+    var createdAt: Date
+}
+
 struct WardrobeInsightMetric: Identifiable, Equatable {
     var label: String
     var count: Int
@@ -67,10 +78,28 @@ struct WardrobeOutfitSuggestion: Identifiable, Equatable {
     var note: String?
 }
 
+struct WardrobePackingSuggestion: Identifiable, Equatable {
+    var id: String
+    var title: String
+    var destination: String?
+    var weather: String?
+    var itemNames: [String]
+    var note: String?
+}
+
+struct WardrobeCareReminder: Identifiable, Equatable {
+    var id: String
+    var itemName: String
+    var status: String
+    var detail: String
+    var loggedAt: Date?
+}
+
 struct WardrobeInsights: Equatable {
     var items: [WardrobeItemInsight]
     var outfits: [WardrobeOutfitInsight]
     var wearLogs: [WardrobeWearLogInsight]
+    var laundryLogs: [WardrobeLaundryLogInsight]
     var categoryStats: [WardrobeInsightMetric]
     var colorStats: [WardrobeInsightMetric]
     var seasonStats: [WardrobeInsightMetric]
@@ -78,18 +107,23 @@ struct WardrobeInsights: Equatable {
     var unusedItems: [WardrobeItemInsight]
     var frequentItems: [WardrobeItemUsage]
     var suggestions: [WardrobeOutfitSuggestion]
+    var packingSuggestions: [WardrobePackingSuggestion]
+    var careReminders: [WardrobeCareReminder]
 
     static let empty = WardrobeInsights(
         items: [],
         outfits: [],
         wearLogs: [],
+        laundryLogs: [],
         categoryStats: [],
         colorStats: [],
         seasonStats: [],
         sceneStats: [],
         unusedItems: [],
         frequentItems: [],
-        suggestions: []
+        suggestions: [],
+        packingSuggestions: [],
+        careReminders: []
     )
 }
 
@@ -103,9 +137,14 @@ enum WardrobeInsightEngine {
             .filter { $0.kind == .wearLog }
             .compactMap(wearLog(from:))
             .sorted { $0.wornAt == $1.wornAt ? $0.title < $1.title : $0.wornAt > $1.wornAt }
+        let laundryLogs = assets
+            .filter { $0.kind == .laundryLog }
+            .compactMap(laundryLog(from:))
+            .sorted { $0.loggedAt == $1.loggedAt ? $0.title < $1.title : $0.loggedAt > $1.loggedAt }
 
         let usageByName = itemUsageCounts(in: outfits)
         let wearStatsByName = wearStats(in: wearLogs)
+        let unavailableNames = unavailableItemNames(in: laundryLogs)
         var parsedItems: [WardrobeItemInsight] = []
         for asset in assets where asset.kind == .wardrobeItem {
             let usageCount = usageByName[wardrobeNormalizedName(asset.title)] ?? 0
@@ -148,13 +187,31 @@ enum WardrobeInsightEngine {
             items: items,
             outfits: outfits,
             wearLogs: wearLogs,
+            laundryLogs: laundryLogs,
             categoryStats: categoryStats,
             colorStats: colorStats,
             seasonStats: seasonStats,
             sceneStats: sceneStats,
             unusedItems: unusedItems,
             frequentItems: Array(frequentItems.prefix(5)),
-            suggestions: suggestions(items: items, outfits: outfits, unusedItems: unusedItems, sceneStats: sceneStats, seasonStats: seasonStats)
+            suggestions: suggestions(
+                items: items,
+                outfits: outfits,
+                wearLogs: wearLogs,
+                unusedItems: unusedItems,
+                unavailableNames: unavailableNames,
+                sceneStats: sceneStats,
+                seasonStats: seasonStats
+            ),
+            packingSuggestions: packingSuggestions(
+                items: items,
+                outfits: outfits,
+                wearLogs: wearLogs,
+                unavailableNames: unavailableNames,
+                sceneStats: sceneStats,
+                seasonStats: seasonStats
+            ),
+            careReminders: careReminders(in: laundryLogs)
         )
     }
 
@@ -215,6 +272,25 @@ enum WardrobeInsightEngine {
         )
     }
 
+    private static func laundryLog(from asset: MemoAsset) -> WardrobeLaundryLogInsight? {
+        guard asset.kind == .laundryLog else { return nil }
+        let fields = fields(in: asset.summary)
+        let loggedAt = fields["日期"]?.first.flatMap { DateFormatters.wardrobeDay.date(from: $0) } ?? asset.createdAt
+        guard let status = fields["状态"]?.first, !status.isEmpty else {
+            return nil
+        }
+        return WardrobeLaundryLogInsight(
+            id: asset.id,
+            memoID: asset.memoID,
+            title: asset.title,
+            itemNames: fields["单品"] ?? [],
+            status: status,
+            note: fields["备注"]?.joined(separator: "、"),
+            loggedAt: loggedAt,
+            createdAt: asset.createdAt
+        )
+    }
+
     private static func outfit(from asset: MemoAsset) -> WardrobeOutfitInsight? {
         guard asset.kind == .outfit else { return nil }
         let fields = fields(in: asset.summary)
@@ -260,15 +336,23 @@ enum WardrobeInsightEngine {
     private static func suggestions(
         items: [WardrobeItemInsight],
         outfits: [WardrobeOutfitInsight],
+        wearLogs: [WardrobeWearLogInsight],
         unusedItems: [WardrobeItemInsight],
+        unavailableNames: Set<String>,
         sceneStats: [WardrobeInsightMetric],
         seasonStats: [WardrobeInsightMetric]
     ) -> [WardrobeOutfitSuggestion] {
         guard !items.isEmpty else { return [] }
 
         var suggestions: [WardrobeOutfitSuggestion] = []
-        if let seed = unusedItems.first {
-            let companions = companionItems(for: seed, in: items)
+        let availableItems = items.filter { !unavailableNames.contains(wardrobeNormalizedName($0.name)) }
+
+        if let weatherSuggestion = suggestionForWeather(from: wearLogs, items: availableItems) {
+            suggestions.append(weatherSuggestion)
+        }
+
+        if let seed = unusedItems.first(where: { !unavailableNames.contains(wardrobeNormalizedName($0.name)) }) {
+            let companions = companionItems(for: seed, in: availableItems)
             let draftItems = ([seed] + companions).uniquedByName().map(\.name)
             suggestions.append(
                 WardrobeOutfitSuggestion(
@@ -287,12 +371,12 @@ enum WardrobeInsightEngine {
         }
 
         if let topScene = sceneStats.first,
-           let sceneSuggestion = suggestionForScene(topScene.label, items: items) {
+           let sceneSuggestion = suggestionForScene(topScene.label, items: availableItems) {
             suggestions.append(sceneSuggestion)
         }
 
         if let topSeason = seasonStats.first,
-           let seasonSuggestion = suggestionForSeason(topSeason.label, items: items) {
+           let seasonSuggestion = suggestionForSeason(topSeason.label, items: availableItems) {
             suggestions.append(seasonSuggestion)
         }
 
@@ -311,7 +395,7 @@ enum WardrobeInsightEngine {
             )
         }
 
-        if outfits.isEmpty, let first = items.first {
+        if outfits.isEmpty, let first = availableItems.first ?? items.first {
             suggestions.append(
                 WardrobeOutfitSuggestion(
                     id: "first-outfit",
@@ -327,6 +411,153 @@ enum WardrobeInsightEngine {
         }
 
         return Array(suggestions.uniquedByID().prefix(4))
+    }
+
+    private static func suggestionForWeather(
+        from wearLogs: [WardrobeWearLogInsight],
+        items: [WardrobeItemInsight]
+    ) -> WardrobeOutfitSuggestion? {
+        guard let weather = wearLogs.first(where: { $0.weather?.isEmpty == false })?.weather,
+              !items.isEmpty else {
+            return nil
+        }
+        let matchedItems = items
+            .filter { item in weatherScore(item, weather: weather) > 0 }
+            .sorted { lhs, rhs in
+                let lhsScore = weatherScore(lhs, weather: weather)
+                let rhsScore = weatherScore(rhs, weather: weather)
+                if lhsScore == rhsScore {
+                    return lhs.wearCount == rhs.wearCount ? lhs.name < rhs.name : lhs.wearCount < rhs.wearCount
+                }
+                return lhsScore > rhsScore
+            }
+        let draftItems = categoryBalancedItems(from: matchedItems.isEmpty ? items : matchedItems).map(\.name)
+        guard !draftItems.isEmpty else { return nil }
+
+        return WardrobeOutfitSuggestion(
+            id: "weather-\(weather)",
+            title: "\(weather) 天气穿搭",
+            detail: "参考最近穿着天气，优先挑适合当前气候、且不在待洗待修里的单品。",
+            systemImage: weatherSystemImage(for: weather),
+            itemNames: draftItems,
+            scenes: commonValues(matchedItems.flatMap(\.scenes)),
+            seasons: commonValues(matchedItems.flatMap(\.seasons)),
+            note: "由衣橱洞察生成：天气 \(weather)。"
+        )
+    }
+
+    private static func packingSuggestions(
+        items: [WardrobeItemInsight],
+        outfits: [WardrobeOutfitInsight],
+        wearLogs: [WardrobeWearLogInsight],
+        unavailableNames: Set<String>,
+        sceneStats: [WardrobeInsightMetric],
+        seasonStats: [WardrobeInsightMetric]
+    ) -> [WardrobePackingSuggestion] {
+        let availableItems = items.filter { !unavailableNames.contains(wardrobeNormalizedName($0.name)) }
+        guard !availableItems.isEmpty else { return [] }
+
+        var suggestions: [WardrobePackingSuggestion] = []
+        let weather = wearLogs.first(where: { $0.weather?.isEmpty == false })?.weather
+        let season = seasonStats.first?.label
+        let scene = sceneStats.first?.label ?? "旅行"
+        let weatherItems = weather.map { weatherValue in
+            availableItems
+                .filter { weatherScore($0, weather: weatherValue) > 0 }
+                .sorted { lhs, rhs in
+                    let lhsScore = weatherScore(lhs, weather: weatherValue)
+                    let rhsScore = weatherScore(rhs, weather: weatherValue)
+                    if lhsScore == rhsScore { return lhs.wearCount < rhs.wearCount }
+                    return lhsScore > rhsScore
+                }
+        } ?? []
+        let baseItems = weatherItems.isEmpty
+            ? availableItems.filter { item in
+                (season.map { item.seasons.contains($0) } ?? false)
+                    || item.scenes.contains(scene)
+                    || item.scenes.contains("旅行")
+            }
+            : weatherItems
+        let selectedItems = categoryBalancedItems(from: baseItems.isEmpty ? availableItems : baseItems).map(\.name)
+        if !selectedItems.isEmpty {
+            suggestions.append(
+                WardrobePackingSuggestion(
+                    id: "packing-weather",
+                    title: "\(scene) 快速打包",
+                    destination: nil,
+                    weather: weather,
+                    itemNames: selectedItems,
+                    note: packingNote(weather: weather, season: season, scene: scene)
+                )
+            )
+        }
+
+        if let outfit = outfits.first(where: { !$0.itemNames.isEmpty }) {
+            let outfitItems = outfit.itemNames.filter { !unavailableNames.contains(wardrobeNormalizedName($0)) }
+            if !outfitItems.isEmpty {
+                suggestions.append(
+                    WardrobePackingSuggestion(
+                        id: "packing-outfit-\(outfit.id.uuidString)",
+                        title: "\(outfit.title) 打包",
+                        destination: nil,
+                        weather: weather,
+                        itemNames: outfitItems,
+                        note: "从最近穿搭生成，出门前检查鞋履、包包和饰品是否齐全。"
+                    )
+                )
+            }
+        }
+
+        return Array(suggestions.uniquedByID().prefix(3))
+    }
+
+    private static func careReminders(in laundryLogs: [WardrobeLaundryLogInsight]) -> [WardrobeCareReminder] {
+        var latestByItem: [String: WardrobeLaundryLogInsight] = [:]
+        for log in laundryLogs {
+            for name in log.itemNames {
+                let key = wardrobeNormalizedName(name)
+                guard !key.isEmpty else { continue }
+                if let current = latestByItem[key], current.loggedAt >= log.loggedAt {
+                    continue
+                }
+                latestByItem[key] = log
+            }
+        }
+
+        return latestByItem
+            .compactMap { entry -> WardrobeCareReminder? in
+                let key = entry.key
+                let log = entry.value
+                guard isUnavailableLaundryStatus(log.status),
+                      let itemName = log.itemNames.first(where: { wardrobeNormalizedName($0) == key }) else {
+                    return nil
+                }
+                return WardrobeCareReminder(
+                    id: "\(key)-\(log.status)",
+                    itemName: itemName,
+                    status: log.status,
+                    detail: careDetail(for: log),
+                    loggedAt: log.loggedAt
+                )
+            }
+            .sorted { lhs, rhs in
+                switch (lhs.loggedAt, rhs.loggedAt) {
+                case let (lhsDate?, rhsDate?) where lhsDate != rhsDate:
+                    return lhsDate > rhsDate
+                default:
+                    return lhs.itemName < rhs.itemName
+                }
+            }
+            .prefix(6)
+            .map { $0 }
+    }
+
+    private static func unavailableItemNames(in laundryLogs: [WardrobeLaundryLogInsight]) -> Set<String> {
+        Set(
+            careReminders(in: laundryLogs)
+                .map { wardrobeNormalizedName($0.itemName) }
+                .filter { !$0.isEmpty }
+        )
     }
 
     private static func suggestionForScene(
@@ -433,6 +664,67 @@ enum WardrobeInsightEngine {
         return ["鞋履", "包包", "饰品"].contains { !categories.contains($0) }
     }
 
+    private static func weatherScore(_ item: WardrobeItemInsight, weather: String) -> Int {
+        let text = weather.lowercased()
+        var score = 0
+        if containsAny(text, ["雨", "阵雨", "rain"]) {
+            if item.category == "鞋履" { score += 3 }
+            if item.category == "外套" { score += 2 }
+            if item.scenes.contains("旅行") { score += 1 }
+        }
+        if containsAny(text, ["冷", "寒", "雪", "低温", "wind", "snow"]) {
+            if item.category == "外套" { score += 4 }
+            if item.seasons.contains("冬") || item.seasons.contains("秋") { score += 3 }
+        }
+        if containsAny(text, ["热", "高温", "晴", "sun", "hot"]) {
+            if item.seasons.contains("夏") { score += 3 }
+            if item.category == "上装" || item.category == "连衣裙" { score += 1 }
+        }
+        if containsAny(text, ["多云", "阴", "cloud"]) {
+            if item.seasons.contains("春") || item.seasons.contains("秋") { score += 2 }
+            if item.category == "外套" { score += 1 }
+        }
+        if item.scenes.contains("通勤") { score += 1 }
+        return score
+    }
+
+    private static func containsAny(_ text: String, _ needles: [String]) -> Bool {
+        needles.contains { text.contains($0.lowercased()) }
+    }
+
+    private static func weatherSystemImage(for weather: String) -> String {
+        let text = weather.lowercased()
+        if containsAny(text, ["雨", "rain"]) { return "cloud.rain" }
+        if containsAny(text, ["雪", "snow"]) { return "snowflake" }
+        if containsAny(text, ["晴", "sun", "热", "hot"]) { return "sun.max" }
+        if containsAny(text, ["多云", "阴", "cloud"]) { return "cloud.sun" }
+        return "thermometer.medium"
+    }
+
+    private static func packingNote(weather: String?, season: String?, scene: String) -> String {
+        var parts = ["按 \(scene) 场景生成，已避开待洗待修单品。"]
+        if let weather = weather, !weather.isEmpty {
+            parts.append("天气参考：\(weather)。")
+        }
+        if let season = season, !season.isEmpty {
+            parts.append("季节参考：\(season)。")
+        }
+        parts.append("出发前补充内搭、睡衣、充电器和证件。")
+        return parts.joined(separator: " ")
+    }
+
+    private static func isUnavailableLaundryStatus(_ status: String) -> Bool {
+        containsAny(status, ["待清洗", "送洗", "待熨烫", "待修补", "脏", "修", "熨"])
+    }
+
+    private static func careDetail(for log: WardrobeLaundryLogInsight) -> String {
+        let dateText = DateFormatters.compactDay.string(from: log.loggedAt)
+        if let note = log.note, !note.isEmpty {
+            return "\(dateText) · \(note)"
+        }
+        return dateText
+    }
+
     private static func fields(in summary: String?) -> [String: [String]] {
         guard let summary = summary else { return [:] }
 
@@ -512,6 +804,13 @@ private extension Array where Element == WardrobeItemInsight {
 
 private extension Array where Element == WardrobeOutfitSuggestion {
     func uniquedByID() -> [WardrobeOutfitSuggestion] {
+        var seen = Set<String>()
+        return filter { seen.insert($0.id).inserted }
+    }
+}
+
+private extension Array where Element == WardrobePackingSuggestion {
+    func uniquedByID() -> [WardrobePackingSuggestion] {
         var seen = Set<String>()
         return filter { seen.insert($0.id).inserted }
     }
