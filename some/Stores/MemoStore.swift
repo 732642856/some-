@@ -552,7 +552,7 @@ final class MemoStore: ObservableObject {
         return try SharedAttachmentStore.save(
             data: data,
             suggestedFilename: ScrapbookRenderer.outputFilename(title: title, format: format),
-            typeIdentifier: format.typeIdentifier
+            typeIdentifier: scrapbookExportTypeIdentifier(for: format)
         )
     }
 
@@ -572,7 +572,7 @@ final class MemoStore: ObservableObject {
         }
 
         let separator = updatedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "" : "\n\n"
-        updatedText.append("\(separator)\(format.memoLabel)：\(attachment.displayName)\n\(attachment.referenceLine)")
+        updatedText.append("\(separator)\(scrapbookExportMemoLabel(for: format))：\(attachment.displayName)\n\(attachment.referenceLine)")
 
         guard update(currentMemo, text: updatedText) else {
             SharedAttachmentStore.delete(attachment)
@@ -580,6 +580,38 @@ final class MemoStore: ObservableObject {
         }
 
         return attachment
+    }
+
+    private enum ScrapbookExportError: LocalizedError {
+        case renderingFailed
+        case updateFailed
+
+        var errorDescription: String? {
+            switch self {
+            case .renderingFailed:
+                return "手帐页面无法渲染为导出文件。"
+            case .updateFailed:
+                return "手帐导出文件已回滚，当前记录无法更新。"
+            }
+        }
+    }
+
+    private func scrapbookExportTypeIdentifier(for format: ScrapbookRenderer.ExportFormat) -> String {
+        switch format {
+        case .png:
+            return UTType.png.identifier
+        case .pdf:
+            return UTType.pdf.identifier
+        }
+    }
+
+    private func scrapbookExportMemoLabel(for format: ScrapbookRenderer.ExportFormat) -> String {
+        switch format {
+        case .png:
+            return "导出图片"
+        case .pdf:
+            return "导出PDF"
+        }
     }
     #endif
 
@@ -1713,40 +1745,6 @@ final class MemoStore: ObservableObject {
 
         let currentData = try Data(contentsOf: fileURL)
         try currentData.write(to: backupFileURL, options: [.atomic])
-    }
-}
-
-private enum ScrapbookExportError: LocalizedError {
-    case renderingFailed
-    case updateFailed
-
-    var errorDescription: String? {
-        switch self {
-        case .renderingFailed:
-            return "手帐页面无法渲染为图片。"
-        case .updateFailed:
-            return "手帐导出图片已回滚，当前记录无法更新。"
-        }
-    }
-}
-
-private extension ScrapbookRenderer.ExportFormat {
-    var typeIdentifier: String {
-        switch self {
-        case .png:
-            return UTType.png.identifier
-        case .pdf:
-            return UTType.pdf.identifier
-        }
-    }
-
-    var memoLabel: String {
-        switch self {
-        case .png:
-            return "导出图片"
-        case .pdf:
-            return "导出PDF"
-        }
     }
 }
 
