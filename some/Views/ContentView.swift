@@ -443,18 +443,11 @@ private struct ScrapbookView: View {
     private func selectedImageAttachment() -> SharedAttachment? {
         guard let selectedImageAssetID = selectedImageAssetID,
               let asset = imageAttachmentAssets.first(where: { $0.id == selectedImageAssetID }),
-              let uri = asset.uri,
-              let relativePath = AttachmentReferenceResolver.relativePath(in: uri) else {
+              let attachment = AttachmentReferenceResolver.attachment(from: asset) else {
             return nil
         }
 
-        return SharedAttachment(
-            id: relativePath,
-            filename: asset.title,
-            relativePath: relativePath,
-            typeIdentifier: asset.typeIdentifier ?? UTType.data.identifier,
-            byteCount: asset.byteCount ?? 0
-        )
+        return attachment
     }
 }
 
@@ -1366,18 +1359,11 @@ private struct WardrobeView: View {
     private func selectedPhotoAttachment() -> SharedAttachment? {
         guard let selectedPhotoAssetID = selectedPhotoAssetID,
               let asset = imageAttachmentAssets.first(where: { $0.id == selectedPhotoAssetID }),
-              let uri = asset.uri,
-              let relativePath = AttachmentReferenceResolver.relativePath(in: uri) else {
+              let attachment = AttachmentReferenceResolver.attachment(from: asset) else {
             return nil
         }
 
-        return SharedAttachment(
-            id: relativePath,
-            filename: asset.title,
-            relativePath: relativePath,
-            typeIdentifier: asset.typeIdentifier ?? UTType.data.identifier,
-            byteCount: asset.byteCount ?? 0
-        )
+        return attachment
     }
 }
 
@@ -1602,19 +1588,11 @@ private struct AssetNavigationRow: View {
     private var imageAttachment: SharedAttachment? {
         guard asset.kind == .attachment || asset.kind == .screenshot || asset.kind == .imageEdit,
               let typeIdentifier = asset.typeIdentifier,
-              UTType(typeIdentifier)?.conforms(to: .image) == true,
-              let uri = asset.uri,
-              let relativePath = AttachmentReferenceResolver.relativePath(in: uri) else {
+              UTType(typeIdentifier)?.conforms(to: .image) == true else {
             return nil
         }
 
-        return SharedAttachment(
-            id: relativePath,
-            filename: asset.title,
-            relativePath: relativePath,
-            typeIdentifier: typeIdentifier,
-            byteCount: asset.byteCount ?? 0
-        )
+        return AttachmentReferenceResolver.attachment(from: asset)
     }
 }
 
@@ -1723,22 +1701,7 @@ private struct AssetRowView: View {
     }
 
     private var attachment: SharedAttachment? {
-        guard let uri = asset.uri,
-              let components = URLComponents(string: uri),
-              components.scheme == SharedAttachmentStore.referenceScheme,
-              let encodedPath = attachmentReferencePath(from: components),
-              let filename = encodedPath.removingPercentEncoding
-        else {
-            return nil
-        }
-
-        return SharedAttachment(
-            id: filename,
-            filename: asset.title,
-            relativePath: filename,
-            typeIdentifier: asset.typeIdentifier ?? UTType.data.identifier,
-            byteCount: asset.byteCount ?? 0
-        )
+        AttachmentReferenceResolver.attachment(from: asset)
     }
 
     private var summaryText: String? {
@@ -1757,12 +1720,4 @@ private struct AssetRowView: View {
         MemoReferenceParser.title(for: memo)
     }
 
-    private func attachmentReferencePath(from components: URLComponents) -> String? {
-        if let host = components.host, !host.isEmpty {
-            return host
-        }
-
-        let path = components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        return path.isEmpty ? nil : path
-    }
 }
