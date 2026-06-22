@@ -10,6 +10,8 @@ enum MemoContentFilter: String, CaseIterable, Hashable {
     case backlink
     case webClip = "web-clip"
     case screenshot
+    case scrapbook
+    case audio
     case wardrobe
     case outfit
 }
@@ -186,6 +188,10 @@ enum MemoSearchQueryParser {
             return .webClip
         case "ocr", "image-text", "screenshot", "screenshots", "scan", "scan-text", "图片文字", "截图", "截图文字", "识别文字":
             return .screenshot
+        case "scrapbook", "journal", "journaling", "handbook", "layout", "layouts", "collage", "collages", "page", "pages", "手帐", "手帳", "电子手帐", "拼贴", "拼贴页", "页面", "排版":
+            return .scrapbook
+        case "audio", "audios", "voice", "voices", "recording", "recordings", "录音", "音频", "语音":
+            return .audio
         case "wardrobe", "closet", "clothing", "clothes", "衣橱", "衣柜", "衣物", "单品":
             return .wardrobe
         case "outfit", "outfits", "look", "looks", "穿搭", "搭配", "造型":

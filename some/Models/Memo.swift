@@ -280,6 +280,27 @@ extension MemoAsset {
             )
         }
 
+        if let scrapbookPage = scrapbookPageAsset(in: visibleText),
+           let attachment = SharedAttachmentStore.attachments(in: memo.text).first(where: \.isImage) {
+            append(
+                kind: .scrapbookPage,
+                title: scrapbookPage.title,
+                summary: scrapbookPage.summary,
+                uri: "\(SharedAttachmentStore.referenceScheme)://\(SharedAttachmentStore.encodedReferencePath(attachment.relativePath))",
+                typeIdentifier: attachment.typeIdentifier,
+                byteCount: attachment.byteCount,
+                stableKey: "scrapbook:\(attachment.relativePath):\(scrapbookPage.title)"
+            )
+        } else if let scrapbookPage = scrapbookPageAsset(in: visibleText) {
+            append(
+                kind: .scrapbookPage,
+                title: scrapbookPage.title,
+                summary: scrapbookPage.summary,
+                typeIdentifier: UTType.text.identifier,
+                stableKey: "scrapbook:\(scrapbookPage.title):\(scrapbookPage.summary ?? "")"
+            )
+        }
+
         for attachment in SharedAttachmentStore.attachments(in: memo.text) {
             append(
                 kind: assetKind(for: attachment),
@@ -366,6 +387,13 @@ extension MemoAsset {
 
     private static func outfitAsset(in text: String) -> (title: String, summary: String?)? {
         structuredAsset(in: text, prefixes: ["穿搭组合：", "穿搭组合:", "穿搭：", "穿搭:"])
+    }
+
+    private static func scrapbookPageAsset(in text: String) -> (title: String, summary: String?)? {
+        structuredAsset(
+            in: text,
+            prefixes: ["手帐页面：", "手帐页面:", "手帐：", "手帐:", "手帳頁面：", "手帳頁面:", "电子手帐：", "电子手帐:", "拼贴页面：", "拼贴页面:"]
+        )
     }
 
     private static func structuredAsset(in text: String, prefixes: [String]) -> (title: String, summary: String?)? {

@@ -122,9 +122,11 @@
 - 本轮工作前已重新扫描主仓库、未跟踪文件、Documents 下 some 相关旧目录，并检索 `SwiftUI PhotosPicker sample`、`SwiftUI fileImporter sample`、`SwiftUI journal photo attachments`、`SwiftUI memo attachment app`、`SwiftUI asset library PhotosPicker` 等关键词。
 - GitHub API 检索到的 `drawrs/PhotosPicker-PhotoUI` 是无许可证示例仓库，不能直接复制；其他 SwiftUI 附件/素材导入检索未找到成熟、许可证清晰且可直接搬进本项目的模块。
 - 本轮采用 Apple 系统能力 `PhotosUI.PhotosPicker` 和 SwiftUI `.fileImporter`，并复用项目已有 `SharedAttachmentStore`、`SharedMemoTextComposer`、`MemoAsset` 索引，不引入第三方运行时代码。
-- 实现边界：已支持从输入卡片导入相册图片/视频和文件，保存为本地附件 memo；图片导入会尝试本地 Vision OCR 并生成“图片文字”素材；首页素材库可按类型筛选。相机拍摄、录音、视频拍摄、批量扫描、缩略图缓存和复杂媒体元数据仍属于后续多模态采集二期。
+- 实现边界：已支持从输入卡片拍照、录音、导入相册图片/视频和文件，保存为本地附件 memo；图片导入会尝试本地 Vision OCR 并生成“图片文字”素材；音频附件会进入 `audio` 素材索引；首页素材库可按类型筛选。视频拍摄、语音转写、批量扫描、缩略图缓存和复杂媒体元数据仍属于后续多模态采集二期。
 
 2026-06-22 相机拍照入口检索决策：本轮继续前已重新检查 Git 状态、未跟踪文件、当前文件清单和 Documents 下旧 some 目录。联网检索 `SwiftUI camera UIImagePickerController MIT`、`SwiftUI AVCapturePhotoOutput camera MIT`、`iOS document scanner VisionKit MIT SwiftUI`，GitHub API 返回 0 个可直接复用的成熟候选；Apple 系统能力 `UIImagePickerController` / `AVCapturePhotoOutput` / VisionKit 仍是首选。本轮不复制第三方源码，也不新增 SPM，先用 `UIImagePickerController` 的系统相机做拍照导入 v1，拿到 JPEG 后复用现有 `SharedAttachmentStore`、本地 OCR 和 `MemoAsset` 索引。后续如果要做自定义取景框、连续拍摄、扫描边缘校正或实时 OCR，再评估 AVFoundation / VisionKit 二期。
+
+2026-06-22 录音与手帐入口检索决策：本轮继续前已复查 Git 状态、未提交碎片、全量文件清单和 Documents 下旧 some 目录，并重新检索 Stylebook/Whering 等衣橱产品能力、`SwiftUI audio recorder AVFoundation MIT`、`SwiftUI scrapbook journal canvas MIT`、`SwiftUI wardrobe outfit planner MIT`。未找到可直接复制进当前 iOS 工程的成熟 MIT SwiftUI 手帐/衣橱模块；录音采用 Apple `AVAudioRecorder` / `AVAudioSession` 系统能力，手帐先使用正文内可迁移的 `手帐页面：标题` 结构化 memo 与 `scrapbookPage` 素材索引，不引入第三方依赖。
 
 ## some 当前缺口与复用优先级
 
@@ -132,7 +134,7 @@ P0 验证：
 
 - 完整 Xcode 编译、单元测试、模拟器/真机运行。
 - App Group、Share Extension、FTS 搜索在真机/模拟器上验证。
-- 统一素材模型：v1 已建立 `MemoAsset` 索引，但衣橱、手帐页面、网页摘录、编辑版本仍需要独立实体和关系。
+- 统一素材模型：v1 已建立 `MemoAsset` 索引，网页摘录、手帐页面、衣橱和穿搭已有轻量正文结构；编辑版本、穿着记录、手帐图层等仍需要独立实体和关系。
 - 本地媒体存储与备份：原始素材、缩略图、编辑版本、导出版本、衣橱抠图和手帐页面需要可追踪。
 
 P1 优先复用：

@@ -1,3 +1,4 @@
+import AVFoundation
 import PhotosUI
 import SwiftUI
 import LinkPresentation
@@ -13,6 +14,7 @@ struct QuickCaptureView: View {
     @State private var isShowingFileImporter = false
     @State private var isImportingMedia = false
     @State private var isClippingWebPage = false
+    @StateObject private var audioRecorder = QuickAudioRecorder()
     @FocusState private var isFocused: Bool
 
     var body: some View {
@@ -124,9 +126,22 @@ struct QuickCaptureView: View {
                     .foregroundStyle(Color.secondaryText)
                     .background(Color.subtleSurface)
                     .clipShape(Circle())
-                    .disabled(isImportingMedia || !canUseCamera)
+                    .disabled(isImportingMedia || audioRecorder.isRecording || !canUseCamera)
                     .opacity(canUseCamera ? 1 : 0.35)
                     .accessibilityLabel("拍照导入")
+
+                    Button {
+                        toggleRecording()
+                    } label: {
+                        Image(systemName: audioRecorder.isRecording ? "stop.fill" : "mic")
+                            .frame(width: 34, height: 34)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(audioRecorder.isRecording ? Color.white : Color.secondaryText)
+                    .background(audioRecorder.isRecording ? Color.accentGold : Color.subtleSurface)
+                    .clipShape(Circle())
+                    .disabled(isImportingMedia || isClippingWebPage)
+                    .accessibilityLabel(audioRecorder.isRecording ? "停止录音" : "开始录音")
 
                     Button {
                         isShowingFileImporter = true
@@ -138,7 +153,7 @@ struct QuickCaptureView: View {
                     .foregroundStyle(Color.secondaryText)
                     .background(Color.subtleSurface)
                     .clipShape(Circle())
-                    .disabled(isImportingMedia)
+                    .disabled(isImportingMedia || audioRecorder.isRecording)
                     .accessibilityLabel("导入文件")
 
                     Button {
@@ -151,7 +166,7 @@ struct QuickCaptureView: View {
                     .foregroundStyle(Color.secondaryText)
                     .background(Color.subtleSurface)
                     .clipShape(Circle())
-                    .disabled(isClippingWebPage || detectedURLs.isEmpty)
+                    .disabled(isClippingWebPage || detectedURLs.isEmpty || audioRecorder.isRecording)
                     .opacity(detectedURLs.isEmpty ? 0.35 : 1)
                     .accessibilityLabel("摘录网页")
 
@@ -168,6 +183,17 @@ struct QuickCaptureView: View {
                     }
 
                     Spacer(minLength: 0)
+                }
+
+                if audioRecorder.isRecording {
+                    HStack(spacing: 8) {
+                        Image(systemName: "waveform")
+                        Text("正在录音 \(audioRecorder.elapsedText)")
+                            .monospacedDigit()
+                        Spacer(minLength: 0)
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.accentGold)
                 }
 
                 HStack {
@@ -190,7 +216,7 @@ struct QuickCaptureView: View {
                     .foregroundStyle(Color.white)
                     .background(trimmedText.isEmpty ? Color.disabled : Color.accentGreen)
                     .clipShape(Capsule())
-                    .disabled(trimmedText.isEmpty)
+                    .disabled(trimmedText.isEmpty || audioRecorder.isRecording)
                 }
             }
         }
@@ -360,6 +386,63 @@ struct QuickCaptureView: View {
                 await MainActor.run {
                     isImportingMedia = false
                     statusText = "拍照导入失败：\(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    private func toggleRecording() {
+        if audioRecorder.isRecording {
+            stopRecording()
+        } else {
+            startRecording()
+        }
+    }
+
+    private func startRecording() {
+        Task {
+            do {
+                try await audioRecorder.start()
+                await MainActor.run {
+                    statusText = "正在录音..."
+                }
+            } catch {
+                await MainActor.run {
+                    statusText = "录音失败：\(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    private func stopRecording() {
+        guard let url = audioRecorder.stop() else {
+            statusText = "录音失败：没有可保存的音频。"
+            return
+        }
+
+        isImportingMedia = true
+        statusText = "正在保存录音..."
+
+        Task {
+            do {
+                let attachment = try SharedAttachmentStore.save(
+                    fileAt: url,
+                    suggestedFilename: importedFilename(prefix: "recording", type: .mpeg4Audio),
+                    typeIdentifier: UTType.mpeg4Audio.identifier
+                )
+                let imported = await MainActor.run {
+                    store.addAttachmentMemo(attachment, note: "录音") != nil
+                }
+                try? FileManager.default.removeItem(at: url)
+                await MainActor.run {
+                    isImportingMedia = false
+                    statusText = importStatus(imported: imported ? 1 : 0, failed: imported ? 0 : 1)
+                }
+            } catch {
+                try? FileManager.default.removeItem(at: url)
+                await MainActor.run {
+                    isImportingMedia = false
+                    statusText = "录音保存失败：\(error.localizedDescription)"
                 }
             }
         }
@@ -550,6 +633,118 @@ private struct CameraCaptureView: UIViewControllerRepresentable {
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             onCancel()
+        }
+    }
+}
+
+@MainActor
+private final class QuickAudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
+    @Published private(set) var isRecording = false
+    @Published private(set) var elapsedText = "00:00"
+
+    private var recorder: AVAudioRecorder?
+    private var recordingURL: URL?
+    private var timer: Timer?
+    private var startedAt: Date?
+
+    func start() async throws {
+        guard !isRecording else { return }
+
+        let granted = await requestPermission()
+        guard granted else {
+            throw RecordingError.permissionDenied
+        }
+
+        let session = AVAudioSession.sharedInstance()
+        try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker])
+        try session.setActive(true)
+
+        let url = temporaryRecordingURL()
+        let settings: [String: Any] = [
+            AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+            AVSampleRateKey: 44_100,
+            AVNumberOfChannelsKey: 1,
+            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+        ]
+        let recorder = try AVAudioRecorder(url: url, settings: settings)
+        recorder.delegate = self
+        recorder.prepareToRecord()
+        recorder.record()
+
+        self.recorder = recorder
+        recordingURL = url
+        startedAt = Date()
+        elapsedText = "00:00"
+        isRecording = true
+        startTimer()
+    }
+
+    func stop() -> URL? {
+        guard isRecording else { return nil }
+
+        recorder?.stop()
+        stopTimer()
+        recorder = nil
+        startedAt = nil
+        isRecording = false
+        elapsedText = "00:00"
+
+        let url = recordingURL
+        recordingURL = nil
+        try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
+        return url
+    }
+
+    func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
+        _ = stop()
+    }
+
+    private func requestPermission() async -> Bool {
+        await withCheckedContinuation { continuation in
+            AVAudioSession.sharedInstance().requestRecordPermission { granted in
+                continuation.resume(returning: granted)
+            }
+        }
+    }
+
+    private func startTimer() {
+        stopTimer()
+        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.updateElapsedText()
+            }
+        }
+    }
+
+    private func stopTimer() {
+        timer?.invalidate()
+        timer = nil
+    }
+
+    private func updateElapsedText() {
+        guard let startedAt = startedAt else {
+            elapsedText = "00:00"
+            return
+        }
+
+        let elapsed = max(0, Int(Date().timeIntervalSince(startedAt)))
+        elapsedText = String(format: "%02d:%02d", elapsed / 60, elapsed % 60)
+    }
+
+    private func temporaryRecordingURL() -> URL {
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent("some-recording-\(UUID().uuidString)")
+            .appendingPathExtension("m4a")
+    }
+
+    enum RecordingError: LocalizedError {
+        case permissionDenied
+
+        var errorDescription: String? {
+            switch self {
+            case .permissionDenied:
+                return "没有麦克风权限。"
+            }
         }
     }
 }

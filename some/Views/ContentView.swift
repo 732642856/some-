@@ -24,6 +24,8 @@ struct ContentView: View {
                             MemoListView(memos: store.filteredMemos, emptyTitle: "还没有匹配的闪念")
                         case .assets:
                             AssetLibraryView()
+                        case .scrapbook:
+                            ScrapbookView()
                         case .wardrobe:
                             WardrobeView()
                         case .ai:
@@ -221,12 +223,220 @@ private struct HeaderView: View {
         switch store.homeMode {
         case .timeline: return "今天先记下来"
         case .assets: return "整理素材"
+        case .scrapbook: return "排一页手帐"
         case .wardrobe: return "搭出今天"
         case .ai: return "让 AI 帮你排版"
         case .review: return "让旧念头冒泡"
         case .stats: return "看见记录习惯"
         case .archive: return "暂时收进抽屉"
         }
+    }
+}
+
+private struct ScrapbookView: View {
+    @EnvironmentObject private var store: MemoStore
+    @State private var pageTitle = ""
+    @State private var template = "清新拼贴"
+    @State private var materials = ""
+    @State private var decorations = ""
+    @State private var font = ""
+    @State private var border = ""
+    @State private var note = ""
+    @State private var selectedImageAssetID: UUID?
+    @State private var statusText: String?
+
+    private let templates = ["清新拼贴", "日记手帐", "工作复盘", "美食相册", "穿搭灵感", "网页摘录"]
+
+    private var scrapbookAssets: [MemoAsset] {
+        store.assets.filter { $0.kind == .scrapbookPage }
+    }
+
+    private var imageAttachmentAssets: [MemoAsset] {
+        store.assets.filter { asset in
+            guard asset.kind == .attachment,
+                  let type = asset.typeIdentifier.flatMap(UTType.init) else {
+                return false
+            }
+            return type.conforms(to: .image)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 10) {
+                StatBadge(title: "手帐", value: "\(scrapbookAssets.count)", systemImage: "rectangle.stack")
+                StatBadge(title: "图片", value: "\(imageAttachmentAssets.count)", systemImage: "photo")
+            }
+
+            pageForm
+            scrapbookList
+        }
+    }
+
+    private var pageForm: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("新手帐页", systemImage: "plus.circle")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+
+            TextField("标题，例如 周末小记", text: $pageTitle)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            Picker("模板", selection: $template) {
+                ForEach(templates, id: \.self) { template in
+                    Text(template).tag(template)
+                }
+            }
+            .pickerStyle(.menu)
+            .tint(Color.accentGreen)
+
+            TextField("素材：今天的照片、摘录、想法", text: $materials)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            TextField("贴纸/装饰：星星、胶带、花边", text: $decorations)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            HStack(spacing: 8) {
+                TextField("字体：圆体、手写", text: $font)
+                TextField("边框：白边、细线", text: $border)
+            }
+            .textFieldStyle(.plain)
+            .padding(10)
+            .background(Color.subtleSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            TextField("备注：排版想法、尺寸、导出用途", text: $note)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            if !imageAttachmentAssets.isEmpty {
+                Picker("图片素材", selection: $selectedImageAssetID) {
+                    Text("不绑定图片").tag(Optional<UUID>.none)
+                    ForEach(imageAttachmentAssets) { asset in
+                        Text(asset.title).tag(Optional(asset.id))
+                    }
+                }
+                .pickerStyle(.menu)
+                .tint(Color.accentGreen)
+            }
+
+            HStack(spacing: 10) {
+                if let statusText = statusText {
+                    Text(statusText)
+                        .font(.caption)
+                        .foregroundStyle(Color.secondaryText)
+                }
+
+                Spacer()
+
+                Button {
+                    savePage()
+                } label: {
+                    Label("保存页面", systemImage: "checkmark.circle.fill")
+                        .font(.footnote.weight(.semibold))
+                        .frame(height: 34)
+                        .padding(.horizontal, 12)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.white)
+                .background(canSave ? Color.accentGreen : Color.disabled)
+                .clipShape(Capsule())
+                .disabled(!canSave)
+            }
+        }
+        .padding(14)
+        .background(Color.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.border, lineWidth: 1)
+        )
+    }
+
+    private var scrapbookList: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("手帐素材", systemImage: "square.grid.2x2")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+
+            let assets = scrapbookAssets.sorted {
+                $0.createdAt == $1.createdAt ? $0.title < $1.title : $0.createdAt > $1.createdAt
+            }
+
+            if assets.isEmpty {
+                EmptyStateView(title: "还没有手帐页")
+            } else {
+                ForEach(assets) { asset in
+                    if let memo = store.memos.first(where: { $0.id == asset.memoID }) {
+                        AssetNavigationRow(asset: asset, memo: memo)
+                    }
+                }
+            }
+        }
+    }
+
+    private var canSave: Bool {
+        !pageTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func savePage() {
+        guard store.addScrapbookPage(
+            title: pageTitle,
+            template: template,
+            materials: splitValues(materials),
+            decorations: splitValues(decorations),
+            font: font,
+            border: border,
+            note: note,
+            attachments: selectedImageAttachment().map { [$0] } ?? []
+        ) != nil else {
+            statusText = "页面保存失败。"
+            return
+        }
+
+        pageTitle = ""
+        materials = ""
+        decorations = ""
+        font = ""
+        border = ""
+        note = ""
+        selectedImageAssetID = nil
+        statusText = "已保存手帐页"
+    }
+
+    private func splitValues(_ text: String) -> [String] {
+        text
+            .components(separatedBy: CharacterSet(charactersIn: "、,，/ "))
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
+    private func selectedImageAttachment() -> SharedAttachment? {
+        guard let selectedImageAssetID = selectedImageAssetID,
+              let asset = imageAttachmentAssets.first(where: { $0.id == selectedImageAssetID }),
+              let uri = asset.uri,
+              let relativePath = AttachmentReferenceResolver.relativePath(in: uri) else {
+            return nil
+        }
+
+        return SharedAttachment(
+            id: relativePath,
+            filename: asset.title,
+            relativePath: relativePath,
+            typeIdentifier: asset.typeIdentifier ?? UTType.data.identifier,
+            byteCount: asset.byteCount ?? 0
+        )
     }
 }
 
@@ -478,7 +688,7 @@ private struct WardrobeView: View {
         guard let selectedPhotoAssetID = selectedPhotoAssetID,
               let asset = imageAttachmentAssets.first(where: { $0.id == selectedPhotoAssetID }),
               let uri = asset.uri,
-              let relativePath = attachmentRelativePath(in: uri) else {
+              let relativePath = AttachmentReferenceResolver.relativePath(in: uri) else {
             return nil
         }
 
@@ -490,8 +700,10 @@ private struct WardrobeView: View {
             byteCount: asset.byteCount ?? 0
         )
     }
+}
 
-    private func attachmentRelativePath(in uri: String) -> String? {
+private enum AttachmentReferenceResolver {
+    static func relativePath(in uri: String) -> String? {
         guard let components = URLComponents(string: uri),
               components.scheme == SharedAttachmentStore.referenceScheme else {
             return nil
@@ -806,8 +1018,7 @@ private struct AssetRowView: View {
     }
 
     private var attachment: SharedAttachment? {
-        guard asset.kind == .attachment,
-              let uri = asset.uri,
+        guard let uri = asset.uri,
               let components = URLComponents(string: uri),
               components.scheme == SharedAttachmentStore.referenceScheme,
               let encodedPath = attachmentReferencePath(from: components),

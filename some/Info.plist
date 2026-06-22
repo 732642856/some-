@@ -39,6 +39,8 @@
 	<string>some 使用 Face ID 来保护你的本地记录。</string>
 	<key>NSCameraUsageDescription</key>
 	<string>some 使用相机拍摄你要保存到本地素材库的图片。</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>some 使用麦克风录制你要保存到本地素材库的音频。</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>some 使用照片库来导入你选择的图片和视频素材。</string>
 	<key>SomeAppGroupIdentifier</key>

@@ -4,6 +4,7 @@ import SwiftUI
 enum MemoHomeMode: String, CaseIterable, Identifiable {
     case timeline
     case assets
+    case scrapbook
     case wardrobe
     case ai
     case review
@@ -16,6 +17,7 @@ enum MemoHomeMode: String, CaseIterable, Identifiable {
         switch self {
         case .timeline: return "记录"
         case .assets: return "素材"
+        case .scrapbook: return "手帐"
         case .wardrobe: return "衣橱"
         case .ai: return "AI"
         case .review: return "回顾"
@@ -28,6 +30,7 @@ enum MemoHomeMode: String, CaseIterable, Identifiable {
         switch self {
         case .timeline: return "square.and.pencil"
         case .assets: return "square.grid.2x2"
+        case .scrapbook: return "rectangle.stack"
         case .wardrobe: return "tshirt"
         case .ai: return "sparkles.rectangle.stack"
         case .review: return "sparkles"
@@ -232,6 +235,32 @@ final class MemoStore: ObservableObject {
         )
 
         return addMemo(text: clipText)
+    }
+
+    @discardableResult
+    func addScrapbookPage(
+        title: String,
+        template: String,
+        materials: [String] = [],
+        decorations: [String] = [],
+        font: String? = nil,
+        border: String? = nil,
+        note: String? = nil,
+        attachments: [SharedAttachment] = []
+    ) -> Memo? {
+        let cleanedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanedTitle.isEmpty else {
+            return nil
+        }
+
+        var lines = ["手帐页面：\(cleanedTitle)"]
+        appendField("模板", value: template, to: &lines)
+        appendField("素材", values: materials, to: &lines)
+        appendField("贴纸/装饰", values: decorations, to: &lines)
+        appendField("字体", value: font, to: &lines)
+        appendField("花边/边框", value: border, to: &lines)
+        appendField("备注", value: note, to: &lines)
+        return addStructuredMemo(lines: lines, attachments: attachments)
     }
 
     @discardableResult
@@ -974,6 +1003,10 @@ final class MemoStore: ObservableObject {
             return !LinkExtractor.webClips(in: memo.text).isEmpty
         case .screenshot:
             return assets(for: memo).contains { $0.kind == .screenshot }
+        case .audio:
+            return assets(for: memo).contains { $0.kind == .audio }
+        case .scrapbook:
+            return assets(for: memo).contains { $0.kind == .scrapbookPage }
         case .wardrobe:
             return assets(for: memo).contains { $0.kind == .wardrobeItem }
         case .outfit:
@@ -1158,19 +1191,17 @@ final class MemoStore: ObservableObject {
 
     @discardableResult
     private func addStructuredMemo(lines: [String], attachment: SharedAttachment?) -> Memo? {
+        addStructuredMemo(lines: lines, attachments: attachment.map { [$0] } ?? [])
+    }
+
+    @discardableResult
+    private func addStructuredMemo(lines: [String], attachments: [SharedAttachment]) -> Memo? {
         let body = SharedMemoTextComposer.compose(
             texts: [lines.joined(separator: "\n")],
             urls: [],
-            attachments: attachment.map { [$0] } ?? []
+            attachments: attachments
         )
-        guard let memo = addMemo(text: body) else {
-            if let attachment = attachment {
-                SharedAttachmentStore.delete(attachment)
-            }
-            return nil
-        }
-
-        return memo
+        return addMemo(text: body)
     }
 
     private func appendField(_ label: String, value: String?, to lines: inout [String]) {
