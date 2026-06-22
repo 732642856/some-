@@ -177,3 +177,10 @@
 - 手帐编辑器新增可换行工具栏、花边图层按钮、画布底色色板、字体预设、贴纸预设、花边预设、文字/底色/边框色板、字号/圆角/线宽滑块；列表缩略图和 PNG renderer 同步使用同一套字体风格。
 - 默认手帐创建入口也复用样式目录，`font` / `border` / `decorations` 不再只是正文字段，会实际影响初始图层样式。
 - 新增测试覆盖手帐样式目录、预设应用、默认手帐胶片框匹配和带样式图层 PNG 渲染。
+
+## 2026-06-23T15:20:00+08:00
+
+- 继续阶段 17：远端 CI 复验与剩余失败修复；开工前复查 Git 状态、CI workflow、规划/发现/验证记录和 AppIntents 相关引用。
+- GitHub Actions run `27976760975` 显示 Build for simulator 通过，但 Run tests 仍失败；公开 annotation 继续出现 `appintentsmetadataprocessor` / `appintentsnltrainingprocessor`，且提示测试构建没有 AppIntents.framework dependency，说明上一轮只排除测试源码仍不足。
+- 重新分析 CI 步骤后定位新的高概率原因：正常 Build for simulator 阶段会先生成 App Intents 派生元数据，Run tests 阶段虽然排除 AppIntents 源，但仍可能复用同一默认 DerivedData 中的 `extract.actionsdata`。
+- 已更新 iOS CI：正常模拟器 build 使用 `${RUNNER_TEMP}/DerivedData-build`，继续验证正式 App + 快捷指令编译；测试阶段使用 `${RUNNER_TEMP}/DerivedData-test` 并执行 `clean test`，同时保留 `CI_DISABLE_APP_INTENTS` / `EXCLUDED_SOURCE_FILE_NAMES`，避免复用正式构建的 AppIntents 派生数据。

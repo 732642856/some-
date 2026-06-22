@@ -170,6 +170,7 @@
 - 2026-06-23：洗护记录与旅行打包本轮新增素材索引、搜索筛选、结构化保存和衣橱页表单；本地 `git diff --check`、`plutil -lint`、`xmllint --noout` 通过，旧 Swift parser 覆盖 `Memo.swift`、`MemoSearchQuery.swift`、`MemoStore.swift`、`ContentView.swift` 和 `SomeTests.swift`。
 - 2026-06-23：手帐样式增强本轮新增 `ScrapbookStyleCatalog`、画布底色、字体/贴纸/花边预设、文字色/底色/边框色、字号/圆角/线宽编辑，并让编辑器、列表缩略图和 PNG renderer 使用同一套字体风格。新增测试覆盖样式目录匹配、预设应用、默认手帐胶片框匹配和带样式图层 PNG 渲染；本地 `git diff --check`、`plutil -lint`、`xmllint --noout`、`.github/workflows/ios-ci.yml` YAML 解析通过，旧 Swift parser 覆盖 `Memo.swift`、`ScrapbookRenderer.swift`、`ScrapbookEditorView.swift`。
 - 2026-06-23：GitHub Actions run `27975351182` 已确认 Build for simulator 通过、Run tests 因 `appintentsnltrainingprocessor` 解析 `extract.actionsdata` 失败而退出 65；本轮在 CI test 构建中加入 `CI_DISABLE_APP_INTENTS` 与 `EXCLUDED_SOURCE_FILE_NAMES=SaveMemoIntent.swift SomeAppShortcuts.swift`，正式 App build 仍保留 App Intents。待推送后用新 run 复验。
+- 2026-06-23：GitHub Actions run `27976760975` 复验显示 Build for simulator 通过、Run tests 仍因 AppIntents metadata/NL training processor 退出 65。已进一步隔离 CI 派生数据：正式 build 使用 `${RUNNER_TEMP}/DerivedData-build`，测试构建使用 `${RUNNER_TEMP}/DerivedData-test` 和 `clean test`，避免测试阶段复用正常构建生成的 AppIntents `extract.actionsdata`。待推送后用新 run 复验。
 - 2026-06-22：手帐画布拖拽、双指缩放和旋转需要完整 Xcode 16 + 模拟器/真机环境做真实手势验证；当前环境已完成模型替换测试、plist/scheme 校验和旧 Swift parser 对可解析文件的检查。
 - 2026-06-22：手帐画布编辑需要完整 Xcode 16 + 模拟器/真机验证多指缩放/旋转、拖拽边界、滚动页面内手势冲突和真实图片图层显示；当前环境只能验证模型替换逻辑和静态语法。
 - 2026-06-22：图片编辑需要完整 Xcode 16 + 模拟器/真机验证真实照片色彩、保存耗时、素材库 sheet 交互、长边大图内存占用和系统分享/备份链路；当前环境已完成渲染核心静态解析和小图单元测试。

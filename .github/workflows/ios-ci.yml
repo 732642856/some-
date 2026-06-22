@@ -46,12 +46,14 @@ jobs:
         run: |
           set -euo pipefail
           DESTINATION="${{ steps.simulator.outputs.destination }}"
+          DERIVED_DATA_PATH="${RUNNER_TEMP}/DerivedData-build"
           LOG_PATH="${RUNNER_TEMP}/xcodebuild-build.log"
           set +e
           xcodebuild \
             -project some.xcodeproj \
             -scheme some \
             -destination "$DESTINATION" \
+            -derivedDataPath "$DERIVED_DATA_PATH" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
@@ -116,18 +118,20 @@ jobs:
         run: |
           set -euo pipefail
           DESTINATION="${{ steps.simulator.outputs.destination }}"
+          DERIVED_DATA_PATH="${RUNNER_TEMP}/DerivedData-test"
           LOG_PATH="${RUNNER_TEMP}/xcodebuild-test.log"
           set +e
           xcodebuild \
             -project some.xcodeproj \
             -scheme some \
             -destination "$DESTINATION" \
+            -derivedDataPath "$DERIVED_DATA_PATH" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             'OTHER_SWIFT_FLAGS=$(inherited) -DCI_DISABLE_APP_INTENTS' \
             'EXCLUDED_SOURCE_FILE_NAMES=SaveMemoIntent.swift SomeAppShortcuts.swift' \
-            test 2>&1 | tee "$LOG_PATH"
+            clean test 2>&1 | tee "$LOG_PATH"
           TEST_STATUS="${PIPESTATUS[0]}"
           set -e
           if [ "$TEST_STATUS" -ne 0 ]; then

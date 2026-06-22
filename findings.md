@@ -26,6 +26,7 @@
 - 2026-06-23：阶段 20 开工前检索 SwiftUI 衣橱洗护、旅行打包和 capsule wardrobe packing list 候选；未找到可直接复制的成熟 Swift/iOS MIT 模块。当前继续复用 some 结构化 memo 与素材索引，先落地洗护记录和旅行打包清单。
 - 2026-06-23：阶段 21 开工前复查 Git 状态、计划文件、手帐模型、编辑器、渲染器、列表缩略图和相关测试；本地未发现未跟踪碎片。检索 `SwiftUI scrapbook sticker font border MIT`、`iOS collage editor stickers fonts Swift MIT`、`Swift sticker view font border editor MIT`、`IRSticker Swift MIT`、`SwiftStickerView iOS MIT` 等候选均未找到可直接复制进当前 SwiftUI/素材索引架构的成熟 MIT 模块；此前 UIKit 贴纸项目继续只做交互参考。本轮复用现有 `ScrapbookLayer` 字体、颜色、边框、圆角和阴影字段，新增项目内样式目录与编辑入口。
 - 2026-06-23：GitHub Actions run `27975351182` 的 Build for simulator 通过，但 Run tests 失败。公开 annotation 未显示业务 XCTest 断言失败，最后可见测试均通过，失败线集中在 `appintentsnltrainingprocessor` 的 `Unable to parse extract.actionsdata`。当前判断为 Xcode 16 CI App Intents 元数据训练工具链问题；修复策略是在 CI 的 `xcodebuild test` 构建中排除 AppIntents 源文件并加 `CI_DISABLE_APP_INTENTS` 条件，正式 App build 不关闭快捷指令功能。
+- 2026-06-23：GitHub Actions run `27976760975` 复验后 Run tests 仍失败，公开 annotation 继续显示 AppIntents metadata / NL training processor 参与测试构建，且提示无 AppIntents.framework dependency。新的判断是默认 DerivedData 在正常 build 和 test 之间复用了 AppIntents 派生元数据；修复策略升级为 build/test 使用独立 `-derivedDataPath`，测试阶段额外 `clean test`。
 
 ## 当前缺口
 
@@ -35,4 +36,4 @@
 - 图片编辑：已完成素材库图片编辑入口、预设比例裁剪、可调裁剪中心/缩放、背景柔化/纯色画布、授权图片瑕疵清理贴片、Core Image 滤镜、边框、文字、贴纸、输出 PNG 附件、`imageEdit` 素材索引和 `has:image-edit` 搜索；完整手势裁剪器、人物/物体抠图、对象级修复、模板拼贴和导出预设仍待补。
 - 电子衣橱：已完成衣橱洞察 v3，可从现有素材索引统计分类、颜色、季节、场景、未进入穿搭组合单品、常用单品、穿着次数、最近穿着和成本/次，并记录洗护状态与旅行打包清单；天气推荐、自动打包建议和洗护提醒仍待补。
 - 网页摘录：已有标题/description、正文清洗、段落评分、来源、摘录卡、重点候选、网页/OCR 统一摘录片段和快速输入片段勾选；后续再做批量网页导入、截图/OCR 区域选择和摘录片段独立素材索引。
-- CI 测试稳定性：GitHub iPhone 16 Pro 模拟器默认图片 renderer scale 可能不是 1，像素尺寸测试必须显式设置 `UIGraphicsImageRendererFormat.scale = 1` 或断言比例；视频/媒体测试应使用真实保存文件，不应手工构造不存在的 `SharedAttachment`。App Intents 元数据训练在 CI 测试阶段可能触发 `extract.actionsdata` 解析失败，当前测试构建通过条件编译和 `EXCLUDED_SOURCE_FILE_NAMES` 暂避，待远端复验。
+- CI 测试稳定性：GitHub iPhone 16 Pro 模拟器默认图片 renderer scale 可能不是 1，像素尺寸测试必须显式设置 `UIGraphicsImageRendererFormat.scale = 1` 或断言比例；视频/媒体测试应使用真实保存文件，不应手工构造不存在的 `SharedAttachment`。App Intents 元数据训练在 CI 测试阶段可能触发 `extract.actionsdata` 解析失败，当前通过独立 DerivedData、测试阶段 `clean test`、条件编译和 `EXCLUDED_SOURCE_FILE_NAMES` 暂避，待远端复验。
