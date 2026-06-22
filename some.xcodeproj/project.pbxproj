@@ -83,6 +83,7 @@
 		7AF000010000000000000001 /* WardrobeInsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AF001010000000000000001 /* WardrobeInsightEngine.swift */; };
 		7B1000010000000000000001 /* ScrapbookRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1001010000000000000001 /* ScrapbookRenderer.swift */; };
 		7B1000010000000000000002 /* AttachmentReferenceResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1001010000000000000002 /* AttachmentReferenceResolver.swift */; };
+		7B2000010000000000000001 /* MediaMetadataExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B2001010000000000000001 /* MediaMetadataExtractor.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -182,6 +183,7 @@
 		7AF001010000000000000001 /* WardrobeInsightEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeInsightEngine.swift; sourceTree = "<group>"; };
 		7B1001010000000000000001 /* ScrapbookRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrapbookRenderer.swift; sourceTree = "<group>"; };
 		7B1001010000000000000002 /* AttachmentReferenceResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentReferenceResolver.swift; sourceTree = "<group>"; };
+		7B2001010000000000000001 /* MediaMetadataExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaMetadataExtractor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -305,6 +307,7 @@
 				7AA001010000000000000001 /* ImageTextRecognizer.swift */,
 				7AB001010000000000000001 /* AudioTranscriber.swift */,
 				7AC001010000000000000001 /* VideoThumbnailGenerator.swift */,
+				7B2001010000000000000001 /* MediaMetadataExtractor.swift */,
 				7AE001010000000000000001 /* ImageEditRenderer.swift */,
 				7AF001010000000000000001 /* WardrobeInsightEngine.swift */,
 				7B1001010000000000000001 /* ScrapbookRenderer.swift */,
@@ -557,6 +560,7 @@
 				7AA000010000000000000001 /* ImageTextRecognizer.swift in Sources */,
 				7AB000010000000000000001 /* AudioTranscriber.swift in Sources */,
 				7AC000010000000000000001 /* VideoThumbnailGenerator.swift in Sources */,
+				7B2000010000000000000001 /* MediaMetadataExtractor.swift in Sources */,
 				7AD000010000000000000001 /* ScrapbookEditorView.swift in Sources */,
 				7AE000010000000000000001 /* ImageEditRenderer.swift in Sources */,
 				7AE000010000000000000002 /* ImageEditorView.swift in Sources */,

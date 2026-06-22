@@ -19,10 +19,11 @@
 - 2026-06-23：阶段 12 前继续核验图片裁剪开源候选。`guoyingtao/Mantis` 为 MIT、Swift、SwiftUI topic、2026-06 仍有推送，适合作为后续自由裁剪依赖候选；`TimOliver/TOCropViewController` 为 MIT、成熟 Objective-C/UIKit 裁剪器、2026-04 有推送，适合作为备选但会增加桥接与工程维护成本。GitHub 搜索 `SwiftUI image crop editor MIT` 未找到比二者更适合直接复制进当前工程的轻量模块。
 - 2026-06-23：最新 GitHub Actions run `27962981148` 在 Build for simulator 阶段失败。日志 annotation 只显示 Share Extension 编译退出 65，但本地 cross-target 扫描发现 `SomeShareExtension` 编译 `MemoStore.swift`，而 `MemoStore.addImageEdit` 引用了 `ImageEditRenderer`；`ImageEditRenderer.swift` 只在主 App target 中，属于 P1 构建阻塞。修复策略是把 `ImageEditRenderer.swift` 补入 Share Extension Sources，不改公共数据结构。
 - 2026-06-23：阶段 13 开工前检索 `SwiftUI scrapbook collage export image MIT` 与 `iOS collage editor Swift MIT export`，GitHub API 均返回 0 个可直接复用候选；本轮不新增第三方依赖，继续基于本项目 `ScrapbookPageLayout` 和 UIKit renderer 自建导出。
+- 2026-06-23：阶段 14 开工前检索 `SwiftUI video thumbnail cache MIT`、`AVAssetImageGenerator thumbnail cache Swift`、`Swift media metadata AVAsset MIT iOS`、`iOS local video thumbnail Swift MIT` 等关键词，精确查询均返回 0。放宽到 `video thumbnail swift` 后发现 `HHK1/PryntTrimmerView`（MIT、Swift、视频裁剪/帧选择）、`luispadron/LPThumbnailView`（MIT、Swift/UIKit、已归档）、`krad/memento`（MIT、小型 Swift 视频缩略图工具）等候选；这些项目不覆盖 some 当前“本地附件 URI、素材索引、详情页/素材库复用、离线缓存失效”的架构，不直接复制源码。本轮优先复用 Apple AVFoundation 与现有 `SharedAttachmentStore` / `VideoThumbnailGenerator`，自建小型持久缩略图缓存和媒体元数据摘要。
 
 ## 当前缺口
 
-- 媒体预览：视频附件已有本地按需缩略图 v1；后续再补持久化缩略图缓存、批量媒体元数据和真实长列表性能验证。
+- 媒体预览：视频附件已有本地按需缩略图 v1；阶段 14 正在补持久化缩略图缓存、媒体元数据摘要和真实长列表性能风险收敛。
 - 工作日志：已有勾选记录生成结构化日志 v1；后续可增强项目字段、周期范围、导出模板、AI 润色和多选筛选。
 - 电子手帐：已有图层 JSON、预览、详情页拖拽/缩放/旋转、独立编辑器图层新增/复制/删除/层级调整、图片素材追加、PNG 导出和保存回原 memo；后续缺更丰富字体/贴纸/花边、PDF 分享入口和真机手势验证。
 - 图片编辑：已完成素材库图片编辑入口、预设比例裁剪、可调裁剪中心/缩放、授权图片瑕疵清理贴片、Core Image 滤镜、边框、文字、贴纸、输出 PNG 附件、`imageEdit` 素材索引和 `has:image-edit` 搜索；完整手势裁剪器、抠图、对象级修复、模板拼贴和导出预设仍待补。

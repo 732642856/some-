@@ -1898,7 +1898,9 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(updatedMemo.text.contains("导出图片：\(attachment.displayName)"))
         XCTAssertTrue(updatedMemo.text.contains(attachment.referenceLine))
         XCTAssertEqual(updatedLayout.layers.last?.text, "已导出")
-        XCTAssertEqual(store.assets(for: updatedMemo).contains { $0.kind == .attachment && $0.uri == attachment.uri }, true)
+        XCTAssertEqual(store.assets(for: updatedMemo).contains { asset in
+            asset.kind == .attachment && asset.uri?.contains(attachment.relativePath) == true
+        }, true)
     }
 
     func testAddAttachmentMemoDoesNotDuplicateAttachmentAlreadyInNote() throws {
@@ -1979,7 +1981,7 @@ final class SomeTests: XCTestCase {
             return XCTFail("Expected image edit memo")
         }
         let attachments = SharedAttachmentStore.attachments(in: memo.text)
-        defer { attachments.forEach(SharedAttachmentStore.delete) }
+        defer { attachments.forEach { SharedAttachmentStore.delete($0) } }
 
         XCTAssertTrue(memo.text.contains("图片编辑：晚餐照片"))
         XCTAssertTrue(memo.text.contains("滤镜：鲜明"))

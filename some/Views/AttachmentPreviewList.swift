@@ -88,10 +88,15 @@ struct AttachmentPreviewList: View {
     }
 
     private func detailText(for attachment: SharedAttachment) -> String {
-        let sizeText = attachment.byteCount > 0
-            ? SharedAttachmentStore.formatByteCount(attachment.byteCount)
-            : "本地附件"
-        return "\(typeLabel(for: attachment)) · \(sizeText)"
+        if let summary = MediaMetadataExtractor.summary(for: attachment) {
+            return "\(typeLabel(for: attachment)) · \(summary)"
+        }
+
+        if attachment.byteCount > 0 {
+            return "\(typeLabel(for: attachment)) · \(SharedAttachmentStore.formatByteCount(attachment.byteCount))"
+        }
+
+        return "\(typeLabel(for: attachment)) · 本地附件"
     }
 
     private func iconName(for attachment: SharedAttachment) -> String {

@@ -85,3 +85,10 @@
 - 新增 `AttachmentReferenceResolver`，统一解析 `some-attachment://` 引用，替换 `ContentView` 内部重复 resolver。
 - 手帐编辑器新增图片素材选择、添加图片图层和导出 PNG 操作；`MemoStore.exportScrapbookLayout` 可把渲染结果保存为本地图片附件。
 - 补充 PNG 渲染和导出附件测试；本地 `git diff --check`、`plutil -lint`、`xmllint --noout`、旧 Swift parser 覆盖新增手帐导出路径。
+
+## 2026-06-23T09:30:00+08:00
+
+- 进入阶段 14：媒体元数据与缩略图缓存。
+- 开工前复查 Git 状态、最近提交、规划文件、全量文件清单和媒体预览相关源码；确认阶段 13 已通过 `a679ca8` / `6cd2154` 落地且当前工作树干净。
+- 联网检索 `SwiftUI video thumbnail cache MIT`、`AVAssetImageGenerator thumbnail cache Swift`、`Swift media metadata AVAsset MIT iOS` 等关键词，精确查询均未找到可直接复用的成熟 SwiftUI/MIT 模块。
+- 放宽检索后找到 `HHK1/PryntTrimmerView`、`luispadron/LPThumbnailView`、`krad/memento` 等可参考项目；它们偏视频裁剪、旧 UIKit 预览或独立 CLI/示例，不适合直接复制进当前本地附件索引链路。
