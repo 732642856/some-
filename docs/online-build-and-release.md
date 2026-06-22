@@ -31,6 +31,7 @@
 - 编译模拟器版本
 - 运行 `SomeTests`
 - 禁用签名，所以不需要证书
+- 测试构建会通过 `CI_DISABLE_APP_INTENTS` 和 `EXCLUDED_SOURCE_FILE_NAMES` 临时排除 App Intents 源文件，绕开 GitHub runner 上 App Intents 元数据训练偶发解析 `extract.actionsdata` 失败；正式 App build / TestFlight workflow 不使用这个排除
 
 如果 GitHub runner 上的模拟器名称变化，先打开 Actions 日志，根据可用 destination 调整 workflow 中的 `iPhone 16 Pro`。
 

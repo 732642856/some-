@@ -165,3 +165,15 @@
 - 新增 `laundryLog` 与 `packingList` 素材类型、`has:laundry-log` / `has:packing-list` 搜索筛选、`addLaundryLog` 和 `addPackingList` 结构化保存。
 - 衣橱页新增洗护状态表单、旅行打包表单、洗护/打包统计 badge，并把洗护和打包记录纳入衣橱素材列表。
 - 补充结构化保存和搜索测试，覆盖洗护记录、旅行打包清单和内容筛选。
+
+## 2026-06-23T14:35:00+08:00
+
+- 接续用户“不要停下，持续主动推进”的要求，重新复查 Git 状态、任务计划、发现记录、进度日志、全量文件清单和最新 GitHub Actions 状态；开工前本地 `master...origin/master` 且工作树干净。
+- GitHub Actions run `27975351182` 已从 in_progress 变成 failure；Build for simulator 成功，Run tests 失败。公开 annotation 未暴露具体 XCTest 断言失败，显示 `appintentsnltrainingprocessor` 无法解析 `extract.actionsdata`，本轮按 CI 工具链问题处理。
+- 为阶段 17 增加 CI 兜底：`xcodebuild test` 传入 `CI_DISABLE_APP_INTENTS`，并通过 `EXCLUDED_SOURCE_FILE_NAMES` 排除 `SaveMemoIntent.swift` / `SomeAppShortcuts.swift`；`SomeApp` 初始化对该 flag 做条件保护，正式 App build 不关闭 App Intents。
+- 进入阶段 21：手帐字体/贴纸/花边可编辑增强。开工前读取 `ScrapbookEditorView`、`ScrapbookRenderer`、`ScrapbookPageLayout` / `ScrapbookLayer`、手帐列表缩略图和相关测试。
+- 按用户要求继续联网检索 `SwiftUI scrapbook sticker font border MIT`、`iOS collage editor stickers fonts Swift MIT`、`Swift sticker view font border editor MIT`、`IRSticker Swift MIT`、`SwiftStickerView iOS MIT` 等候选；未找到适合直接复制的成熟 SwiftUI/MIT 模块，继续复用 some 现有图层 JSON。
+- 新增 `ScrapbookStyleCatalog`，集中管理简约小清新画布色、文字色、填充色、边框色、字体预设、贴纸预设和花边预设，并支持中文自然输入如“圆体”“纸本”“胶片”的匹配。
+- 手帐编辑器新增可换行工具栏、花边图层按钮、画布底色色板、字体预设、贴纸预设、花边预设、文字/底色/边框色板、字号/圆角/线宽滑块；列表缩略图和 PNG renderer 同步使用同一套字体风格。
+- 默认手帐创建入口也复用样式目录，`font` / `border` / `decorations` 不再只是正文字段，会实际影响初始图层样式。
+- 新增测试覆盖手帐样式目录、预设应用、默认手帐胶片框匹配和带样式图层 PNG 渲染。

@@ -2144,6 +2144,8 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(layout.layers.first { $0.kind == .text }?.text, "六月手帐")
         XCTAssertEqual(layout.layers.filter { $0.kind == .sticker }.map(\.title), ["贴纸", "花边"])
         XCTAssertEqual(layout.layers.first { $0.kind == .border }?.title, "胶片")
+        XCTAssertEqual(layout.layers.first { $0.kind == .text }?.fontName, "rounded")
+        XCTAssertEqual(layout.layers.first { $0.kind == .border }?.borderColorHex, "#7A8A8E")
 
         let asset = store.assets(for: memo).first { $0.kind == .scrapbookPage }
         XCTAssertEqual(asset?.title, "六月手帐")
@@ -2221,6 +2223,33 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(store.revisions(for: updatedMemo).count, 1)
     }
 
+    func testScrapbookStyleCatalogAppliesEditablePresets() throws {
+        XCTAssertEqual(ScrapbookStyleCatalog.normalizedFontKey("纸本"), "serif")
+        XCTAssertEqual(ScrapbookStyleCatalog.normalizedFontKey("等宽"), "mono")
+        XCTAssertEqual(ScrapbookStyleCatalog.borderPreset(matching: "胶片框").borderColorHex, "#7A8A8E")
+
+        var textLayer = ScrapbookLayer(kind: .text, title: "正文", text: "正文", x: 120, y: 120, width: 200, height: 80)
+        let fontPreset = try XCTUnwrap(ScrapbookStyleCatalog.fontPresets.first { $0.id == "handwritten" })
+        ScrapbookStyleCatalog.applyFontPreset(fontPreset, to: &textLayer)
+        XCTAssertEqual(textLayer.fontName, "handwritten")
+        XCTAssertEqual(textLayer.fontSize, 50)
+        XCTAssertEqual(textLayer.textColorHex, "#8B6F83")
+
+        var stickerLayer = ScrapbookLayer(kind: .sticker, title: "贴纸", text: "贴纸", x: 120, y: 120, width: 180, height: 64)
+        let stickerPreset = try XCTUnwrap(ScrapbookStyleCatalog.stickerPreset(matching: "好好吃饭"))
+        ScrapbookStyleCatalog.applyStickerPreset(stickerPreset, to: &stickerLayer)
+        XCTAssertEqual(stickerLayer.title, "好好吃饭")
+        XCTAssertEqual(stickerLayer.fontName, "rounded")
+        XCTAssertEqual(stickerLayer.backgroundColorHex, "#FFF7F0")
+
+        var borderLayer = ScrapbookLayer(kind: .border, title: "边框", x: 120, y: 120, width: 220, height: 260)
+        let borderPreset = try XCTUnwrap(ScrapbookStyleCatalog.borderPresets.first { $0.id == "lace" })
+        ScrapbookStyleCatalog.applyBorderPreset(borderPreset, to: &borderLayer)
+        XCTAssertEqual(borderLayer.title, "花边框")
+        XCTAssertEqual(borderLayer.borderWidth, 12)
+        XCTAssertEqual(borderLayer.cornerRadius, 54)
+    }
+
     func testScrapbookRendererExportsPNGData() throws {
         let layout = ScrapbookPageLayout(
             canvasWidth: 320,
@@ -2228,7 +2257,9 @@ final class SomeTests: XCTestCase {
             backgroundColorHex: "#FDF8FA",
             layers: [
                 ScrapbookLayer(kind: .shape, title: "底色", x: 160, y: 210, width: 220, height: 160, backgroundColorHex: "#E8F3EE", cornerRadius: 18),
-                ScrapbookLayer(kind: .text, title: "标题", text: "六月手帐", x: 160, y: 120, width: 220, height: 70, fontSize: 28)
+                ScrapbookLayer(kind: .text, title: "标题", text: "六月手帐", x: 160, y: 120, width: 220, height: 70, fontName: "serif", fontSize: 28),
+                ScrapbookLayer(kind: .sticker, title: "贴纸", text: "灵感", x: 160, y: 320, width: 130, height: 42, fontName: "handwritten", fontSize: 20, textColorHex: "#8B6F83", backgroundColorHex: "#F2EEF8", cornerRadius: 20),
+                ScrapbookLayer(kind: .border, title: "花边", x: 160, y: 210, width: 280, height: 360, borderColorHex: "#E7C7D7", borderWidth: 4, cornerRadius: 20)
             ]
         )
 

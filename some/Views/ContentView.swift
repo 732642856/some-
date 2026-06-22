@@ -553,13 +553,13 @@ private struct ScrapbookPagePreview: View {
             }
         case .text:
             Text(layer.text ?? layer.title)
-                .font(.system(size: max(6, CGFloat((layer.fontSize ?? 32) / 7)), weight: .semibold))
+                .font(scrapbookFont(for: layer, size: max(6, CGFloat((layer.fontSize ?? 32) / 7))))
                 .foregroundStyle(color(hex: layer.textColorHex) ?? Color.primaryText)
                 .lineLimit(2)
                 .minimumScaleFactor(0.5)
         case .sticker:
             Text(layer.text ?? layer.title)
-                .font(.system(size: 6, weight: .semibold))
+                .font(scrapbookFont(for: layer, size: 6))
                 .foregroundStyle(color(hex: layer.textColorHex) ?? Color.accentGreen)
                 .padding(.horizontal, 4)
                 .background(color(hex: layer.backgroundColorHex) ?? Color.greenTint)
@@ -595,6 +595,21 @@ private struct ScrapbookPagePreview: View {
             green: Double((value >> 8) & 0xFF) / 255.0,
             blue: Double(value & 0xFF) / 255.0
         )
+    }
+
+    private func scrapbookFont(for layer: ScrapbookLayer, size: CGFloat) -> Font {
+        switch ScrapbookStyleCatalog.normalizedFontKey(layer.fontName) {
+        case "serif":
+            return .system(size: size, weight: .semibold, design: .serif)
+        case "mono":
+            return .system(size: size, weight: .semibold, design: .monospaced)
+        case "handwritten":
+            return .system(size: size, weight: .medium, design: .rounded).italic()
+        case "caption":
+            return .system(size: size, weight: .medium, design: .rounded)
+        default:
+            return .system(size: size, weight: .semibold, design: .rounded)
+        }
     }
 }
 

@@ -1,4 +1,3 @@
-import AppIntents
 import SwiftUI
 
 @main
@@ -9,7 +8,10 @@ struct SomeApp: App {
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
+        #if CI_DISABLE_APP_INTENTS
+        #else
         SomeAppShortcuts.updateAppShortcutParameters()
+        #endif
     }
 
     var body: some Scene {

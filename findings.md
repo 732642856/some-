@@ -24,13 +24,15 @@
 - 2026-06-23：阶段 16 开工前检索 SwiftUI 文本高亮/摘录选择、Vision OCR 文本选择、网页文章 highlight、VisionKit 文档扫描等候选，GitHub API 多轮搜索均返回 0 个可直接复用模块。当前先不引入 UI 高亮依赖，优先建立 `ClipFragment` 纯模型，把网页摘录重点、摘要和 OCR 行统一成可勾选/可合并候选。
 - 2026-06-23：阶段 19 开工前检索 Vision 背景移除、前景分割和 SwiftUI background remover 候选；未找到适合直接复制进当前 iOS 16 SwiftUI 工程的成熟 MIT 模块。当前先把背景柔化/纯色画布纳入本项目图片编辑配方与渲染管线，为后续 Apple Vision 前景分割、衣橱抠图和拼贴排版打底。
 - 2026-06-23：阶段 20 开工前检索 SwiftUI 衣橱洗护、旅行打包和 capsule wardrobe packing list 候选；未找到可直接复制的成熟 Swift/iOS MIT 模块。当前继续复用 some 结构化 memo 与素材索引，先落地洗护记录和旅行打包清单。
+- 2026-06-23：阶段 21 开工前复查 Git 状态、计划文件、手帐模型、编辑器、渲染器、列表缩略图和相关测试；本地未发现未跟踪碎片。检索 `SwiftUI scrapbook sticker font border MIT`、`iOS collage editor stickers fonts Swift MIT`、`Swift sticker view font border editor MIT`、`IRSticker Swift MIT`、`SwiftStickerView iOS MIT` 等候选均未找到可直接复制进当前 SwiftUI/素材索引架构的成熟 MIT 模块；此前 UIKit 贴纸项目继续只做交互参考。本轮复用现有 `ScrapbookLayer` 字体、颜色、边框、圆角和阴影字段，新增项目内样式目录与编辑入口。
+- 2026-06-23：GitHub Actions run `27975351182` 的 Build for simulator 通过，但 Run tests 失败。公开 annotation 未显示业务 XCTest 断言失败，最后可见测试均通过，失败线集中在 `appintentsnltrainingprocessor` 的 `Unable to parse extract.actionsdata`。当前判断为 Xcode 16 CI App Intents 元数据训练工具链问题；修复策略是在 CI 的 `xcodebuild test` 构建中排除 AppIntents 源文件并加 `CI_DISABLE_APP_INTENTS` 条件，正式 App build 不关闭快捷指令功能。
 
 ## 当前缺口
 
 - 媒体预览：视频附件已有本地缩略图缓存与媒体元数据摘要 v1；后续需用真实长列表验证滚动性能，并按需要补批量预热/清理策略。
 - 工作日志：已有勾选记录生成结构化日志 v1；后续可增强项目字段、周期范围、导出模板、AI 润色和多选筛选。
-- 电子手帐：已有图层 JSON、预览、详情页拖拽/缩放/旋转、独立编辑器图层新增/复制/删除/层级调整、图片素材追加、PNG 导出和保存回原 memo；后续缺更丰富字体/贴纸/花边、PDF 分享入口和真机手势验证。
+- 电子手帐：已有图层 JSON、预览、详情页拖拽/缩放/旋转、独立编辑器图层新增/复制/删除/层级调整、图片素材追加、画布底色、字体/贴纸/花边预设、颜色/字号/圆角/线宽编辑、PNG 导出和保存回原 memo；后续缺 PDF 分享入口、真实图片排版长页性能和真机手势验证。
 - 图片编辑：已完成素材库图片编辑入口、预设比例裁剪、可调裁剪中心/缩放、背景柔化/纯色画布、授权图片瑕疵清理贴片、Core Image 滤镜、边框、文字、贴纸、输出 PNG 附件、`imageEdit` 素材索引和 `has:image-edit` 搜索；完整手势裁剪器、人物/物体抠图、对象级修复、模板拼贴和导出预设仍待补。
 - 电子衣橱：已完成衣橱洞察 v3，可从现有素材索引统计分类、颜色、季节、场景、未进入穿搭组合单品、常用单品、穿着次数、最近穿着和成本/次，并记录洗护状态与旅行打包清单；天气推荐、自动打包建议和洗护提醒仍待补。
 - 网页摘录：已有标题/description、正文清洗、段落评分、来源、摘录卡、重点候选、网页/OCR 统一摘录片段和快速输入片段勾选；后续再做批量网页导入、截图/OCR 区域选择和摘录片段独立素材索引。
-- CI 测试稳定性：GitHub iPhone 16 Pro 模拟器默认图片 renderer scale 可能不是 1，像素尺寸测试必须显式设置 `UIGraphicsImageRendererFormat.scale = 1` 或断言比例；视频/媒体测试应使用真实保存文件，不应手工构造不存在的 `SharedAttachment`。
+- CI 测试稳定性：GitHub iPhone 16 Pro 模拟器默认图片 renderer scale 可能不是 1，像素尺寸测试必须显式设置 `UIGraphicsImageRendererFormat.scale = 1` 或断言比例；视频/媒体测试应使用真实保存文件，不应手工构造不存在的 `SharedAttachment`。App Intents 元数据训练在 CI 测试阶段可能触发 `extract.actionsdata` 解析失败，当前测试构建通过条件编译和 `EXCLUDED_SOURCE_FILE_NAMES` 暂避，待远端复验。

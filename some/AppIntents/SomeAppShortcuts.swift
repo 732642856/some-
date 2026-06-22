@@ -1,3 +1,5 @@
+#if CI_DISABLE_APP_INTENTS
+#else
 import AppIntents
 
 struct SomeAppShortcuts: AppShortcutsProvider {
@@ -15,3 +17,4 @@ struct SomeAppShortcuts: AppShortcutsProvider {
         )
     }
 }
+#endif

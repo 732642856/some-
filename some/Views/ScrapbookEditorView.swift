@@ -100,7 +100,7 @@ struct ScrapbookEditorView: View {
     @ViewBuilder
     private var inspector: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
+            FlowLayout(spacing: 8) {
                 addLayerButton(systemImage: "textformat", title: "文字") {
                     addTextLayer()
                 }
@@ -110,6 +110,9 @@ struct ScrapbookEditorView: View {
                 addLayerButton(systemImage: "square.fill", title: "色块") {
                     addShapeLayer()
                 }
+                addLayerButton(systemImage: "rectangle.dashed", title: "花边") {
+                    addBorderLayer()
+                }
                 addLayerButton(systemImage: "photo", title: "图片") {
                     addSelectedImageLayer()
                 }
@@ -118,13 +121,12 @@ struct ScrapbookEditorView: View {
                     exportLayout()
                 }
 
-                Spacer(minLength: 8)
-
                 if let statusText = statusText {
                     Text(statusText)
                         .font(.caption)
                         .foregroundStyle(Color.secondaryText)
                         .lineLimit(1)
+                        .frame(height: 34)
                 }
             }
 
@@ -138,6 +140,12 @@ struct ScrapbookEditorView: View {
                 .pickerStyle(.menu)
                 .tint(Color.accentGreen)
             }
+
+            colorSwatches(
+                title: "画布底色",
+                values: ScrapbookStyleCatalog.canvasColorHexes,
+                selection: canvasColorBinding
+            )
 
             if let index = selectedLayerIndex {
                 selectedLayerInspector(layer: $layout.layers[index])
@@ -180,6 +188,41 @@ struct ScrapbookEditorView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
 
+            if layer.wrappedValue.kind == .text || layer.wrappedValue.kind == .sticker {
+                fontPresetControls(layer: layer)
+                colorSwatches(
+                    title: "文字色",
+                    values: ScrapbookStyleCatalog.textColorHexes,
+                    selection: textColorBinding(for: layer)
+                )
+            }
+
+            if layer.wrappedValue.kind == .sticker {
+                stickerPresetControls(layer: layer)
+                colorSwatches(
+                    title: "贴纸底色",
+                    values: ScrapbookStyleCatalog.fillColorHexes,
+                    selection: backgroundColorBinding(for: layer)
+                )
+            }
+
+            if layer.wrappedValue.kind == .shape {
+                colorSwatches(
+                    title: "色块底色",
+                    values: ScrapbookStyleCatalog.fillColorHexes,
+                    selection: backgroundColorBinding(for: layer)
+                )
+            }
+
+            if layer.wrappedValue.kind == .border {
+                borderPresetControls(layer: layer)
+                colorSwatches(
+                    title: "花边颜色",
+                    values: ScrapbookStyleCatalog.borderColorHexes,
+                    selection: borderColorBinding(for: layer)
+                )
+            }
+
             VStack(alignment: .leading, spacing: 8) {
                 Slider(value: scaleBinding(for: layer), in: 0.35...2.4)
                     .tint(Color.accentGreen)
@@ -189,6 +232,8 @@ struct ScrapbookEditorView: View {
                     .tint(Color.accentGreen)
                     .accessibilityLabel("旋转")
             }
+
+            dimensionControls(layer: layer)
         }
         .padding(12)
         .background(Color.surface)
@@ -226,6 +271,13 @@ struct ScrapbookEditorView: View {
         return attachment
     }
 
+    private var canvasColorBinding: Binding<String> {
+        Binding(
+            get: { layout.backgroundColorHex },
+            set: { layout.backgroundColorHex = $0 }
+        )
+    }
+
     private func addLayerButton(systemImage: String, title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
@@ -252,6 +304,129 @@ struct ScrapbookEditorView: View {
         .accessibilityLabel(label)
     }
 
+    private func fontPresetControls(layer: Binding<ScrapbookLayer>) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            controlLabel("字体")
+            FlowLayout(spacing: 8) {
+                ForEach(ScrapbookStyleCatalog.fontPresets) { preset in
+                    presetChip(
+                        title: preset.title,
+                        isSelected: ScrapbookStyleCatalog.normalizedFontKey(layer.wrappedValue.fontName) == preset.id
+                    ) {
+                        var updated = layer.wrappedValue
+                        ScrapbookStyleCatalog.applyFontPreset(preset, to: &updated)
+                        layer.wrappedValue = updated
+                    }
+                }
+            }
+        }
+    }
+
+    private func stickerPresetControls(layer: Binding<ScrapbookLayer>) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            controlLabel("贴纸")
+            FlowLayout(spacing: 8) {
+                ForEach(ScrapbookStyleCatalog.stickerPresets) { preset in
+                    presetChip(
+                        title: preset.title,
+                        isSelected: layer.wrappedValue.text == preset.text
+                    ) {
+                        var updated = layer.wrappedValue
+                        ScrapbookStyleCatalog.applyStickerPreset(preset, to: &updated)
+                        layer.wrappedValue = updated
+                    }
+                }
+            }
+        }
+    }
+
+    private func borderPresetControls(layer: Binding<ScrapbookLayer>) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            controlLabel("花边")
+            FlowLayout(spacing: 8) {
+                ForEach(ScrapbookStyleCatalog.borderPresets) { preset in
+                    presetChip(
+                        title: preset.title,
+                        isSelected: layer.wrappedValue.title == preset.title
+                    ) {
+                        var updated = layer.wrappedValue
+                        ScrapbookStyleCatalog.applyBorderPreset(preset, to: &updated)
+                        layer.wrappedValue = updated
+                    }
+                }
+            }
+        }
+    }
+
+    private func colorSwatches(title: String, values: [String], selection: Binding<String>) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            controlLabel(title)
+            FlowLayout(spacing: 8) {
+                ForEach(values, id: \.self) { hex in
+                    Button {
+                        selection.wrappedValue = hex
+                    } label: {
+                        Circle()
+                            .fill(color(hex: hex) ?? Color.white)
+                            .frame(width: 28, height: 28)
+                            .overlay(
+                                Circle()
+                                    .stroke(selection.wrappedValue == hex ? Color.accentGreen : Color.border, lineWidth: 2)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(title) \(hex)")
+                }
+            }
+        }
+    }
+
+    private func dimensionControls(layer: Binding<ScrapbookLayer>) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if layer.wrappedValue.kind == .text || layer.wrappedValue.kind == .sticker {
+                controlLabel("字号")
+                Slider(value: fontSizeBinding(for: layer), in: 20...72)
+                    .tint(Color.accentGreen)
+                    .accessibilityLabel("字号")
+            }
+
+            if layer.wrappedValue.kind == .sticker || layer.wrappedValue.kind == .shape || layer.wrappedValue.kind == .image || layer.wrappedValue.kind == .border {
+                controlLabel("圆角")
+                Slider(value: cornerRadiusBinding(for: layer), in: 0...72)
+                    .tint(Color.accentGreen)
+                    .accessibilityLabel("圆角")
+            }
+
+            if layer.wrappedValue.kind == .border {
+                controlLabel("线宽")
+                Slider(value: borderWidthBinding(for: layer), in: 1...24)
+                    .tint(Color.accentGreen)
+                    .accessibilityLabel("花边线宽")
+            }
+        }
+    }
+
+    private func presetChip(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .padding(.horizontal, 10)
+                .frame(height: 28)
+                .foregroundStyle(isSelected ? Color.white : Color.secondaryText)
+                .background(isSelected ? Color.accentGreen : Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func controlLabel(_ title: String) -> some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(Color.secondaryText)
+    }
+
     private func textBinding(for layer: Binding<ScrapbookLayer>) -> Binding<String> {
         Binding(
             get: { layer.wrappedValue.text ?? layer.wrappedValue.title },
@@ -273,6 +448,48 @@ struct ScrapbookEditorView: View {
         Binding(
             get: { layer.wrappedValue.rotation },
             set: { layer.wrappedValue.rotation = min(max($0, -45), 45) }
+        )
+    }
+
+    private func fontSizeBinding(for layer: Binding<ScrapbookLayer>) -> Binding<Double> {
+        Binding(
+            get: { layer.wrappedValue.fontSize ?? 32 },
+            set: { layer.wrappedValue.fontSize = min(max($0, 20), 72) }
+        )
+    }
+
+    private func cornerRadiusBinding(for layer: Binding<ScrapbookLayer>) -> Binding<Double> {
+        Binding(
+            get: { layer.wrappedValue.cornerRadius ?? 0 },
+            set: { layer.wrappedValue.cornerRadius = min(max($0, 0), 72) }
+        )
+    }
+
+    private func borderWidthBinding(for layer: Binding<ScrapbookLayer>) -> Binding<Double> {
+        Binding(
+            get: { layer.wrappedValue.borderWidth ?? 4 },
+            set: { layer.wrappedValue.borderWidth = min(max($0, 1), 24) }
+        )
+    }
+
+    private func textColorBinding(for layer: Binding<ScrapbookLayer>) -> Binding<String> {
+        Binding(
+            get: { layer.wrappedValue.textColorHex ?? "#46525A" },
+            set: { layer.wrappedValue.textColorHex = $0 }
+        )
+    }
+
+    private func backgroundColorBinding(for layer: Binding<ScrapbookLayer>) -> Binding<String> {
+        Binding(
+            get: { layer.wrappedValue.backgroundColorHex ?? "#EEF7F3" },
+            set: { layer.wrappedValue.backgroundColorHex = $0 }
+        )
+    }
+
+    private func borderColorBinding(for layer: Binding<ScrapbookLayer>) -> Binding<String> {
+        Binding(
+            get: { layer.wrappedValue.borderColorHex ?? "#D7DDEA" },
+            set: { layer.wrappedValue.borderColorHex = $0 }
         )
     }
 
@@ -303,6 +520,8 @@ struct ScrapbookEditorView: View {
             width: 260,
             height: 72,
             rotation: -4,
+            fontName: "rounded",
+            fontSize: 30,
             textColorHex: "#597469",
             backgroundColorHex: "#EEF7F3",
             cornerRadius: 36
@@ -322,6 +541,24 @@ struct ScrapbookEditorView: View {
             backgroundColorHex: "#F2EEF8",
             cornerRadius: 28,
             shadowOpacity: 0.08
+        )
+        layout.layers.append(layer)
+        selectedLayerID = layer.id
+    }
+
+    private func addBorderLayer() {
+        let preset = ScrapbookStyleCatalog.borderPresets.first
+        let layer = ScrapbookLayer(
+            kind: .border,
+            title: preset?.title ?? "花边",
+            x: layout.canvasWidth / 2,
+            y: layout.canvasHeight / 2,
+            width: max(240, layout.canvasWidth - 90),
+            height: max(320, layout.canvasHeight - 130),
+            borderColorHex: preset?.borderColorHex ?? "#D7DDEA",
+            borderWidth: preset?.borderWidth ?? 8,
+            cornerRadius: preset?.cornerRadius ?? 38,
+            shadowOpacity: preset?.shadowOpacity ?? 0
         )
         layout.layers.append(layer)
         selectedLayerID = layer.id
@@ -467,14 +704,14 @@ private struct EditableScrapbookLayerView: View {
             }
         case .text:
             Text(layer.text ?? layer.title)
-                .font(.system(size: max(8, CGFloat(layer.fontSize ?? 32) * canvasScale), weight: .semibold))
+                .font(scrapbookFont(for: layer, size: max(8, CGFloat(layer.fontSize ?? 32) * canvasScale)))
                 .foregroundStyle(color(hex: layer.textColorHex) ?? Color.primaryText)
                 .lineLimit(4)
                 .minimumScaleFactor(0.35)
                 .multilineTextAlignment(.center)
         case .sticker:
             Text(layer.text ?? layer.title)
-                .font(.system(size: max(8, CGFloat(layer.fontSize ?? 32) * canvasScale), weight: .semibold))
+                .font(scrapbookFont(for: layer, size: max(8, CGFloat(layer.fontSize ?? 32) * canvasScale)))
                 .foregroundStyle(color(hex: layer.textColorHex) ?? Color.accentGreen)
                 .padding(.horizontal, 10)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -571,6 +808,21 @@ private struct EditableScrapbookLayerView: View {
             green: Double((value >> 8) & 0xFF) / 255.0,
             blue: Double(value & 0xFF) / 255.0
         )
+    }
+
+    private func scrapbookFont(for layer: ScrapbookLayer, size: CGFloat) -> Font {
+        switch ScrapbookStyleCatalog.normalizedFontKey(layer.fontName) {
+        case "serif":
+            return .system(size: size, weight: .semibold, design: .serif)
+        case "mono":
+            return .system(size: size, weight: .semibold, design: .monospaced)
+        case "handwritten":
+            return .system(size: size, weight: .medium, design: .rounded).italic()
+        case "caption":
+            return .system(size: size, weight: .medium, design: .rounded)
+        default:
+            return .system(size: size, weight: .semibold, design: .rounded)
+        }
     }
 }
 

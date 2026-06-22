@@ -147,7 +147,7 @@ enum ScrapbookRenderer {
         paragraph.alignment = .center
         paragraph.lineBreakMode = .byWordWrapping
         let attributes: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: CGFloat(layer.fontSize ?? 32), weight: .semibold),
+            .font: font(for: layer),
             .foregroundColor: color(hex: layer.textColorHex, fallback: .label),
             .paragraphStyle: paragraph
         ]
@@ -213,6 +213,24 @@ enum ScrapbookRenderer {
         return cleaned.isEmpty ? "scrapbook" : cleaned
     }
 
+    private static func font(for layer: ScrapbookLayer) -> UIFont {
+        let size = CGFloat(layer.fontSize ?? 32)
+
+        switch ScrapbookStyleCatalog.normalizedFontKey(layer.fontName) {
+        case "serif":
+            return UIFont.systemFont(ofSize: size, weight: .semibold).withSerifDesign()
+        case "mono":
+            return UIFont.monospacedSystemFont(ofSize: size, weight: .semibold)
+        case "handwritten":
+            let base = UIFont.systemFont(ofSize: size, weight: .medium).withRoundedDesign()
+            return UIFont(descriptor: base.fontDescriptor.withSymbolicTraits(.traitItalic) ?? base.fontDescriptor, size: size)
+        case "caption":
+            return UIFont.systemFont(ofSize: size, weight: .medium).withRoundedDesign()
+        default:
+            return UIFont.systemFont(ofSize: size, weight: .semibold).withRoundedDesign()
+        }
+    }
+
     private static func color(hex: String?, fallback: UIColor) -> UIColor {
         guard let hex = hex else {
             return fallback
@@ -228,6 +246,22 @@ enum ScrapbookRenderer {
             blue: CGFloat(value & 0xFF) / 255.0,
             alpha: 1
         )
+    }
+}
+
+private extension UIFont {
+    func withRoundedDesign() -> UIFont {
+        guard let descriptor = fontDescriptor.withDesign(.rounded) else {
+            return self
+        }
+        return UIFont(descriptor: descriptor, size: pointSize)
+    }
+
+    func withSerifDesign() -> UIFont {
+        guard let descriptor = fontDescriptor.withDesign(.serif) else {
+            return self
+        }
+        return UIFont(descriptor: descriptor, size: pointSize)
     }
 }
 

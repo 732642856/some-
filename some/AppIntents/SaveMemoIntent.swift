@@ -1,3 +1,5 @@
+#if CI_DISABLE_APP_INTENTS
+#else
 import AppIntents
 import Foundation
 
@@ -27,3 +29,4 @@ struct SaveMemoIntent: AppIntent {
         return .result(dialog: IntentDialog("已保存到 some。"))
     }
 }
+#endif

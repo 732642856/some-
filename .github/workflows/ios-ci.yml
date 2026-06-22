@@ -125,6 +125,8 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
+            'OTHER_SWIFT_FLAGS=$(inherited) -DCI_DISABLE_APP_INTENTS' \
+            'EXCLUDED_SOURCE_FILE_NAMES=SaveMemoIntent.swift SomeAppShortcuts.swift' \
             test 2>&1 | tee "$LOG_PATH"
           TEST_STATUS="${PIPESTATUS[0]}"
           set -e
@@ -135,7 +137,7 @@ jobs:
               echo "#### Failing tests"
               echo
               echo '```text'
-              grep -nE 'Test Case .*failed|failed:|XCTAssert|Executed [0-9]+ tests|Failing tests|error:' "$LOG_PATH" | tail -n 160 || true
+              grep -nE 'Test Case .*failed|failed:|XCTAssert|Executed [0-9]+ tests|Failing tests|error:|appintents' "$LOG_PATH" | tail -n 160 || true
               echo '```'
               echo
               echo '```text'
@@ -144,7 +146,7 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
             echo "::error file=.github/workflows/ios-ci.yml,line=83::xcodebuild test failed with status ${TEST_STATUS}; see the step summary for the last 200 log lines."
             TEST_ANNOTATION="$(
-              grep -nE 'Test Case .*failed|failed:|XCTAssert|Executed [0-9]+ tests|error:' "$LOG_PATH" \
+              grep -nE 'Test Case .*failed|failed:|XCTAssert|Executed [0-9]+ tests|error:|appintents' "$LOG_PATH" \
                 | tail -n 40 \
                 | perl -0pe 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/::/%3A%3A/g'
             )"

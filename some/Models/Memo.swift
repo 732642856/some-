@@ -179,6 +179,7 @@ struct ScrapbookPageLayout: Codable, Equatable {
             )
         }
 
+        let fontPreset = ScrapbookStyleCatalog.fontPreset(matching: font)
         layers.append(
             ScrapbookLayer(
                 kind: .text,
@@ -188,9 +189,9 @@ struct ScrapbookPageLayout: Codable, Equatable {
                 y: 155,
                 width: 760,
                 height: 120,
-                fontName: font?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? font : "rounded",
+                fontName: fontPreset.fontName,
                 fontSize: 58,
-                textColorHex: "#46525A"
+                textColorHex: fontPreset.textColorHex
             )
         )
 
@@ -207,7 +208,7 @@ struct ScrapbookPageLayout: Codable, Equatable {
                     y: 1025,
                     width: 780,
                     height: 250,
-                    fontName: font,
+                    fontName: fontPreset.fontName,
                     fontSize: 34,
                     textColorHex: "#5F6872"
                 )
@@ -215,35 +216,40 @@ struct ScrapbookPageLayout: Codable, Equatable {
         }
 
         if let border = border?.trimmingCharacters(in: .whitespacesAndNewlines), !border.isEmpty {
+            let borderPreset = ScrapbookStyleCatalog.borderPreset(matching: border)
             layers.append(
                 ScrapbookLayer(
                     kind: .border,
-                    title: border,
+                    title: borderPreset.title,
                     x: 540,
                     y: 720,
                     width: 990,
                     height: 1320,
-                    borderColorHex: "#D7DDEA",
-                    borderWidth: 8,
-                    cornerRadius: 38
+                    borderColorHex: borderPreset.borderColorHex,
+                    borderWidth: borderPreset.borderWidth,
+                    cornerRadius: borderPreset.cornerRadius,
+                    shadowOpacity: borderPreset.shadowOpacity
                 )
             )
         }
 
         for (index, decoration) in decorations.prefix(6).enumerated() {
+            let stickerPreset = ScrapbookStyleCatalog.stickerPreset(matching: decoration)
             layers.append(
                 ScrapbookLayer(
                     kind: .sticker,
                     title: decoration,
-                    text: decoration,
+                    text: stickerPreset?.text ?? decoration,
                     x: 170 + Double(index % 3) * 370,
                     y: 1210 + Double(index / 3) * 90,
                     width: 230,
                     height: 64,
-                    rotation: index.isMultiple(of: 2) ? -5 : 5,
-                    textColorHex: "#597469",
-                    backgroundColorHex: "#EEF7F3",
-                    cornerRadius: 32
+                    rotation: stickerPreset?.rotation ?? (index.isMultiple(of: 2) ? -5 : 5),
+                    fontName: stickerPreset?.fontName ?? "rounded",
+                    fontSize: stickerPreset?.fontSize ?? 30,
+                    textColorHex: stickerPreset?.textColorHex ?? "#597469",
+                    backgroundColorHex: stickerPreset?.backgroundColorHex ?? "#EEF7F3",
+                    cornerRadius: stickerPreset?.cornerRadius ?? 32
                 )
             )
         }
@@ -334,6 +340,177 @@ struct ScrapbookLayer: Identifiable, Codable, Equatable {
         case sticker
         case border
         case shape
+    }
+}
+
+enum ScrapbookStyleCatalog {
+    struct FontPreset: Identifiable, Equatable {
+        let id: String
+        let title: String
+        let fontName: String
+        let fontSize: Double
+        let textColorHex: String
+    }
+
+    struct StickerPreset: Identifiable, Equatable {
+        let id: String
+        let title: String
+        let text: String
+        let fontName: String
+        let fontSize: Double
+        let textColorHex: String
+        let backgroundColorHex: String
+        let cornerRadius: Double
+        let rotation: Double
+    }
+
+    struct BorderPreset: Identifiable, Equatable {
+        let id: String
+        let title: String
+        let borderColorHex: String
+        let borderWidth: Double
+        let cornerRadius: Double
+        let shadowOpacity: Double
+    }
+
+    static let canvasColorHexes = [
+        "#FDF8FA", "#F7FBFB", "#F6F8FB", "#FFF7F0", "#F7F4FB", "#F1F7F0"
+    ]
+
+    static let textColorHexes = [
+        "#46525A", "#5F6872", "#597469", "#8B6F83", "#A06F55", "#FFFFFF"
+    ]
+
+    static let fillColorHexes = [
+        "#EEF7F3", "#E8F3EE", "#F2EEF8", "#F8DCE8", "#FFF7F0", "#F6F8FB"
+    ]
+
+    static let borderColorHexes = [
+        "#D7DDEA", "#A9C9D8", "#C9B8D8", "#E7C7D7", "#D8C7B1", "#7A8A8E"
+    ]
+
+    static let fontPresets = [
+        FontPreset(id: "rounded", title: "圆润", fontName: "rounded", fontSize: 46, textColorHex: "#46525A"),
+        FontPreset(id: "serif", title: "纸本", fontName: "serif", fontSize: 44, textColorHex: "#5F6872"),
+        FontPreset(id: "handwritten", title: "手写", fontName: "handwritten", fontSize: 50, textColorHex: "#8B6F83"),
+        FontPreset(id: "mono", title: "清单", fontName: "mono", fontSize: 36, textColorHex: "#597469"),
+        FontPreset(id: "caption", title: "标签", fontName: "caption", fontSize: 32, textColorHex: "#A06F55")
+    ]
+
+    static let stickerPresets = [
+        StickerPreset(id: "today", title: "今日", text: "今日", fontName: "rounded", fontSize: 30, textColorHex: "#597469", backgroundColorHex: "#EEF7F3", cornerRadius: 34, rotation: -4),
+        StickerPreset(id: "idea", title: "灵感", text: "灵感", fontName: "handwritten", fontSize: 34, textColorHex: "#8B6F83", backgroundColorHex: "#F2EEF8", cornerRadius: 30, rotation: 5),
+        StickerPreset(id: "quote", title: "摘录", text: "摘录", fontName: "serif", fontSize: 30, textColorHex: "#5F6872", backgroundColorHex: "#F6F8FB", cornerRadius: 22, rotation: -2),
+        StickerPreset(id: "ootd", title: "OOTD", text: "OOTD", fontName: "mono", fontSize: 28, textColorHex: "#46525A", backgroundColorHex: "#FFF7F0", cornerRadius: 18, rotation: 3),
+        StickerPreset(id: "food", title: "好好吃饭", text: "好好吃饭", fontName: "rounded", fontSize: 28, textColorHex: "#A06F55", backgroundColorHex: "#FFF7F0", cornerRadius: 28, rotation: -3)
+    ]
+
+    static let borderPresets = [
+        BorderPreset(id: "linen", title: "浅亚麻", borderColorHex: "#D7DDEA", borderWidth: 8, cornerRadius: 38, shadowOpacity: 0),
+        BorderPreset(id: "mint", title: "薄荷线", borderColorHex: "#A9C9D8", borderWidth: 6, cornerRadius: 28, shadowOpacity: 0),
+        BorderPreset(id: "film", title: "胶片框", borderColorHex: "#7A8A8E", borderWidth: 10, cornerRadius: 18, shadowOpacity: 0.05),
+        BorderPreset(id: "lace", title: "花边框", borderColorHex: "#E7C7D7", borderWidth: 12, cornerRadius: 54, shadowOpacity: 0.04)
+    ]
+
+    static func normalizedFontKey(_ fontName: String?) -> String {
+        let key = (fontName ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        switch key {
+        case "serif", "paper", "paper-soft", "宋体", "明朝", "纸本", "纸本文字":
+            return "serif"
+        case "mono", "monospaced", "code", "清单", "等宽":
+            return "mono"
+        case "handwritten", "handwriting", "script", "手写", "手写体":
+            return "handwritten"
+        case "caption", "label", "标签", "小标题":
+            return "caption"
+        case "rounded", "round", "圆体", "圆润":
+            return "rounded"
+        default:
+            return "rounded"
+        }
+    }
+
+    static func fontPreset(matching value: String?) -> FontPreset {
+        let key = normalizedFontKey(value)
+        return fontPresets.first { $0.id == key } ?? fontPresets[0]
+    }
+
+    static func stickerPreset(matching value: String?) -> StickerPreset? {
+        let key = normalizedToken(value)
+        guard !key.isEmpty else {
+            return nil
+        }
+
+        return stickerPresets.first { preset in
+            matchesPresetToken(key, preset.id)
+                || matchesPresetToken(key, preset.title)
+                || matchesPresetToken(key, preset.text)
+        }
+    }
+
+    static func borderPreset(matching value: String?) -> BorderPreset {
+        let key = normalizedToken(value)
+        guard !key.isEmpty else {
+            return borderPresets[0]
+        }
+
+        return borderPresets.first { preset in
+            matchesPresetToken(key, preset.id) || matchesPresetToken(key, preset.title)
+        } ?? borderPresets[0]
+    }
+
+    static func applyFontPreset(_ preset: FontPreset, to layer: inout ScrapbookLayer) {
+        guard layer.kind == .text || layer.kind == .sticker else {
+            return
+        }
+
+        layer.fontName = preset.fontName
+        layer.fontSize = preset.fontSize
+        layer.textColorHex = preset.textColorHex
+    }
+
+    static func applyStickerPreset(_ preset: StickerPreset, to layer: inout ScrapbookLayer) {
+        guard layer.kind == .sticker else {
+            return
+        }
+
+        layer.title = preset.title
+        layer.text = preset.text
+        layer.fontName = preset.fontName
+        layer.fontSize = preset.fontSize
+        layer.textColorHex = preset.textColorHex
+        layer.backgroundColorHex = preset.backgroundColorHex
+        layer.cornerRadius = preset.cornerRadius
+        layer.rotation = preset.rotation
+    }
+
+    static func applyBorderPreset(_ preset: BorderPreset, to layer: inout ScrapbookLayer) {
+        guard layer.kind == .border else {
+            return
+        }
+
+        layer.title = preset.title
+        layer.borderColorHex = preset.borderColorHex
+        layer.borderWidth = preset.borderWidth
+        layer.cornerRadius = preset.cornerRadius
+        layer.shadowOpacity = preset.shadowOpacity
+    }
+
+    private static func normalizedToken(_ value: String?) -> String {
+        (value ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .replacingOccurrences(of: " ", with: "")
+            .replacingOccurrences(of: "-", with: "")
+            .replacingOccurrences(of: "_", with: "")
+    }
+
+    private static func matchesPresetToken(_ query: String, _ value: String) -> Bool {
+        let token = normalizedToken(value)
+        return token == query || token.contains(query) || query.contains(token)
     }
 }
 
