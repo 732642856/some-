@@ -78,6 +78,244 @@ struct DailyMemoStat: Identifiable, Equatable {
     var id: Date { date }
 }
 
+struct ScrapbookPageLayout: Codable, Equatable {
+    static let marker = "手帐图层JSON："
+
+    var version: Int
+    var canvasWidth: Double
+    var canvasHeight: Double
+    var backgroundColorHex: String
+    var layers: [ScrapbookLayer]
+
+    init(
+        version: Int = 1,
+        canvasWidth: Double = 1080,
+        canvasHeight: Double = 1440,
+        backgroundColorHex: String = "#FDF8FA",
+        layers: [ScrapbookLayer] = []
+    ) {
+        self.version = version
+        self.canvasWidth = canvasWidth
+        self.canvasHeight = canvasHeight
+        self.backgroundColorHex = backgroundColorHex
+        self.layers = layers
+    }
+
+    var summary: String {
+        let imageCount = layers.filter { $0.kind == .image }.count
+        let textCount = layers.filter { $0.kind == .text }.count
+        let stickerCount = layers.filter { $0.kind == .sticker }.count
+        let borderCount = layers.filter { $0.kind == .border }.count
+        return "\(Int(canvasWidth))x\(Int(canvasHeight)) · 图片\(imageCount) · 文字\(textCount) · 贴纸\(stickerCount) · 边框\(borderCount)"
+    }
+
+    func encodedLine() -> String? {
+        guard let data = try? JSONEncoder.memoEncoder.encode(self) else {
+            return nil
+        }
+
+        return "\(Self.marker)\(data.base64EncodedString())"
+    }
+
+    static func layout(in text: String) -> ScrapbookPageLayout? {
+        guard let encoded = text
+            .components(separatedBy: .newlines)
+            .map({ $0.trimmingCharacters(in: .whitespacesAndNewlines) })
+            .first(where: { $0.hasPrefix(marker) })?
+            .dropFirst(marker.count),
+              let data = Data(base64Encoded: String(encoded)) else {
+            return nil
+        }
+
+        return try? JSONDecoder.memoDecoder.decode(ScrapbookPageLayout.self, from: data)
+    }
+
+    static func defaultLayout(
+        title: String,
+        template: String,
+        materials: [String],
+        decorations: [String],
+        font: String?,
+        border: String?,
+        note: String?,
+        attachments: [SharedAttachment]
+    ) -> ScrapbookPageLayout {
+        var layers: [ScrapbookLayer] = []
+
+        if let imageAttachment = attachments.first(where: \.isImage) {
+            layers.append(
+                ScrapbookLayer(
+                    kind: .image,
+                    title: imageAttachment.displayName,
+                    attachmentPath: imageAttachment.relativePath,
+                    x: 540,
+                    y: 520,
+                    width: 760,
+                    height: 620,
+                    cornerRadius: 24,
+                    shadowOpacity: 0.12
+                )
+            )
+        }
+
+        layers.append(
+            ScrapbookLayer(
+                kind: .text,
+                title: "标题",
+                text: title,
+                x: 540,
+                y: 155,
+                width: 760,
+                height: 120,
+                fontName: font?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? font : "rounded",
+                fontSize: 58,
+                textColorHex: "#46525A"
+            )
+        )
+
+        if !materials.isEmpty || note?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
+            let bodyParts = [materials.joined(separator: " · "), note ?? ""]
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            layers.append(
+                ScrapbookLayer(
+                    kind: .text,
+                    title: "正文",
+                    text: bodyParts.joined(separator: "\n"),
+                    x: 540,
+                    y: 1025,
+                    width: 780,
+                    height: 250,
+                    fontName: font,
+                    fontSize: 34,
+                    textColorHex: "#5F6872"
+                )
+            )
+        }
+
+        if let border = border?.trimmingCharacters(in: .whitespacesAndNewlines), !border.isEmpty {
+            layers.append(
+                ScrapbookLayer(
+                    kind: .border,
+                    title: border,
+                    x: 540,
+                    y: 720,
+                    width: 990,
+                    height: 1320,
+                    borderColorHex: "#D7DDEA",
+                    borderWidth: 8,
+                    cornerRadius: 38
+                )
+            )
+        }
+
+        for (index, decoration) in decorations.prefix(6).enumerated() {
+            layers.append(
+                ScrapbookLayer(
+                    kind: .sticker,
+                    title: decoration,
+                    text: decoration,
+                    x: 170 + Double(index % 3) * 370,
+                    y: 1210 + Double(index / 3) * 90,
+                    width: 230,
+                    height: 64,
+                    rotation: index.isMultiple(of: 2) ? -5 : 5,
+                    backgroundColorHex: "#EEF7F3",
+                    textColorHex: "#597469",
+                    cornerRadius: 32
+                )
+            )
+        }
+
+        return ScrapbookPageLayout(
+            backgroundColorHex: backgroundColor(forTemplate: template),
+            layers: layers
+        )
+    }
+
+    private static func backgroundColor(forTemplate template: String) -> String {
+        switch template {
+        case "工作复盘": return "#F6F8FB"
+        case "美食相册": return "#FFF7F0"
+        case "穿搭灵感": return "#F7F4FB"
+        case "网页摘录": return "#F5FAFA"
+        default: return "#FDF8FA"
+        }
+    }
+}
+
+struct ScrapbookLayer: Identifiable, Codable, Equatable {
+    var id: UUID
+    var kind: Kind
+    var title: String
+    var text: String?
+    var attachmentPath: String?
+    var x: Double
+    var y: Double
+    var width: Double
+    var height: Double
+    var rotation: Double
+    var scale: Double
+    var fontName: String?
+    var fontSize: Double?
+    var textColorHex: String?
+    var backgroundColorHex: String?
+    var borderColorHex: String?
+    var borderWidth: Double?
+    var cornerRadius: Double?
+    var shadowOpacity: Double?
+
+    init(
+        id: UUID = UUID(),
+        kind: Kind,
+        title: String,
+        text: String? = nil,
+        attachmentPath: String? = nil,
+        x: Double,
+        y: Double,
+        width: Double,
+        height: Double,
+        rotation: Double = 0,
+        scale: Double = 1,
+        fontName: String? = nil,
+        fontSize: Double? = nil,
+        textColorHex: String? = nil,
+        backgroundColorHex: String? = nil,
+        borderColorHex: String? = nil,
+        borderWidth: Double? = nil,
+        cornerRadius: Double? = nil,
+        shadowOpacity: Double? = nil
+    ) {
+        self.id = id
+        self.kind = kind
+        self.title = title
+        self.text = text
+        self.attachmentPath = attachmentPath
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.rotation = rotation
+        self.scale = scale
+        self.fontName = fontName
+        self.fontSize = fontSize
+        self.textColorHex = textColorHex
+        self.backgroundColorHex = backgroundColorHex
+        self.borderColorHex = borderColorHex
+        self.borderWidth = borderWidth
+        self.cornerRadius = cornerRadius
+        self.shadowOpacity = shadowOpacity
+    }
+
+    enum Kind: String, Codable, Equatable {
+        case image
+        case text
+        case sticker
+        case border
+        case shape
+    }
+}
+
 enum MemoAssetKind: String, Codable, CaseIterable, Hashable {
     case text
     case link
@@ -390,10 +628,21 @@ extension MemoAsset {
     }
 
     private static func scrapbookPageAsset(in text: String) -> (title: String, summary: String?)? {
-        structuredAsset(
+        guard let asset = structuredAsset(
             in: text,
             prefixes: ["手帐页面：", "手帐页面:", "手帐：", "手帐:", "手帳頁面：", "手帳頁面:", "电子手帐：", "电子手帐:", "拼贴页面：", "拼贴页面:"]
-        )
+        ) else {
+            return nil
+        }
+
+        guard let layout = ScrapbookPageLayout.layout(in: text) else {
+            return asset
+        }
+
+        let summary = [asset.summary, "图层：\(layout.summary)"]
+            .compactMap { $0 }
+            .joined(separator: " · ")
+        return (asset.title, limitedSummary(summary, maxLength: 500))
     }
 
     private static func structuredAsset(in text: String, prefixes: [String]) -> (title: String, summary: String?)? {
@@ -411,7 +660,9 @@ extension MemoAsset {
         let summary = lines
             .dropFirst()
             .filter { line in
-                !line.isEmpty && SharedAttachmentStore.attachments(in: line).isEmpty
+                !line.isEmpty
+                    && !line.hasPrefix(ScrapbookPageLayout.marker)
+                    && SharedAttachmentStore.attachments(in: line).isEmpty
             }
             .joined(separator: " · ")
         return (title, summary.isEmpty ? nil : limitedSummary(summary, maxLength: 500))

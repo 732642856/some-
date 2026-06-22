@@ -379,7 +379,10 @@ private struct ScrapbookView: View {
             } else {
                 ForEach(assets) { asset in
                     if let memo = store.memos.first(where: { $0.id == asset.memoID }) {
-                        AssetNavigationRow(asset: asset, memo: memo)
+                        NavigationLink(value: memo.id) {
+                            ScrapbookPageRow(asset: asset, memo: memo)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -436,6 +439,153 @@ private struct ScrapbookView: View {
             relativePath: relativePath,
             typeIdentifier: asset.typeIdentifier ?? UTType.data.identifier,
             byteCount: asset.byteCount ?? 0
+        )
+    }
+}
+
+private struct ScrapbookPageRow: View {
+    let asset: MemoAsset
+    let memo: Memo
+
+    private var layout: ScrapbookPageLayout {
+        ScrapbookPageLayout.layout(in: memo.text) ?? ScrapbookPageLayout()
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ScrapbookPagePreview(layout: layout)
+                .frame(width: 74, height: 98)
+
+            VStack(alignment: .leading, spacing: 7) {
+                HStack(spacing: 6) {
+                    Text(asset.title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.primaryText)
+                        .lineLimit(1)
+
+                    Spacer(minLength: 8)
+
+                    Text("手帐")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.accentGreen)
+                        .padding(.horizontal, 8)
+                        .frame(height: 22)
+                        .background(Color.greenTint)
+                        .clipShape(Capsule())
+                }
+
+                if let summary = asset.summary {
+                    Text(summary)
+                        .font(.footnote)
+                        .foregroundStyle(Color.secondaryText)
+                        .lineLimit(2)
+                }
+
+                Text("图层 \(layout.layers.count) · \(Int(layout.canvasWidth))x\(Int(layout.canvasHeight))")
+                    .font(.caption)
+                    .foregroundStyle(Color.tertiaryText)
+            }
+        }
+        .padding(12)
+        .background(Color.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.border, lineWidth: 1)
+        )
+    }
+}
+
+private struct ScrapbookPagePreview: View {
+    let layout: ScrapbookPageLayout
+
+    var body: some View {
+        GeometryReader { proxy in
+            let scale = min(
+                proxy.size.width / max(layout.canvasWidth, 1),
+                proxy.size.height / max(layout.canvasHeight, 1)
+            )
+
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(color(hex: layout.backgroundColorHex) ?? Color.surface)
+
+                ForEach(layout.layers.prefix(8)) { layer in
+                    previewLayer(layer)
+                        .frame(width: layer.width * scale, height: layer.height * scale)
+                        .position(x: layer.x * scale, y: layer.y * scale)
+                        .rotationEffect(.degrees(layer.rotation))
+                }
+            }
+            .frame(width: layout.canvasWidth * scale, height: layout.canvasHeight * scale)
+            .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(Color.border, lineWidth: 1)
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func previewLayer(_ layer: ScrapbookLayer) -> some View {
+        switch layer.kind {
+        case .image:
+            if let attachmentPath = layer.attachmentPath,
+               let url = SharedAttachmentStore.url(for: attachment(relativePath: attachmentPath)),
+               let image = UIImage(contentsOfFile: url.path) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .clipShape(RoundedRectangle(cornerRadius: CGFloat(layer.cornerRadius ?? 0), style: .continuous))
+            } else {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(Color.greenTint)
+                    .overlay(Image(systemName: "photo").foregroundStyle(Color.accentGreen))
+            }
+        case .text:
+            Text(layer.text ?? layer.title)
+                .font(.system(size: max(6, CGFloat((layer.fontSize ?? 32) / 7)), weight: .semibold))
+                .foregroundStyle(color(hex: layer.textColorHex) ?? Color.primaryText)
+                .lineLimit(2)
+                .minimumScaleFactor(0.5)
+        case .sticker:
+            Text(layer.text ?? layer.title)
+                .font(.system(size: 6, weight: .semibold))
+                .foregroundStyle(color(hex: layer.textColorHex) ?? Color.accentGreen)
+                .padding(.horizontal, 4)
+                .background(color(hex: layer.backgroundColorHex) ?? Color.greenTint)
+                .clipShape(Capsule())
+        case .border:
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                .stroke(color(hex: layer.borderColorHex) ?? Color.border, lineWidth: 1)
+        case .shape:
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                .fill(color(hex: layer.backgroundColorHex) ?? Color.greenTint)
+        }
+    }
+
+    private func attachment(relativePath: String) -> SharedAttachment {
+        SharedAttachment(
+            id: relativePath,
+            filename: relativePath,
+            relativePath: relativePath,
+            typeIdentifier: UTType.image.identifier,
+            byteCount: 0
+        )
+    }
+
+    private func color(hex: String?) -> Color? {
+        guard let hex = hex else { return nil }
+        let trimmed = hex.trimmingCharacters(in: CharacterSet(charactersIn: "# "))
+        guard trimmed.count == 6, let value = Int(trimmed, radix: 16) else {
+            return nil
+        }
+
+        return Color(
+            red: Double((value >> 16) & 0xFF) / 255.0,
+            green: Double((value >> 8) & 0xFF) / 255.0,
+            blue: Double(value & 0xFF) / 255.0
         )
     }
 }

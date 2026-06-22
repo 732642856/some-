@@ -11,6 +11,7 @@ struct QuickCaptureView: View {
     @State private var statusText: String?
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var isShowingCamera = false
+    @State private var cameraCaptureMode: QuickCameraCaptureMode = .photo
     @State private var isShowingFileImporter = false
     @State private var isImportingMedia = false
     @State private var isClippingWebPage = false
@@ -117,6 +118,7 @@ struct QuickCaptureView: View {
                             statusText = "当前设备不可用相机。"
                             return
                         }
+                        cameraCaptureMode = .photo
                         isShowingCamera = true
                     } label: {
                         Image(systemName: "camera")
@@ -129,6 +131,25 @@ struct QuickCaptureView: View {
                     .disabled(isImportingMedia || audioRecorder.isRecording || !canUseCamera)
                     .opacity(canUseCamera ? 1 : 0.35)
                     .accessibilityLabel("拍照导入")
+
+                    Button {
+                        guard canRecordVideo else {
+                            statusText = "当前设备不可用视频拍摄。"
+                            return
+                        }
+                        cameraCaptureMode = .video
+                        isShowingCamera = true
+                    } label: {
+                        Image(systemName: "video")
+                            .frame(width: 34, height: 34)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.secondaryText)
+                    .background(Color.subtleSurface)
+                    .clipShape(Circle())
+                    .disabled(isImportingMedia || audioRecorder.isRecording || !canRecordVideo)
+                    .opacity(canRecordVideo ? 1 : 0.35)
+                    .accessibilityLabel("拍视频导入")
 
                     Button {
                         toggleRecording()
@@ -235,9 +256,14 @@ struct QuickCaptureView: View {
         }
         .fullScreenCover(isPresented: $isShowingCamera) {
             CameraCaptureView(
+                mode: cameraCaptureMode,
                 onImage: { image in
                     isShowingCamera = false
                     importCapturedImage(image)
+                },
+                onVideo: { url in
+                    isShowingCamera = false
+                    importCapturedVideo(url)
                 },
                 onCancel: {
                     isShowingCamera = false
@@ -286,6 +312,10 @@ struct QuickCaptureView: View {
 
     private var canUseCamera: Bool {
         UIImagePickerController.isSourceTypeAvailable(.camera)
+    }
+
+    private var canRecordVideo: Bool {
+        UIImagePickerController.availableMediaTypes(for: .camera)?.contains(UTType.movie.identifier) == true
     }
 
     private func submit() {
@@ -386,6 +416,37 @@ struct QuickCaptureView: View {
                 await MainActor.run {
                     isImportingMedia = false
                     statusText = "拍照导入失败：\(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    private func importCapturedVideo(_ url: URL) {
+        let type = UTType(filenameExtension: url.pathExtension) ?? .movie
+
+        isImportingMedia = true
+        statusText = "正在导入拍摄视频..."
+
+        Task {
+            do {
+                let attachment = try SharedAttachmentStore.save(
+                    fileAt: url,
+                    suggestedFilename: importedFilename(prefix: "camera-video", type: type),
+                    typeIdentifier: type.identifier
+                )
+                let imported = await MainActor.run {
+                    store.addAttachmentMemo(attachment, note: "拍摄视频") != nil
+                }
+                try? FileManager.default.removeItem(at: url)
+                await MainActor.run {
+                    isImportingMedia = false
+                    statusText = importStatus(imported: imported ? 1 : 0, failed: imported ? 0 : 1)
+                }
+            } catch {
+                try? FileManager.default.removeItem(at: url)
+                await MainActor.run {
+                    isImportingMedia = false
+                    statusText = "拍摄视频导入失败：\(error.localizedDescription)"
                 }
             }
         }
@@ -592,14 +653,28 @@ struct QuickCaptureView: View {
     }
 }
 
+private enum QuickCameraCaptureMode {
+    case photo
+    case video
+}
+
 private struct CameraCaptureView: UIViewControllerRepresentable {
+    let mode: QuickCameraCaptureMode
     let onImage: (UIImage) -> Void
+    let onVideo: (URL) -> Void
     let onCancel: () -> Void
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.sourceType = .camera
-        picker.cameraCaptureMode = .photo
+        switch mode {
+        case .photo:
+            picker.cameraCaptureMode = .photo
+        case .video:
+            picker.mediaTypes = [UTType.movie.identifier]
+            picker.cameraCaptureMode = .video
+            picker.videoQuality = .typeHigh
+        }
         picker.delegate = context.coordinator
         return picker
     }
@@ -607,15 +682,17 @@ private struct CameraCaptureView: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onImage: onImage, onCancel: onCancel)
+        Coordinator(onImage: onImage, onVideo: onVideo, onCancel: onCancel)
     }
 
     final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
         private let onImage: (UIImage) -> Void
+        private let onVideo: (URL) -> Void
         private let onCancel: () -> Void
 
-        init(onImage: @escaping (UIImage) -> Void, onCancel: @escaping () -> Void) {
+        init(onImage: @escaping (UIImage) -> Void, onVideo: @escaping (URL) -> Void, onCancel: @escaping () -> Void) {
             self.onImage = onImage
+            self.onVideo = onVideo
             self.onCancel = onCancel
         }
 
@@ -623,6 +700,11 @@ private struct CameraCaptureView: UIViewControllerRepresentable {
             _ picker: UIImagePickerController,
             didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
         ) {
+            if let mediaURL = info[.mediaURL] as? URL {
+                onVideo(mediaURL)
+                return
+            }
+
             guard let image = info[.originalImage] as? UIImage else {
                 onCancel()
                 return

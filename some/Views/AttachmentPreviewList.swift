@@ -70,7 +70,7 @@ struct AttachmentPreviewList: View {
                 .frame(width: compact ? 32 : 38, height: compact ? 32 : 38)
                 .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
         } else {
-            Image(systemName: attachment.isImage ? "photo" : "doc")
+            Image(systemName: iconName(for: attachment))
                 .font(.system(size: compact ? 16 : 18, weight: .semibold))
                 .foregroundStyle(Color.accentGreen)
                 .frame(width: compact ? 32 : 38, height: compact ? 32 : 38)
@@ -83,6 +83,38 @@ struct AttachmentPreviewList: View {
         let sizeText = attachment.byteCount > 0
             ? SharedAttachmentStore.formatByteCount(attachment.byteCount)
             : "本地附件"
-        return attachment.isImage ? "图片 · \(sizeText)" : "文件 · \(sizeText)"
+        return "\(typeLabel(for: attachment)) · \(sizeText)"
+    }
+
+    private func iconName(for attachment: SharedAttachment) -> String {
+        if attachment.isImage {
+            return "photo"
+        }
+
+        if attachment.isVideo {
+            return "video"
+        }
+
+        if attachment.isAudio {
+            return "waveform"
+        }
+
+        return "doc"
+    }
+
+    private func typeLabel(for attachment: SharedAttachment) -> String {
+        if attachment.isImage {
+            return "图片"
+        }
+
+        if attachment.isVideo {
+            return "视频"
+        }
+
+        if attachment.isAudio {
+            return "音频"
+        }
+
+        return "文件"
     }
 }

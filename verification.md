@@ -109,6 +109,12 @@
 - 2026-06-22：已新增拍照导入 v1：快速输入工具栏相机按钮使用系统 `UIImagePickerController` 拍摄单张图片，保存为本地 JPEG 附件，并复用现有 OCR、附件 memo、素材索引和备份链路；`Info.plist` 已补充 `NSCameraUsageDescription`。
 - 2026-06-22：已新增录音入口 v1：快速输入工具栏麦克风按钮使用 Apple `AVAudioRecorder` / `AVAudioSession` 录制本地 m4a 音频，停止后保存为附件 memo，并进入 `audio` 素材索引；搜索支持 `has:audio` / `has:录音` / `has:音频`。
 - 2026-06-22：已补充录音附件生成 audio 素材测试，并在 `Info.plist` 补充 `NSMicrophoneUsageDescription`。
+- 2026-06-22：已新增拍视频导入 v1：快速输入工具栏视频按钮复用系统 `UIImagePickerController` 的 `.video` 模式，保存系统相机返回的 movie URL 为本地附件 memo，并进入 `video` 素材索引；搜索支持 `has:video` / `has:视频` / `has:录像`。
+- 2026-06-22：视频拍摄入口开发前已重新检索 GitHub 和 Apple 官方文档；未找到适合直接复制的 iOS SwiftUI MIT 视频拍摄模块，本轮未新增第三方依赖。
+- 2026-06-22：已补充附件预览的音频/视频类型判断，记录列表和详情附件区不再把音视频都显示成普通文件；已补充 `SharedAttachment` 媒体类型标记测试、视频附件生成 video 素材测试和 `has:video` 搜索筛选测试。
+- 2026-06-22：本轮 `git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme` 通过；旧版 `xcrun swiftc -parse` 已覆盖 `LinkExtractor.swift`、`MemoSearchQuery.swift`、`SharedAttachmentStore.swift`、`Memo.swift`、`MemoStore.swift`、`AttachmentPreviewList.swift` 和 `SomeTests.swift`。
+- 2026-06-22：已新增手帐图层底座：`ScrapbookPageLayout` / `ScrapbookLayer` 会随手帐页面写入正文内可迁移 JSON，覆盖图片、文字、贴纸、边框、背景色、位置、尺寸、旋转、字体和颜色等字段；手帐列表新增页面预览。
+- 2026-06-22：本轮手帐画布开发前已重新复查 Git 状态、未跟踪文件和手帐现有边界，并通过 GitHub API 检索 SwiftUI/Swift 贴纸、拼贴、图层画布候选；未找到可直接复制的成熟 SwiftUI MIT 手帐画布，本轮未新增第三方依赖。
 
 ## 未能在当前环境完成
 
@@ -118,6 +124,7 @@
 - 2026-06-22：`xcrun swiftc -parse some/Utilities/ImageTextRecognizer.swift` 与 `xcrun swiftc -parse some/Views/QuickCaptureView.swift` 均因 Swift 5.4 不支持当前代码中的 async/await 报错；需要 Xcode 16 或更新版本做完整编译、typecheck 和 XCTest。
 - 2026-06-22：拍照导入需要真机或带可用相机的运行环境验证；当前机器无法打开模拟器/真机相机，也无法用旧 CLT 完整编译 SwiftUI + UIKit bridge。
 - 2026-06-22：录音入口需要真机或可授权麦克风的模拟器环境验证；当前机器无法用旧 CLT 完整编译 SwiftUI + AVFoundation 组合，也无法完成真实录音权限弹窗测试。
+- 2026-06-22：拍视频导入需要真机或可用相机/麦克风的模拟器环境验证；当前机器无法完成真实系统相机录制、权限弹窗和 movie URL 回调验证。
 - Share Extension 的真实分享面板、App Group 容器和签名能力需要在完整 Xcode + Apple Developer Team 环境里实机或模拟器验证。
 - 旧版 `xcrun swiftc -parse` 只能做语法层检查，不能替代 Xcode 16 的完整 typecheck、XCTest 或 Share Extension 真机验证。
 

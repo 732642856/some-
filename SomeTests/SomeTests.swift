@@ -307,6 +307,26 @@ final class SomeTests: XCTestCase {
         XCTAssertFalse(SharedAttachmentStore.exists(attachment))
     }
 
+    func testSharedAttachmentMediaTypeFlags() {
+        let image = SharedAttachment(id: "a", filename: "a.jpg", relativePath: "a.jpg", typeIdentifier: UTType.jpeg.identifier, byteCount: 1)
+        let video = SharedAttachment(id: "b", filename: "b.mov", relativePath: "b.mov", typeIdentifier: UTType.movie.identifier, byteCount: 1)
+        let audio = SharedAttachment(id: "c", filename: "c.m4a", relativePath: "c.m4a", typeIdentifier: UTType.mpeg4Audio.identifier, byteCount: 1)
+        let text = SharedAttachment(id: "d", filename: "d.txt", relativePath: "d.txt", typeIdentifier: UTType.plainText.identifier, byteCount: 1)
+
+        XCTAssertTrue(image.isImage)
+        XCTAssertFalse(image.isVideo)
+        XCTAssertFalse(image.isAudio)
+        XCTAssertTrue(video.isVideo)
+        XCTAssertFalse(video.isImage)
+        XCTAssertFalse(video.isAudio)
+        XCTAssertTrue(audio.isAudio)
+        XCTAssertFalse(audio.isImage)
+        XCTAssertFalse(audio.isVideo)
+        XCTAssertFalse(text.isImage)
+        XCTAssertFalse(text.isVideo)
+        XCTAssertFalse(text.isAudio)
+    }
+
     func testSQLitePersistsAcrossStoreInstances() throws {
         let filename = "test-\(UUID().uuidString).json"
         let store = MemoStore(filename: filename)
@@ -402,12 +422,12 @@ final class SomeTests: XCTestCase {
     }
 
     func testSearchQueryParserExtractsContentFilters() {
-        let query = MemoSearchQueryParser.parse("has:link has:web has:ocr has:attachment has:reference has:scrapbook has:audio has:wardrobe has:outfit no:task without:backlink 复盘")
+        let query = MemoSearchQueryParser.parse("has:link has:web has:ocr has:attachment has:reference has:scrapbook has:audio has:video has:wardrobe has:outfit no:task without:backlink 复盘")
 
         XCTAssertEqual(query.textTerms, ["复盘"])
         XCTAssertEqual(
             query.requiredContentFilters,
-            [.attachment, .audio, .link, .outfit, .reference, .scrapbook, .screenshot, .wardrobe, .webClip]
+            [.attachment, .audio, .link, .outfit, .reference, .scrapbook, .screenshot, .video, .wardrobe, .webClip]
         )
         XCTAssertEqual(
             query.excludedContentFilters,
@@ -503,8 +523,25 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(store.filteredMemos.map(\.text), ["新更新 复盘"])
     }
 
-    func testSearchCanFilterByContentTypes() {
+    func testSearchCanFilterByContentTypes() throws {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let audioAttachment = try SharedAttachmentStore.save(
+            data: Data("voice payload".utf8),
+            suggestedFilename: "voice-\(UUID().uuidString).m4a",
+            typeIdentifier: UTType.mpeg4Audio.identifier
+        )
+        let videoAttachment = try SharedAttachmentStore.save(
+            data: Data("video payload".utf8),
+            suggestedFilename: "clip-\(UUID().uuidString).mov",
+            typeIdentifier: UTType.movie.identifier
+        )
+        defer {
+            SharedAttachmentStore.delete(audioAttachment)
+            SharedAttachmentStore.delete(videoAttachment)
+        }
+        let audioMemoText = "录音\n\n\(audioAttachment.referenceLine)"
+        let videoMemoText = "拍摄视频\n\n\(videoAttachment.referenceLine)"
+
         store.addMemo(text: "链接资料 https://example.com/a")
         store.addMemo(text: LinkExtractor.webClipText(
             title: "网页资料",
@@ -523,7 +560,8 @@ final class SomeTests: XCTestCase {
         store.addMemo(text: "附件资料\n\n[附件: image.png](some-attachment://image.png)")
         store.addMemo(text: "任务资料\n- [ ] 写提纲\n- [x] 校对")
         store.addMemo(text: "手帐页面：六月手帐\n模板：日记\n素材：图片、摘录")
-        store.addMemo(text: "录音\n\n[附件: voice.m4a](some-attachment://voice.m4a)")
+        store.addMemo(text: audioMemoText)
+        store.addMemo(text: videoMemoText)
         store.addMemo(text: "衣橱单品：白衬衫\n分类：上装\n颜色：白")
         store.addMemo(text: "穿搭组合：周一通勤\n单品：白衬衫、黑裤")
         store.addMemo(text: "普通资料")
@@ -568,7 +606,8 @@ final class SomeTests: XCTestCase {
                 [附件: receipt.png](some-attachment://receipt.png)
                 """,
                 "附件资料\n\n[附件: image.png](some-attachment://image.png)",
-                "录音\n\n[附件: voice.m4a](some-attachment://voice.m4a)"
+                audioMemoText,
+                videoMemoText
             ])
         )
 
@@ -597,7 +636,10 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(store.filteredMemos.map(\.text), ["手帐页面：六月手帐\n模板：日记\n素材：图片、摘录"])
 
         store.searchText = "has:audio"
-        XCTAssertEqual(store.filteredMemos.map(\.text), ["录音\n\n[附件: voice.m4a](some-attachment://voice.m4a)"])
+        XCTAssertEqual(store.filteredMemos.map(\.text), [audioMemoText])
+
+        store.searchText = "has:video"
+        XCTAssertEqual(store.filteredMemos.map(\.text), [videoMemoText])
 
         store.searchText = "has:wardrobe"
         XCTAssertEqual(store.filteredMemos.map(\.text), ["衣橱单品：白衬衫\n分类：上装\n颜色：白"])
@@ -1455,6 +1497,27 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(asset?.byteCount, payload.count)
     }
 
+    func testCapturedVideoAttachmentCreatesVideoAsset() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let payload = Data("captured video data".utf8)
+        let attachment = try SharedAttachmentStore.save(
+            data: payload,
+            suggestedFilename: "camera-video-\(UUID().uuidString).mov",
+            typeIdentifier: UTType.movie.identifier
+        )
+        defer { SharedAttachmentStore.delete(attachment) }
+
+        guard let memo = store.addAttachmentMemo(attachment, note: "拍摄视频") else {
+            return XCTFail("Expected video memo")
+        }
+
+        XCTAssertTrue(memo.text.contains("拍摄视频"))
+        let asset = store.assets(for: memo).first { $0.kind == .video }
+        XCTAssertEqual(asset?.title, attachment.displayName)
+        XCTAssertEqual(asset?.typeIdentifier, UTType.movie.identifier)
+        XCTAssertEqual(asset?.byteCount, payload.count)
+    }
+
     func testImageTextRecognizerBuildsMemoText() {
         let attachment = SharedAttachment(
             id: "receipt.png",
@@ -1590,14 +1653,22 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(memo.text.contains("模板：日记"))
         XCTAssertTrue(memo.text.contains("素材：图片、网页摘录"))
         XCTAssertTrue(memo.text.contains("贴纸/装饰：贴纸、花边"))
+        XCTAssertTrue(memo.text.contains(ScrapbookPageLayout.marker))
         XCTAssertEqual(SharedAttachmentStore.attachments(in: memo.text).first?.relativePath, attachment.relativePath)
+
+        let layout = try XCTUnwrap(ScrapbookPageLayout.layout(in: memo.text))
+        XCTAssertEqual(layout.canvasWidth, 1080)
+        XCTAssertEqual(layout.canvasHeight, 1440)
+        XCTAssertEqual(layout.layers.first { $0.kind == .image }?.attachmentPath, attachment.relativePath)
+        XCTAssertEqual(layout.layers.first { $0.kind == .text }?.text, "六月手帐")
+        XCTAssertEqual(layout.layers.filter { $0.kind == .sticker }.map(\.title), ["贴纸", "花边"])
+        XCTAssertEqual(layout.layers.first { $0.kind == .border }?.title, "胶片")
 
         let asset = store.assets(for: memo).first { $0.kind == .scrapbookPage }
         XCTAssertEqual(asset?.title, "六月手帐")
-        XCTAssertEqual(
-            asset?.summary,
-            "模板：日记 · 素材：图片、网页摘录 · 贴纸/装饰：贴纸、花边 · 字体：圆体 · 花边/边框：胶片 · 备注：周末整理"
-        )
+        XCTAssertTrue(asset?.summary?.contains("模板：日记") == true)
+        XCTAssertTrue(asset?.summary?.contains("图层：1080x1440") == true)
+        XCTAssertFalse(asset?.summary?.contains(ScrapbookPageLayout.marker) == true)
         XCTAssertEqual(asset?.uri, "some-attachment://\(attachment.relativePath)")
         XCTAssertEqual(asset?.typeIdentifier, UTType.png.identifier)
     }

@@ -260,6 +260,19 @@ final class MemoStore: ObservableObject {
         appendField("字体", value: font, to: &lines)
         appendField("花边/边框", value: border, to: &lines)
         appendField("备注", value: note, to: &lines)
+        let layout = ScrapbookPageLayout.defaultLayout(
+            title: cleanedTitle,
+            template: template,
+            materials: cleanedValues(materials),
+            decorations: cleanedValues(decorations),
+            font: font,
+            border: border,
+            note: note,
+            attachments: attachments
+        )
+        if let encodedLine = layout.encodedLine() {
+            lines.append(encodedLine)
+        }
         return addStructuredMemo(lines: lines, attachments: attachments)
     }
 
@@ -1005,6 +1018,8 @@ final class MemoStore: ObservableObject {
             return assets(for: memo).contains { $0.kind == .screenshot }
         case .audio:
             return assets(for: memo).contains { $0.kind == .audio }
+        case .video:
+            return assets(for: memo).contains { $0.kind == .video }
         case .scrapbook:
             return assets(for: memo).contains { $0.kind == .scrapbookPage }
         case .wardrobe:

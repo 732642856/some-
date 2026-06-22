@@ -12,6 +12,7 @@ enum MemoContentFilter: String, CaseIterable, Hashable {
     case screenshot
     case scrapbook
     case audio
+    case video
     case wardrobe
     case outfit
 }
@@ -192,6 +193,8 @@ enum MemoSearchQueryParser {
             return .scrapbook
         case "audio", "audios", "voice", "voices", "recording", "recordings", "录音", "音频", "语音":
             return .audio
+        case "video", "videos", "movie", "movies", "clip-video", "视频", "录像", "影片":
+            return .video
         case "wardrobe", "closet", "clothing", "clothes", "衣橱", "衣柜", "衣物", "单品":
             return .wardrobe
         case "outfit", "outfits", "look", "looks", "穿搭", "搭配", "造型":

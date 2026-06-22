@@ -16,6 +16,14 @@ struct SharedAttachment: Equatable, Identifiable {
         UTType(typeIdentifier)?.conforms(to: .image) == true
     }
 
+    var isVideo: Bool {
+        UTType(typeIdentifier)?.conforms(to: .movie) == true
+    }
+
+    var isAudio: Bool {
+        UTType(typeIdentifier)?.conforms(to: .audio) == true
+    }
+
     var referenceLine: String {
         "[附件: \(filename)](some-attachment://\(SharedAttachmentStore.encodedReferencePath(relativePath)))"
     }
