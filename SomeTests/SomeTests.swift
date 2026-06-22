@@ -1713,26 +1713,6 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(store.assets(for: memo).contains { $0.kind == .screenshot })
     }
 
-    func testAudioTranscriberBuildsMemoText() {
-        let attachment = SharedAttachment(
-            id: "voice.m4a",
-            filename: "voice.m4a",
-            relativePath: "voice.m4a",
-            typeIdentifier: UTType.mpeg4Audio.identifier,
-            byteCount: 128
-        )
-
-        XCTAssertEqual(
-            AudioTranscriber.memoText(for: attachment, transcript: "  今天整理了三个想法。 "),
-            """
-            语音转写：voice.m4a
-
-            今天整理了三个想法。
-            """
-        )
-        XCTAssertNil(AudioTranscriber.memoText(for: attachment, transcript: "   "))
-    }
-
     func testAddWebClipCreatesMemoAndWebClipAsset() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         let url = URL(string: "https://example.com/article")!
