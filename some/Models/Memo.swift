@@ -260,12 +260,133 @@ struct ScrapbookPageLayout: Codable, Equatable {
         )
     }
 
+    static func photoCollageLayout(
+        title: String,
+        attachments: [SharedAttachment],
+        template: String,
+        note: String?
+    ) -> ScrapbookPageLayout {
+        let imageAttachments = attachments.filter(\.isImage)
+        var layers: [ScrapbookLayer] = [
+            ScrapbookLayer(
+                kind: .text,
+                title: "标题",
+                text: title,
+                x: 540,
+                y: 116,
+                width: 760,
+                height: 92,
+                fontName: "rounded",
+                fontSize: 48,
+                textColorHex: "#46525A"
+            ),
+            ScrapbookLayer(
+                kind: .sticker,
+                title: "拼贴",
+                text: template,
+                x: 150,
+                y: 118,
+                width: 220,
+                height: 56,
+                rotation: -4,
+                fontName: "caption",
+                fontSize: 26,
+                textColorHex: "#8B6F83",
+                backgroundColorHex: "#F2EEF8",
+                cornerRadius: 28
+            )
+        ]
+
+        for (index, attachment) in imageAttachments.prefix(6).enumerated() {
+            let rect = collageRect(index: index, count: min(imageAttachments.count, 6))
+            layers.append(
+                ScrapbookLayer(
+                    kind: .image,
+                    title: attachment.displayName,
+                    attachmentPath: attachment.relativePath,
+                    x: rect.midX,
+                    y: rect.midY,
+                    width: rect.width,
+                    height: rect.height,
+                    rotation: collageRotation(index: index),
+                    cornerRadius: 28,
+                    shadowOpacity: 0.12
+                )
+            )
+        }
+
+        if let note = note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty {
+            layers.append(
+                ScrapbookLayer(
+                    kind: .text,
+                    title: "备注",
+                    text: note,
+                    x: 540,
+                    y: 1320,
+                    width: 760,
+                    height: 120,
+                    fontName: "caption",
+                    fontSize: 30,
+                    textColorHex: "#5F6872"
+                )
+            )
+        }
+
+        layers.append(
+            ScrapbookLayer(
+                kind: .border,
+                title: "浅边框",
+                x: 540,
+                y: 720,
+                width: 1000,
+                height: 1320,
+                borderColorHex: "#D7DDEA",
+                borderWidth: 8,
+                cornerRadius: 42,
+                shadowOpacity: 0.03
+            )
+        )
+
+        return ScrapbookPageLayout(
+            backgroundColorHex: backgroundColor(forTemplate: template),
+            layers: layers
+        )
+    }
+
+    private static func collageRect(index: Int, count: Int) -> CGRect {
+        let gap: Double = 34
+        switch count {
+        case 1:
+            return CGRect(x: 150, y: 240, width: 780, height: 880)
+        case 2:
+            return CGRect(x: 120, y: 245 + Double(index) * (500 + gap), width: 840, height: 500)
+        case 3:
+            if index == 0 {
+                return CGRect(x: 120, y: 235, width: 840, height: 540)
+            }
+            return CGRect(x: 120 + Double(index - 1) * (403 + gap), y: 815, width: 403, height: 420)
+        case 4:
+            let column = index % 2
+            let row = index / 2
+            return CGRect(x: 116 + Double(column) * (407 + gap), y: 235 + Double(row) * (480 + gap), width: 407, height: 480)
+        default:
+            let column = index % 2
+            let row = index / 2
+            return CGRect(x: 116 + Double(column) * (407 + gap), y: 220 + Double(row) * (340 + gap), width: 407, height: 340)
+        }
+    }
+
+    private static func collageRotation(index: Int) -> Double {
+        [-2.5, 2, -1.2, 1.6, -1.8, 2.2][min(max(index, 0), 5)]
+    }
+
     private static func backgroundColor(forTemplate template: String) -> String {
         switch template {
         case "工作复盘": return "#F6F8FB"
         case "美食相册": return "#FFF7F0"
         case "穿搭灵感": return "#F7F4FB"
         case "网页摘录": return "#F5FAFA"
+        case "图片拼贴": return "#FDF8FA"
         default: return "#FDF8FA"
         }
     }

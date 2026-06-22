@@ -351,6 +351,57 @@ final class MemoStore: ObservableObject {
     }
 
     @discardableResult
+    func addPhotoCollage(
+        title: String,
+        attachments: [SharedAttachment],
+        template: String = "图片拼贴",
+        note: String? = nil
+    ) -> Memo? {
+        let cleanedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let imageAttachments = attachments.filter(\.isImage)
+        guard !cleanedTitle.isEmpty, imageAttachments.count >= 2 else {
+            return nil
+        }
+
+        let layout = ScrapbookPageLayout.photoCollageLayout(
+            title: cleanedTitle,
+            attachments: imageAttachments,
+            template: template,
+            note: note
+        )
+
+        let outputAttachment: SharedAttachment
+        do {
+            let data = try ScrapbookRenderer.data(layout: layout, format: .png)
+            outputAttachment = try SharedAttachmentStore.save(
+                data: data,
+                suggestedFilename: ScrapbookRenderer.outputFilename(title: "\(cleanedTitle)-collage", format: .png),
+                typeIdentifier: UTType.png.identifier
+            )
+        } catch {
+            return nil
+        }
+
+        var lines = ["手帐页面：\(cleanedTitle)"]
+        appendField("模板", value: template, to: &lines)
+        appendField("素材", values: imageAttachments.map(\.displayName), to: &lines)
+        appendField("贴纸/装饰", values: ["拼贴", "图片"], to: &lines)
+        appendField("备注", value: note, to: &lines)
+        if let encodedLine = layout.encodedLine() {
+            lines.append(encodedLine)
+        }
+        lines.append("导出图片：\(outputAttachment.displayName)")
+        lines.append(outputAttachment.referenceLine)
+
+        guard let memo = addStructuredMemo(lines: lines, attachments: [outputAttachment] + imageAttachments) else {
+            SharedAttachmentStore.delete(outputAttachment)
+            return nil
+        }
+
+        return memo
+    }
+
+    @discardableResult
     func addWardrobeItem(
         name: String,
         category: String,

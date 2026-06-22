@@ -2393,6 +2393,30 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(Array(data.prefix(4)), Array("%PDF".utf8))
     }
 
+    func testPhotoCollageLayoutBuildsImageGrid() {
+        let attachments = (1...4).map { index in
+            SharedAttachment(
+                id: "photo-\(index).png",
+                filename: "photo-\(index).png",
+                relativePath: "photo-\(index).png",
+                typeIdentifier: UTType.png.identifier,
+                byteCount: 100
+            )
+        }
+
+        let layout = ScrapbookPageLayout.photoCollageLayout(
+            title: "周末拼贴",
+            attachments: attachments,
+            template: "图片拼贴",
+            note: "吃饭和散步"
+        )
+
+        XCTAssertEqual(layout.layers.filter { $0.kind == .image }.count, 4)
+        XCTAssertEqual(layout.layers.filter { $0.kind == .image }.first?.attachmentPath, "photo-1.png")
+        XCTAssertTrue(layout.layers.contains { $0.kind == .text && $0.text == "周末拼贴" })
+        XCTAssertTrue(layout.layers.contains { $0.kind == .text && $0.text == "吃饭和散步" })
+    }
+
     func testExportScrapbookLayoutCreatesPNGAttachment() throws {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         let layout = ScrapbookPageLayout(
@@ -2428,6 +2452,48 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(attachment.filename.hasSuffix(".pdf"))
         let pdfData = try XCTUnwrap(SharedAttachmentStore.data(for: attachment))
         XCTAssertEqual(pdfData.prefix(4).map { $0 }, Array("%PDF".utf8))
+    }
+
+    func testAddPhotoCollageCreatesScrapbookMemoAndPNGAttachment() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let first = try SharedAttachmentStore.save(
+            data: try XCTUnwrap(testImage(size: CGSize(width: 60, height: 60)).pngData()),
+            suggestedFilename: "collage-a-\(UUID().uuidString).png",
+            typeIdentifier: UTType.png.identifier
+        )
+        let second = try SharedAttachmentStore.save(
+            data: try XCTUnwrap(testImage(size: CGSize(width: 80, height: 60)).pngData()),
+            suggestedFilename: "collage-b-\(UUID().uuidString).png",
+            typeIdentifier: UTType.png.identifier
+        )
+        defer {
+            SharedAttachmentStore.delete(first)
+            SharedAttachmentStore.delete(second)
+        }
+
+        guard let memo = store.addPhotoCollage(
+            title: "周末拼贴",
+            attachments: [first, second],
+            note: "吃饭照片"
+        ) else {
+            return XCTFail("Expected photo collage memo")
+        }
+        let attachments = SharedAttachmentStore.attachments(in: memo.text)
+        defer {
+            attachments
+                .filter { $0.relativePath != first.relativePath && $0.relativePath != second.relativePath }
+                .forEach { SharedAttachmentStore.delete($0) }
+        }
+
+        XCTAssertTrue(memo.text.contains("手帐页面：周末拼贴"))
+        XCTAssertTrue(memo.text.contains("模板：图片拼贴"))
+        XCTAssertTrue(memo.text.contains("导出图片："))
+        XCTAssertEqual(ScrapbookPageLayout.layout(in: memo.text)?.layers.filter { $0.kind == .image }.count, 2)
+        XCTAssertEqual(attachments.count, 3)
+        XCTAssertTrue(attachments.contains { $0.relativePath == first.relativePath })
+        XCTAssertTrue(attachments.contains { $0.relativePath == second.relativePath })
+        XCTAssertTrue(attachments.contains { $0.filename.contains("collage") && $0.isImage })
+        XCTAssertTrue(store.assets(for: memo).contains { $0.kind == .scrapbookPage })
     }
 
     func testExportScrapbookLayoutReferencesAttachmentInMemo() throws {

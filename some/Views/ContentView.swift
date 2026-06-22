@@ -246,6 +246,7 @@ private struct ScrapbookView: View {
     @State private var border = ""
     @State private var note = ""
     @State private var selectedImageAssetID: UUID?
+    @State private var selectedCollageImageIDs: Set<UUID> = []
     @State private var editingMemo: Memo?
     @State private var statusText: String?
 
@@ -342,6 +343,8 @@ private struct ScrapbookView: View {
                 }
                 .pickerStyle(.menu)
                 .tint(Color.accentGreen)
+
+                collageImagePicker
             }
 
             HStack(spacing: 10) {
@@ -366,6 +369,20 @@ private struct ScrapbookView: View {
                 .background(canSave ? Color.accentGreen : Color.disabled)
                 .clipShape(Capsule())
                 .disabled(!canSave)
+
+                Button {
+                    saveCollage()
+                } label: {
+                    Label("保存拼贴", systemImage: "photo.on.rectangle")
+                        .font(.footnote.weight(.semibold))
+                        .frame(height: 34)
+                        .padding(.horizontal, 12)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.white)
+                .background(canSaveCollage ? Color.accentGold : Color.disabled)
+                .clipShape(Capsule())
+                .disabled(!canSaveCollage)
             }
         }
         .padding(14)
@@ -375,6 +392,40 @@ private struct ScrapbookView: View {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(Color.border, lineWidth: 1)
         )
+    }
+
+    private var collageImagePicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Label("拼贴图片", systemImage: "photo.on.rectangle")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.secondaryText)
+                Spacer()
+                Text("\(selectedCollageImageIDs.count)/6")
+                    .font(.caption)
+                    .foregroundStyle(Color.tertiaryText)
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(imageAttachmentAssets.prefix(12)) { asset in
+                        Button {
+                            toggleCollageImage(asset)
+                        } label: {
+                            Text(asset.title)
+                                .font(.caption.weight(.semibold))
+                                .lineLimit(1)
+                                .foregroundStyle(selectedCollageImageIDs.contains(asset.id) ? Color.white : Color.primaryText)
+                                .padding(.horizontal, 10)
+                                .frame(height: 30)
+                                .background(selectedCollageImageIDs.contains(asset.id) ? Color.accentGold : Color.subtleSurface)
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
     }
 
     private var scrapbookList: some View {
@@ -408,6 +459,10 @@ private struct ScrapbookView: View {
         !pageTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var canSaveCollage: Bool {
+        canSave && selectedCollageImageIDs.count >= 2
+    }
+
     private func savePage() {
         guard store.addScrapbookPage(
             title: pageTitle,
@@ -433,6 +488,29 @@ private struct ScrapbookView: View {
         statusText = "已保存手帐页"
     }
 
+    private func saveCollage() {
+        let attachments = selectedCollageAttachments()
+        guard store.addPhotoCollage(
+            title: pageTitle,
+            attachments: attachments,
+            template: "图片拼贴",
+            note: note
+        ) != nil else {
+            statusText = "拼贴保存失败。"
+            return
+        }
+
+        pageTitle = ""
+        materials = ""
+        decorations = ""
+        font = ""
+        border = ""
+        note = ""
+        selectedImageAssetID = nil
+        selectedCollageImageIDs = []
+        statusText = "已保存图片拼贴"
+    }
+
     private func splitValues(_ text: String) -> [String] {
         text
             .components(separatedBy: CharacterSet(charactersIn: "、,，/ "))
@@ -448,6 +526,23 @@ private struct ScrapbookView: View {
         }
 
         return attachment
+    }
+
+    private func selectedCollageAttachments() -> [SharedAttachment] {
+        imageAttachmentAssets
+            .filter { selectedCollageImageIDs.contains($0.id) }
+            .prefix(6)
+            .compactMap(AttachmentReferenceResolver.attachment(from:))
+    }
+
+    private func toggleCollageImage(_ asset: MemoAsset) {
+        if selectedCollageImageIDs.contains(asset.id) {
+            selectedCollageImageIDs.remove(asset.id)
+        } else if selectedCollageImageIDs.count < 6 {
+            selectedCollageImageIDs.insert(asset.id)
+        } else {
+            statusText = "最多选择 6 张图片"
+        }
     }
 }
 
