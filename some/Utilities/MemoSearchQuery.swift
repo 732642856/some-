@@ -10,12 +10,33 @@ enum MemoContentFilter: String, CaseIterable, Hashable {
     case backlink
 }
 
+enum MemoDateField: String, Hashable {
+    case created
+    case updated
+}
+
+enum MemoDateOperator: String, Hashable {
+    case on
+    case before
+    case onOrBefore
+    case after
+    case onOrAfter
+}
+
+struct MemoDateFilter: Equatable, Hashable {
+    let field: MemoDateField
+    let operation: MemoDateOperator
+    let start: Date
+    let end: Date
+}
+
 struct MemoSearchQuery: Equatable {
     let rawText: String
     let textTerms: [String]
     let tagFilters: [String]
     let requiredContentFilters: [MemoContentFilter]
     let excludedContentFilters: [MemoContentFilter]
+    let dateFilters: [MemoDateFilter]
     let isPinned: Bool?
     let isArchived: Bool?
 
@@ -30,6 +51,10 @@ struct MemoSearchQuery: Equatable {
     var hasContentFilters: Bool {
         !requiredContentFilters.isEmpty || !excludedContentFilters.isEmpty
     }
+
+    var hasDateFilters: Bool {
+        !dateFilters.isEmpty
+    }
 }
 
 enum MemoSearchQueryParser {
@@ -38,6 +63,7 @@ enum MemoSearchQueryParser {
         var tagFilters: [String] = []
         var requiredContentFilters: [MemoContentFilter] = []
         var excludedContentFilters: [MemoContentFilter] = []
+        var dateFilters: [MemoDateFilter] = []
         var isPinned: Bool?
         var isArchived: Bool?
 
@@ -70,6 +96,8 @@ enum MemoSearchQueryParser {
                 excludedContentFilters.append(filter)
             } else if let filter = contentFilter(in: token, prefix: "without:") {
                 excludedContentFilters.append(filter)
+            } else if let filter = dateFilter(in: token) {
+                dateFilters.append(filter)
             } else {
                 textTerms.append(token)
             }
@@ -83,6 +111,7 @@ enum MemoSearchQueryParser {
             },
             requiredContentFilters: uniqueContentFilters(requiredContentFilters),
             excludedContentFilters: uniqueContentFilters(excludedContentFilters),
+            dateFilters: uniqueDateFilters(dateFilters),
             isPinned: isPinned,
             isArchived: isArchived
         )
@@ -156,5 +185,129 @@ enum MemoSearchQueryParser {
 
     private static func uniqueContentFilters(_ filters: [MemoContentFilter]) -> [MemoContentFilter] {
         Array(Set(filters)).sorted { $0.rawValue < $1.rawValue }
+    }
+
+    private static func dateFilter(in token: String) -> MemoDateFilter? {
+        let lowercased = token.lowercased()
+        let field: MemoDateField
+        let valueStartIndex: String.Index
+
+        if lowercased.hasPrefix("created:") {
+            field = .created
+            valueStartIndex = token.index(token.startIndex, offsetBy: "created:".count)
+        } else if lowercased.hasPrefix("date:") {
+            field = .created
+            valueStartIndex = token.index(token.startIndex, offsetBy: "date:".count)
+        } else if lowercased.hasPrefix("updated:") {
+            field = .updated
+            valueStartIndex = token.index(token.startIndex, offsetBy: "updated:".count)
+        } else {
+            return nil
+        }
+
+        return dateFilter(field: field, rawValue: String(token[valueStartIndex...]))
+    }
+
+    private static func dateFilter(field: MemoDateField, rawValue: String) -> MemoDateFilter? {
+        let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return nil
+        }
+
+        let operation: MemoDateOperator
+        let dateText: String
+
+        if trimmed.hasPrefix(">=") {
+            operation = .onOrAfter
+            dateText = String(trimmed.dropFirst(2))
+        } else if trimmed.hasPrefix("<=") {
+            operation = .onOrBefore
+            dateText = String(trimmed.dropFirst(2))
+        } else if trimmed.hasPrefix(">") {
+            operation = .after
+            dateText = String(trimmed.dropFirst())
+        } else if trimmed.hasPrefix("<") {
+            operation = .before
+            dateText = String(trimmed.dropFirst())
+        } else {
+            operation = .on
+            dateText = trimmed
+        }
+
+        guard let range = dateRange(from: dateText) else {
+            return nil
+        }
+
+        return MemoDateFilter(
+            field: field,
+            operation: operation,
+            start: range.start,
+            end: range.end
+        )
+    }
+
+    private static func dateRange(from rawText: String) -> (start: Date, end: Date)? {
+        let text = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parts = text.split(separator: "-", omittingEmptySubsequences: false)
+        guard (1...3).contains(parts.count) else {
+            return nil
+        }
+
+        guard let year = Int(parts[0]), (1...9999).contains(year) else {
+            return nil
+        }
+
+        let calendar = Calendar(identifier: .gregorian)
+        var components = DateComponents()
+        components.calendar = calendar
+        components.timeZone = TimeZone.current
+        components.year = year
+
+        if parts.count >= 2 {
+            guard let month = Int(parts[1]), (1...12).contains(month) else {
+                return nil
+            }
+            components.month = month
+        } else {
+            components.month = 1
+        }
+
+        if parts.count == 3 {
+            guard let day = Int(parts[2]), (1...31).contains(day) else {
+                return nil
+            }
+            components.day = day
+        } else {
+            components.day = 1
+        }
+
+        guard let start = calendar.date(from: components) else {
+            return nil
+        }
+        let resolved = calendar.dateComponents([.year, .month, .day], from: start)
+        guard resolved.year == components.year,
+              resolved.month == components.month,
+              resolved.day == components.day else {
+            return nil
+        }
+
+        let step: Calendar.Component = parts.count == 1 ? .year : parts.count == 2 ? .month : .day
+        guard let end = calendar.date(byAdding: step, value: 1, to: start) else {
+            return nil
+        }
+
+        return (start, end)
+    }
+
+    private static func uniqueDateFilters(_ filters: [MemoDateFilter]) -> [MemoDateFilter] {
+        Array(Set(filters)).sorted {
+            if $0.field != $1.field {
+                return $0.field.rawValue < $1.field.rawValue
+            }
+            if $0.start != $1.start {
+                return $0.start < $1.start
+            }
+            return $0.operation.rawValue < $1.operation.rawValue
+        }
     }
 }

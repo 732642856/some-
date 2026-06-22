@@ -151,6 +151,9 @@ final class MemoStore: ObservableObject {
                 matchesContentFilters(memo, query: query)
             }
             .filter { memo in
+                matchesDateFilters(memo, query: query)
+            }
+            .filter { memo in
                 matchesText(memo, query: query, searchRanks: searchRanks)
             }
             .sorted { sortMemos($0, $1, searchRanks: searchRanks, query: query) }
@@ -886,6 +889,37 @@ final class MemoStore: ObservableObject {
             SharedAttachmentStore.displayTextWithoutAttachmentReferences(memo.text)
         )
         return MemoTaskParser.taskItems(in: displayText)
+    }
+
+    private func matchesDateFilters(_ memo: Memo, query: MemoSearchQuery) -> Bool {
+        guard query.hasDateFilters else {
+            return true
+        }
+
+        return query.dateFilters.allSatisfy { matchesDateFilter($0, in: memo) }
+    }
+
+    private func matchesDateFilter(_ filter: MemoDateFilter, in memo: Memo) -> Bool {
+        let date: Date
+        switch filter.field {
+        case .created:
+            date = memo.createdAt
+        case .updated:
+            date = memo.updatedAt
+        }
+
+        switch filter.operation {
+        case .on:
+            return date >= filter.start && date < filter.end
+        case .before:
+            return date < filter.start
+        case .onOrBefore:
+            return date < filter.end
+        case .after:
+            return date >= filter.end
+        case .onOrAfter:
+            return date >= filter.start
+        }
     }
 
     private func matchesPinnedFilter(_ memo: Memo, query: MemoSearchQuery) -> Bool {

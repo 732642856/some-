@@ -422,6 +422,34 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(query.requiredContentFilters.isEmpty)
     }
 
+    func testSearchQueryParserExtractsDateFilters() {
+        let query = MemoSearchQueryParser.parse("created:2026-06 updated:>=2026-06-22 复盘")
+
+        XCTAssertEqual(query.textTerms, ["复盘"])
+        XCTAssertEqual(query.dateFilters.count, 2)
+        XCTAssertTrue(
+            query.dateFilters.contains {
+                $0.field == .created
+                    && $0.operation == .on
+                    && Calendar.current.component(.month, from: $0.start) == 6
+            }
+        )
+        XCTAssertTrue(
+            query.dateFilters.contains {
+                $0.field == .updated
+                    && $0.operation == .onOrAfter
+                    && Calendar.current.component(.day, from: $0.start) == 22
+            }
+        )
+    }
+
+    func testSearchQueryParserKeepsInvalidDateFiltersAsText() {
+        let query = MemoSearchQueryParser.parse("created:2026-02-31 updated:soon")
+
+        XCTAssertEqual(query.textTerms, ["created:2026-02-31", "updated:soon"])
+        XCTAssertTrue(query.dateFilters.isEmpty)
+    }
+
     func testSearchCanFilterByTagAndPinnedState() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "优化输入体验 #产品/输入")
@@ -435,6 +463,44 @@ final class SomeTests: XCTestCase {
         store.searchText = "#产品 is:pinned 输入"
 
         XCTAssertEqual(store.filteredMemos.map(\.text), ["优化输入体验 #产品/输入"])
+    }
+
+    func testSearchCanFilterByCreatedDate() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        try importMemos([
+            Memo(text: "五月记录 #日期", createdAt: makeDate(year: 2026, month: 5, day: 31), tags: ["日期"]),
+            Memo(text: "六月记录 #日期", createdAt: makeDate(year: 2026, month: 6, day: 15), tags: ["日期"]),
+            Memo(text: "七月记录 #日期", createdAt: makeDate(year: 2026, month: 7, day: 1), tags: ["日期"])
+        ], into: store)
+
+        store.searchText = "created:2026-06"
+        XCTAssertEqual(store.filteredMemos.map(\.text), ["六月记录 #日期"])
+
+        store.searchText = "created:<2026-06"
+        XCTAssertEqual(store.filteredMemos.map(\.text), ["五月记录 #日期"])
+
+        store.searchText = "created:>=2026-06"
+        XCTAssertEqual(Set(store.filteredMemos.map(\.text)), ["六月记录 #日期", "七月记录 #日期"])
+    }
+
+    func testSearchCanFilterByUpdatedDateAndText() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        try importMemos([
+            Memo(
+                text: "旧更新 复盘",
+                createdAt: makeDate(year: 2026, month: 6, day: 1),
+                updatedAt: makeDate(year: 2026, month: 6, day: 1)
+            ),
+            Memo(
+                text: "新更新 复盘",
+                createdAt: makeDate(year: 2026, month: 5, day: 1),
+                updatedAt: makeDate(year: 2026, month: 6, day: 22)
+            )
+        ], into: store)
+
+        store.searchText = "updated:2026-06-22 复盘"
+
+        XCTAssertEqual(store.filteredMemos.map(\.text), ["新更新 复盘"])
     }
 
     func testSearchCanFilterByContentTypes() {
@@ -1150,5 +1216,21 @@ final class SomeTests: XCTestCase {
     private func documentsURL() -> URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSTemporaryDirectory())
+    }
+
+    private func importMemos(_ memos: [Memo], into store: MemoStore) throws {
+        let data = try JSONEncoder.memoEncoder.encode(memos)
+        let json = String(decoding: data, as: UTF8.self)
+        XCTAssertEqual(try store.importJSON(json), memos.count)
+    }
+
+    private func makeDate(year: Int, month: Int, day: Int) -> Date {
+        var components = DateComponents()
+        components.calendar = Calendar(identifier: .gregorian)
+        components.timeZone = TimeZone.current
+        components.year = year
+        components.month = month
+        components.day = day
+        return components.date ?? Date(timeIntervalSince1970: 0)
     }
 }
