@@ -988,9 +988,20 @@ private struct WardrobeView: View {
     @State private var wearWeather = ""
     @State private var wearDate = Date()
     @State private var wearNote = ""
+    @State private var laundryItems = ""
+    @State private var laundryStatus = "待清洗"
+    @State private var laundryDate = Date()
+    @State private var laundryNote = ""
+    @State private var packingTitle = ""
+    @State private var packingDestination = ""
+    @State private var packingDates = ""
+    @State private var packingItems = ""
+    @State private var packingWeather = ""
+    @State private var packingNote = ""
     @State private var statusText: String?
 
     private let categories = ["上装", "下装", "连衣裙", "外套", "鞋履", "包包", "饰品", "其他"]
+    private let laundryStatuses = ["待清洗", "已清洗", "送洗", "待熨烫", "待修补"]
 
     private var wardrobeAssets: [MemoAsset] {
         store.assets.filter { $0.kind == .wardrobeItem }
@@ -1002,6 +1013,14 @@ private struct WardrobeView: View {
 
     private var wearLogAssets: [MemoAsset] {
         store.assets.filter { $0.kind == .wearLog }
+    }
+
+    private var laundryLogAssets: [MemoAsset] {
+        store.assets.filter { $0.kind == .laundryLog }
+    }
+
+    private var packingListAssets: [MemoAsset] {
+        store.assets.filter { $0.kind == .packingList }
     }
 
     private var imageAttachmentAssets: [MemoAsset] {
@@ -1025,6 +1044,8 @@ private struct WardrobeView: View {
                     StatBadge(title: "单品", value: "\(insights.items.count)", systemImage: "tshirt")
                     StatBadge(title: "穿搭", value: "\(insights.outfits.count)", systemImage: "sparkles")
                     StatBadge(title: "穿着", value: "\(insights.wearLogs.count)", systemImage: "calendar.badge.clock")
+                    StatBadge(title: "洗护", value: "\(laundryLogAssets.count)", systemImage: "washer")
+                    StatBadge(title: "打包", value: "\(packingListAssets.count)", systemImage: "suitcase")
                     StatBadge(title: "未搭配", value: "\(insights.unusedItems.count)", systemImage: "arrow.triangle.2.circlepath")
                     StatBadge(title: "场景", value: "\(insights.sceneStats.count)", systemImage: "scope")
                 }
@@ -1034,6 +1055,8 @@ private struct WardrobeView: View {
             wardrobeItemForm
             outfitForm
             wearLogForm
+            laundryLogForm
+            packingListForm
             wardrobeList
         }
     }
@@ -1295,13 +1318,115 @@ private struct WardrobeView: View {
         )
     }
 
+    private var laundryLogForm: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("洗护状态", systemImage: "washer")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+
+            DatePicker("日期", selection: $laundryDate, displayedComponents: .date)
+                .datePickerStyle(.compact)
+                .tint(Color.accentGreen)
+
+            TextField("单品：白色衬衫、羊毛外套", text: $laundryItems)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            Picker("状态", selection: $laundryStatus) {
+                ForEach(laundryStatuses, id: \.self) { status in
+                    Text(status).tag(status)
+                }
+            }
+            .pickerStyle(.menu)
+            .tint(Color.accentGreen)
+
+            TextField("备注：冷水洗、不可烘干", text: $laundryNote)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            actionRow(
+                buttonTitle: "保存洗护",
+                systemImage: "checkmark.circle.fill",
+                disabled: laundryItems.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    || laundryStatus.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ) {
+                saveLaundryLog()
+            }
+        }
+        .padding(14)
+        .background(Color.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.border, lineWidth: 1)
+        )
+    }
+
+    private var packingListForm: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("旅行打包", systemImage: "suitcase")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+
+            TextField("名称，例如 杭州周末", text: $packingTitle)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            HStack(spacing: 8) {
+                TextField("目的地", text: $packingDestination)
+                TextField("日期：6/24-6/26", text: $packingDates)
+            }
+            .textFieldStyle(.plain)
+            .padding(10)
+            .background(Color.subtleSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            TextField("单品：白衬衫、牛仔裤、风衣", text: $packingItems)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            HStack(spacing: 8) {
+                TextField("天气：多云 18-25C", text: $packingWeather)
+                TextField("备注：带伞", text: $packingNote)
+            }
+            .textFieldStyle(.plain)
+            .padding(10)
+            .background(Color.subtleSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            actionRow(
+                buttonTitle: "保存打包",
+                systemImage: "checkmark.circle.fill",
+                disabled: packingTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    || packingItems.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ) {
+                savePackingList()
+            }
+        }
+        .padding(14)
+        .background(Color.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.border, lineWidth: 1)
+        )
+    }
+
     private var wardrobeList: some View {
         VStack(alignment: .leading, spacing: 10) {
             Label("衣橱素材", systemImage: "square.grid.2x2")
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Color.secondaryText)
 
-            let assets = (wardrobeAssets + outfitAssets + wearLogAssets)
+            let assets = (wardrobeAssets + outfitAssets + wearLogAssets + laundryLogAssets + packingListAssets)
                 .sorted { $0.createdAt == $1.createdAt ? $0.title < $1.title : $0.createdAt > $1.createdAt }
 
             if assets.isEmpty {
@@ -1404,6 +1529,46 @@ private struct WardrobeView: View {
         wearNote = ""
         wearDate = Date()
         statusText = "已保存穿着记录"
+    }
+
+    private func saveLaundryLog() {
+        guard store.addLaundryLog(
+            itemNames: splitValues(laundryItems),
+            status: laundryStatus,
+            date: laundryDate,
+            note: laundryNote
+        ) != nil else {
+            statusText = "洗护记录保存失败。"
+            return
+        }
+
+        laundryItems = ""
+        laundryStatus = laundryStatuses.first ?? "待清洗"
+        laundryNote = ""
+        laundryDate = Date()
+        statusText = "已保存洗护记录"
+    }
+
+    private func savePackingList() {
+        guard store.addPackingList(
+            title: packingTitle,
+            destination: packingDestination,
+            dateRange: packingDates,
+            itemNames: splitValues(packingItems),
+            weather: packingWeather,
+            note: packingNote
+        ) != nil else {
+            statusText = "打包清单保存失败。"
+            return
+        }
+
+        packingTitle = ""
+        packingDestination = ""
+        packingDates = ""
+        packingItems = ""
+        packingWeather = ""
+        packingNote = ""
+        statusText = "已保存打包清单"
     }
 
     private func applySuggestion(_ suggestion: WardrobeOutfitSuggestion) {

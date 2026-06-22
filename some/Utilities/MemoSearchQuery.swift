@@ -17,6 +17,8 @@ enum MemoContentFilter: String, CaseIterable, Hashable {
     case wardrobe
     case outfit
     case wearLog = "wear-log"
+    case laundryLog = "laundry-log"
+    case packingList = "packing-list"
     case workLog = "work-log"
 }
 
@@ -206,6 +208,10 @@ enum MemoSearchQueryParser {
             return .outfit
         case "wear", "wears", "worn", "wear-log", "wearlog", "wear-record", "wearrecord", "穿着", "穿着记录", "穿搭记录", "穿着日历", "成本每次":
             return .wearLog
+        case "laundry", "laundry-log", "laundrylog", "care", "care-log", "carelog", "wash", "washing", "洗护", "洗护记录", "护理", "护理记录", "清洗":
+            return .laundryLog
+        case "packing", "packing-list", "packinglist", "pack", "travel-pack", "travel-packing", "travel-list", "打包", "打包清单", "旅行打包", "旅行清单", "行李", "行李清单":
+            return .packingList
         case "worklog", "work-log", "worklogs", "daily-report", "weekly-report", "report", "reports", "log", "logs", "工作日志", "工作记录", "日报", "周报", "项目日志", "汇总":
             return .workLog
         default:

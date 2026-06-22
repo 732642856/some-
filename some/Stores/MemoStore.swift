@@ -418,6 +418,53 @@ final class MemoStore: ObservableObject {
     }
 
     @discardableResult
+    func addLaundryLog(
+        title: String? = nil,
+        itemNames: [String],
+        status: String,
+        date: Date = Date(),
+        note: String? = nil
+    ) -> Memo? {
+        let cleanedItems = cleanedValues(itemNames)
+        let cleanedStatus = status.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanedItems.isEmpty, !cleanedStatus.isEmpty else {
+            return nil
+        }
+
+        let cleanedTitle = title?.trimmingCharacters(in: .whitespacesAndNewlines)
+        var lines = ["洗护记录：\((cleanedTitle?.isEmpty == false ? cleanedTitle : nil) ?? DateFormatters.wardrobeDay.string(from: date))"]
+        appendField("日期", value: DateFormatters.wardrobeDay.string(from: date), to: &lines)
+        appendField("单品", values: cleanedItems, to: &lines)
+        appendField("状态", value: cleanedStatus, to: &lines)
+        appendField("备注", value: note, to: &lines)
+        return addStructuredMemo(lines: lines, attachment: nil)
+    }
+
+    @discardableResult
+    func addPackingList(
+        title: String,
+        destination: String? = nil,
+        dateRange: String? = nil,
+        itemNames: [String],
+        weather: String? = nil,
+        note: String? = nil
+    ) -> Memo? {
+        let cleanedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanedItems = cleanedValues(itemNames)
+        guard !cleanedTitle.isEmpty, !cleanedItems.isEmpty else {
+            return nil
+        }
+
+        var lines = ["旅行打包：\(cleanedTitle)"]
+        appendField("目的地", value: destination, to: &lines)
+        appendField("日期", value: dateRange, to: &lines)
+        appendField("单品", values: cleanedItems, to: &lines)
+        appendField("天气", value: weather, to: &lines)
+        appendField("备注", value: note, to: &lines)
+        return addStructuredMemo(lines: lines, attachment: nil)
+    }
+
+    @discardableResult
     func addWorkLog(
         title: String,
         scope: String,
@@ -1213,6 +1260,10 @@ final class MemoStore: ObservableObject {
             return assets(for: memo).contains { $0.kind == .outfit }
         case .wearLog:
             return assets(for: memo).contains { $0.kind == .wearLog }
+        case .laundryLog:
+            return assets(for: memo).contains { $0.kind == .laundryLog }
+        case .packingList:
+            return assets(for: memo).contains { $0.kind == .packingList }
         }
     }
 

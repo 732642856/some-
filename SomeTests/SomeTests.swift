@@ -423,12 +423,12 @@ final class SomeTests: XCTestCase {
     }
 
     func testSearchQueryParserExtractsContentFilters() {
-        let query = MemoSearchQueryParser.parse("has:link has:web has:ocr has:image-edit has:attachment has:reference has:scrapbook has:worklog has:audio has:video has:wardrobe has:outfit has:wear-log no:task without:backlink 复盘")
+        let query = MemoSearchQueryParser.parse("has:link has:web has:ocr has:image-edit has:attachment has:reference has:scrapbook has:worklog has:audio has:video has:wardrobe has:outfit has:wear-log has:laundry-log has:packing-list no:task without:backlink 复盘")
 
         XCTAssertEqual(query.textTerms, ["复盘"])
         XCTAssertEqual(
             query.requiredContentFilters,
-            [.attachment, .audio, .imageEdit, .link, .outfit, .reference, .scrapbook, .screenshot, .video, .wardrobe, .webClip, .wearLog, .workLog]
+            [.attachment, .audio, .imageEdit, .laundryLog, .link, .outfit, .packingList, .reference, .scrapbook, .screenshot, .video, .wardrobe, .webClip, .wearLog, .workLog]
         )
         XCTAssertEqual(
             query.excludedContentFilters,
@@ -567,6 +567,8 @@ final class SomeTests: XCTestCase {
         store.addMemo(text: "衣橱单品：白衬衫\n分类：上装\n颜色：白")
         store.addMemo(text: "穿搭组合：周一通勤\n单品：白衬衫、黑裤")
         store.addMemo(text: "穿着记录：2026-06-23\n日期：2026-06-23\n单品：白衬衫、黑裤")
+        store.addMemo(text: "洗护记录：2026-06-23\n日期：2026-06-23\n单品：白衬衫\n状态：待清洗")
+        store.addMemo(text: "旅行打包：杭州周末\n目的地：杭州\n单品：白衬衫、黑裤")
         store.addMemo(text: "普通资料")
 
         store.searchText = "has:link"
@@ -655,6 +657,12 @@ final class SomeTests: XCTestCase {
 
         store.searchText = "has:wear-log"
         XCTAssertEqual(store.filteredMemos.map(\.text), ["穿着记录：2026-06-23\n日期：2026-06-23\n单品：白衬衫、黑裤"])
+
+        store.searchText = "has:laundry-log"
+        XCTAssertEqual(store.filteredMemos.map(\.text), ["洗护记录：2026-06-23\n日期：2026-06-23\n单品：白衬衫\n状态：待清洗"])
+
+        store.searchText = "has:packing-list"
+        XCTAssertEqual(store.filteredMemos.map(\.text), ["旅行打包：杭州周末\n目的地：杭州\n单品：白衬衫、黑裤"])
     }
 
     func testAddWorkLogCreatesStructuredAssetWithReferences() {
@@ -1956,6 +1964,58 @@ final class SomeTests: XCTestCase {
         let asset = store.assets(for: memo).first { $0.kind == .wearLog }
         XCTAssertEqual(asset?.title, "2026-06-23")
         XCTAssertEqual(asset?.summary, "日期：2026-06-23 · 单品：白衬衫、黑裤 · 场景：通勤 · 天气：晴 · 备注：舒适")
+        XCTAssertEqual(asset?.typeIdentifier, UTType.text.identifier)
+    }
+
+    func testAddLaundryLogCreatesStructuredMemoAndAsset() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let date = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+
+        guard let memo = store.addLaundryLog(
+            itemNames: ["白衬衫"],
+            status: "待清洗",
+            date: date,
+            note: "冷水洗"
+        ) else {
+            return XCTFail("Expected laundry log memo")
+        }
+
+        XCTAssertTrue(memo.text.contains("洗护记录：2026-06-23"))
+        XCTAssertTrue(memo.text.contains("日期：2026-06-23"))
+        XCTAssertTrue(memo.text.contains("单品：白衬衫"))
+        XCTAssertTrue(memo.text.contains("状态：待清洗"))
+        XCTAssertTrue(memo.text.contains("备注：冷水洗"))
+
+        let asset = store.assets(for: memo).first { $0.kind == .laundryLog }
+        XCTAssertEqual(asset?.title, "2026-06-23")
+        XCTAssertEqual(asset?.summary, "日期：2026-06-23 · 单品：白衬衫 · 状态：待清洗 · 备注：冷水洗")
+        XCTAssertEqual(asset?.typeIdentifier, UTType.text.identifier)
+    }
+
+    func testAddPackingListCreatesStructuredMemoAndAsset() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+
+        guard let memo = store.addPackingList(
+            title: "杭州周末",
+            destination: "杭州",
+            dateRange: "6/24-6/26",
+            itemNames: ["白衬衫", "黑裤"],
+            weather: "多云",
+            note: "带伞"
+        ) else {
+            return XCTFail("Expected packing list memo")
+        }
+
+        XCTAssertTrue(memo.text.contains("旅行打包：杭州周末"))
+        XCTAssertTrue(memo.text.contains("目的地：杭州"))
+        XCTAssertTrue(memo.text.contains("日期：6/24-6/26"))
+        XCTAssertTrue(memo.text.contains("单品：白衬衫、黑裤"))
+        XCTAssertTrue(memo.text.contains("天气：多云"))
+        XCTAssertTrue(memo.text.contains("备注：带伞"))
+
+        let asset = store.assets(for: memo).first { $0.kind == .packingList }
+        XCTAssertEqual(asset?.title, "杭州周末")
+        XCTAssertEqual(asset?.summary, "目的地：杭州 · 日期：6/24-6/26 · 单品：白衬衫、黑裤 · 天气：多云 · 备注：带伞")
         XCTAssertEqual(asset?.typeIdentifier, UTType.text.identifier)
     }
 

@@ -156,3 +156,12 @@
 - 已更新 `ImageEditRenderer`，在裁剪后、滤镜前应用背景画布，支持柔化背景和纯色画布输出，并把背景处理写入输出文件名。
 - 已更新 `ImageEditorView`，新增背景控制区、模式切换、色板、柔化强度、留白和圆角控制。
 - 已更新 `MemoStore.addImageEdit` 和测试，保存正文会记录背景处理，测试覆盖背景配方编解码、旧 JSON 兼容、背景画布渲染和文件名。
+
+## 2026-06-23T13:50:00+08:00
+
+- 进入阶段 20：衣橱洗护状态与旅行打包。
+- 阶段开始前复查衣橱素材模型、搜索筛选、结构化保存、衣橱页和测试；确认本轮可继续复用 `MemoAsset`，不需要数据库迁移。
+- 检索 SwiftUI 衣橱洗护、旅行打包、capsule wardrobe packing list 等候选，未找到可直接复制的成熟 Swift/iOS MIT 模块；本轮继续自建轻量结构化记录。
+- 新增 `laundryLog` 与 `packingList` 素材类型、`has:laundry-log` / `has:packing-list` 搜索筛选、`addLaundryLog` 和 `addPackingList` 结构化保存。
+- 衣橱页新增洗护状态表单、旅行打包表单、洗护/打包统计 badge，并把洗护和打包记录纳入衣橱素材列表。
+- 补充结构化保存和搜索测试，覆盖洗护记录、旅行打包清单和内容筛选。
