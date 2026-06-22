@@ -122,13 +122,15 @@
 - 本轮工作前已重新扫描主仓库、未跟踪文件、Documents 下 some 相关旧目录，并检索 `SwiftUI PhotosPicker sample`、`SwiftUI fileImporter sample`、`SwiftUI journal photo attachments`、`SwiftUI memo attachment app`、`SwiftUI asset library PhotosPicker` 等关键词。
 - GitHub API 检索到的 `drawrs/PhotosPicker-PhotoUI` 是无许可证示例仓库，不能直接复制；其他 SwiftUI 附件/素材导入检索未找到成熟、许可证清晰且可直接搬进本项目的模块。
 - 本轮采用 Apple 系统能力 `PhotosUI.PhotosPicker` 和 SwiftUI `.fileImporter`，并复用项目已有 `SharedAttachmentStore`、`SharedMemoTextComposer`、`MemoAsset` 索引，不引入第三方运行时代码。
-- 实现边界：已支持从输入卡片拍照、拍视频、录音、导入相册图片/视频和文件，保存为本地附件 memo；图片导入会尝试本地 Vision OCR 并生成“图片文字”素材；音频附件会进入 `audio` 素材索引，视频附件会进入 `video` 素材索引；首页素材库可按类型筛选。语音转写、批量扫描、缩略图缓存和复杂媒体元数据仍属于后续多模态采集二期。
+- 实现边界：已支持从输入卡片拍照、拍视频、录音、导入相册图片/视频和文件，保存为本地附件 memo；图片导入会尝试本地 Vision OCR 并生成“图片文字”素材；音频附件会进入 `audio` 素材索引，视频附件会进入 `video` 素材索引；音频详情页可用 Apple Speech 本机识别追加转写文本。批量扫描、缩略图缓存、语言选择和复杂媒体元数据仍属于后续多模态采集二期。
 
 2026-06-22 相机拍照入口检索决策：本轮继续前已重新检查 Git 状态、未跟踪文件、当前文件清单和 Documents 下旧 some 目录。联网检索 `SwiftUI camera UIImagePickerController MIT`、`SwiftUI AVCapturePhotoOutput camera MIT`、`iOS document scanner VisionKit MIT SwiftUI`，GitHub API 返回 0 个可直接复用的成熟候选；Apple 系统能力 `UIImagePickerController` / `AVCapturePhotoOutput` / VisionKit 仍是首选。本轮不复制第三方源码，也不新增 SPM，先用 `UIImagePickerController` 的系统相机做拍照导入 v1，拿到 JPEG 后复用现有 `SharedAttachmentStore`、本地 OCR 和 `MemoAsset` 索引。后续如果要做自定义取景框、连续拍摄、扫描边缘校正或实时 OCR，再评估 AVFoundation / VisionKit 二期。
 
 2026-06-22 视频拍摄入口检索决策：继续前已复查 Git 状态、文件清单和 Documents 下 some 相关旧目录，并检索 `SwiftUI video recorder AVFoundation MIT`、`UIImagePickerController video capture SwiftUI MIT`。GitHub API 只返回一个 macOS 屏幕录制项目 `alibahrawy/SmoothyREC`，不是 iOS 相机拍摄模块；另一个查询返回 0。Apple 官方 `UIImagePickerController` 与 `InfoKey.mediaURL` 文档可达，本轮沿用已有 UIKit bridge，增加 `.video` 模式，拿到系统相机返回的 movie URL 后复制进本地附件目录，未复制第三方源码。
 
 2026-06-22 录音与手帐入口检索决策：本轮继续前已复查 Git 状态、未提交碎片、全量文件清单和 Documents 下旧 some 目录，并重新检索 Stylebook/Whering 等衣橱产品能力、`SwiftUI audio recorder AVFoundation MIT`、`SwiftUI scrapbook journal canvas MIT`、`SwiftUI wardrobe outfit planner MIT`。未找到可直接复制进当前 iOS 工程的成熟 MIT SwiftUI 手帐/衣橱模块；录音采用 Apple `AVAudioRecorder` / `AVAudioSession` 系统能力，手帐先使用正文内可迁移的 `手帐页面：标题` 结构化 memo 与 `scrapbookPage` 素材索引，不引入第三方依赖。
+
+2026-06-22 语音转写入口检索决策：继续前已复查 Git 状态、未跟踪文件和现有音频附件链路，并检索 `iOS SFSpeechRecognizer audio file transcription Swift MIT`、`SFSpeechURLRecognitionRequest Swift MIT`。GitHub API 两个查询均返回 0，Apple `SFSpeechRecognizer` 与 `SFSpeechURLRecognitionRequest` 官方文档可达。本轮不复制第三方代码，不把原始音频发送到 OpenAI，采用 Apple Speech 的 `requiresOnDeviceRecognition` 本机识别；设备或语言不支持本机识别时直接提示不可用。
 
 2026-06-22 手帐/贴纸画布补充检索：继续通过 GitHub API 搜索 `SwiftUI sticker drag resize rotate MIT`、`SwiftUI collage editor MIT`、`StickerView iOS Swift`、`DraggableResizableView SwiftUI`、`SwiftUI canvas layers editor`。可参考候选包括 `irons163/IRSticker-swift`、`artemnovichkov/StickerViewExample`、`native-mobile-app-developers/SwiftStickerView` 等 MIT 项目，但核心多为 UIKit 贴纸视图或背景移除示例，不是当前 SwiftUI 首页/素材索引可直接复制的完整手帐画布。本轮仅记录其拖拽、缩放、旋转和背景移除方向，未复制第三方源码；当前先自建可迁移 `ScrapbookPageLayout` / `ScrapbookLayer` JSON 底座，下一步做真正画布时再针对具体类文件做许可证头、依赖体量和 iOS 版本验证。
 
@@ -161,7 +163,7 @@ P2 优先复用：
 
 P3 只参考：
 
-- AI 语音输入 / 转写：参考 usememos AI/transcription API 形态，具体实现走 OpenAI 官方 API。
+- AI 语音输入 / 转写：音频附件转写 v1 已用 Apple Speech 本机识别落地；后续若做跨语言、长音频或云端 provider，再单独评估 OpenAI/Gemini BYOK 转写接口。
 - Backlinks / graph：参考无许可证项目和 MoeMemos relation 思路，不复制。
 
 ## 下一步建议

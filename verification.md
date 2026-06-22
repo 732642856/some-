@@ -115,7 +115,9 @@
 - 2026-06-22：本轮 `git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme` 通过；旧版 `xcrun swiftc -parse` 已覆盖 `LinkExtractor.swift`、`MemoSearchQuery.swift`、`SharedAttachmentStore.swift`、`Memo.swift`、`MemoStore.swift`、`AttachmentPreviewList.swift` 和 `SomeTests.swift`。
 - 2026-06-22：已新增手帐图层底座：`ScrapbookPageLayout` / `ScrapbookLayer` 会随手帐页面写入正文内可迁移 JSON，覆盖图片、文字、贴纸、边框、背景色、位置、尺寸、旋转、字体和颜色等字段；手帐列表新增页面预览。
 - 2026-06-22：本轮手帐画布开发前已重新复查 Git 状态、未跟踪文件和手帐现有边界，并通过 GitHub API 检索 SwiftUI/Swift 贴纸、拼贴、图层画布候选；未找到可直接复制的成熟 SwiftUI MIT 手帐画布，本轮未新增第三方依赖。
-- 2026-06-22：已修复工程引用但 Git 未包含 `AudioTranscriber.swift` 的 P0 构建风险；语音转写工具现已纳入 App target，`Info.plist` 补充 `NSSpeechRecognitionUsageDescription`，详情页可对音频附件发起系统 Speech 转写并追加到原 memo。
+- 2026-06-22：已修复工程引用但 Git 未包含 `AudioTranscriber.swift` 的 P0 构建风险；语音转写工具现已纳入 App target，`Info.plist` 补充 `NSSpeechRecognitionUsageDescription`，详情页可对音频附件发起 Apple Speech 本机转写并追加到原 memo。
+- 2026-06-22：本轮继续时复查 Git 状态、文件清单、未跟踪文件、语音/音频相关代码和开源检索结果；GitHub API 检索 `iOS SFSpeechRecognizer audio file transcription Swift MIT`、`SFSpeechURLRecognitionRequest Swift MIT` 均返回 0，Apple `SFSpeechRecognizer` / `SFSpeechURLRecognitionRequest` 官方文档可达，本轮未复制第三方源码。
+- 2026-06-22：已将语音转写强制为 `requiresOnDeviceRecognition`，设备或语言不支持本机识别时提示不可用；同时修复异步转写完成时基于最新 memo 文本追加，避免覆盖转写期间的其他编辑。
 
 ## 未能在当前环境完成
 
@@ -126,6 +128,7 @@
 - 2026-06-22：拍照导入需要真机或带可用相机的运行环境验证；当前机器无法打开模拟器/真机相机，也无法用旧 CLT 完整编译 SwiftUI + UIKit bridge。
 - 2026-06-22：录音入口需要真机或可授权麦克风的模拟器环境验证；当前机器无法用旧 CLT 完整编译 SwiftUI + AVFoundation 组合，也无法完成真实录音权限弹窗测试。
 - 2026-06-22：拍视频导入需要真机或可用相机/麦克风的模拟器环境验证；当前机器无法完成真实系统相机录制、权限弹窗和 movie URL 回调验证。
+- 2026-06-22：语音转写需要真机或支持 Speech 的模拟器环境验证授权弹窗、本机识别可用性、不同语言和长音频表现；当前旧 CLT 只能做语法层和 plist/scheme 校验。
 - Share Extension 的真实分享面板、App Group 容器和签名能力需要在完整 Xcode + Apple Developer Team 环境里实机或模拟器验证。
 - 旧版 `xcrun swiftc -parse` 只能做语法层检查，不能替代 Xcode 16 的完整 typecheck、XCTest 或 Share Extension 真机验证。
 

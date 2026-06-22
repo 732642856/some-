@@ -93,7 +93,7 @@ enum AudioTranscriber {
 
         func resume(with result: Result<String, Error>) {
             lock.lock()
-            guard let continuation else {
+            guard let continuation = continuation else {
                 lock.unlock()
                 return
             }

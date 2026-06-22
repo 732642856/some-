@@ -220,8 +220,8 @@ struct ScrapbookPageLayout: Codable, Equatable {
                     width: 230,
                     height: 64,
                     rotation: index.isMultiple(of: 2) ? -5 : 5,
-                    backgroundColorHex: "#EEF7F3",
                     textColorHex: "#597469",
+                    backgroundColorHex: "#EEF7F3",
                     cornerRadius: 32
                 )
             )
