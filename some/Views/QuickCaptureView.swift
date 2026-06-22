@@ -109,7 +109,7 @@ struct QuickCaptureView: View {
                     .foregroundStyle(Color.secondaryText)
                     .background(Color.subtleSurface)
                     .clipShape(Circle())
-                    .disabled(isImportingMedia)
+                    .disabled(isImportingMedia || audioRecorder.isRecording)
                     .accessibilityLabel("导入照片或视频")
 
                     Button {
@@ -669,7 +669,10 @@ private final class QuickAudioRecorder: NSObject, ObservableObject, AVAudioRecor
         let recorder = try AVAudioRecorder(url: url, settings: settings)
         recorder.delegate = self
         recorder.prepareToRecord()
-        recorder.record()
+        guard recorder.record() else {
+            try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
+            throw RecordingError.startFailed
+        }
 
         self.recorder = recorder
         recordingURL = url
@@ -739,11 +742,14 @@ private final class QuickAudioRecorder: NSObject, ObservableObject, AVAudioRecor
 
     enum RecordingError: LocalizedError {
         case permissionDenied
+        case startFailed
 
         var errorDescription: String? {
             switch self {
             case .permissionDenied:
                 return "没有麦克风权限。"
+            case .startFailed:
+                return "录音没有成功开始。"
             }
         }
     }
