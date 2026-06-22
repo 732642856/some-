@@ -1690,6 +1690,47 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(asset?.typeIdentifier, UTType.text.identifier)
     }
 
+    func testWardrobeInsightsSummarizeItemsOutfitsAndSuggestions() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.addWardrobeItem(
+            name: "白衬衫",
+            category: "上装",
+            colors: ["白"],
+            seasons: ["春", "秋"],
+            scenes: ["通勤"]
+        )
+        store.addWardrobeItem(
+            name: "黑裤",
+            category: "下装",
+            colors: ["黑"],
+            seasons: ["春", "秋"],
+            scenes: ["通勤"]
+        )
+        store.addWardrobeItem(
+            name: "蓝包",
+            category: "包包",
+            colors: ["蓝"],
+            seasons: ["春"],
+            scenes: ["通勤", "聚餐"]
+        )
+        store.addOutfit(
+            title: "周一通勤",
+            itemNames: ["白衬衫", "黑裤"],
+            scenes: ["通勤"],
+            seasons: ["春"]
+        )
+
+        let insights = WardrobeInsightEngine.insights(for: store.assets)
+
+        XCTAssertEqual(insights.items.count, 3)
+        XCTAssertEqual(insights.outfits.count, 1)
+        XCTAssertTrue(insights.categoryStats.contains { $0.label == "上装" && $0.count == 1 })
+        XCTAssertEqual(insights.sceneStats.first, WardrobeInsightMetric(label: "通勤", count: 4))
+        XCTAssertEqual(insights.unusedItems.map(\.name), ["蓝包"])
+        XCTAssertEqual(insights.frequentItems.first?.item.name, "白衬衫")
+        XCTAssertTrue(insights.suggestions.contains { $0.itemNames.contains("蓝包") })
+    }
+
     func testAddScrapbookPageCreatesStructuredMemoAndAsset() throws {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         let attachment = try SharedAttachmentStore.save(

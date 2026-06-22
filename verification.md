@@ -134,6 +134,9 @@
 - 2026-06-22：已新增图片编辑 v1，素材库图片附件可进入编辑器，支持预设比例裁剪、Core Image 滤镜、边框、文字和贴纸；保存会生成新的本地 PNG 附件，并写入带 `ImageEditRecipe` 的“图片编辑”记录。
 - 2026-06-22：图片编辑阶段开工前已复查 Git 状态、全量文件清单、图片/附件/素材索引边界；GitHub API 确认 `Mantis` 与 `TOCropViewController` 为 MIT 且适合作为后续自由裁剪候选，本轮未新增第三方依赖。
 - 2026-06-22：已补充图片编辑配方编解码、渲染保存、`imageEdit` 素材索引和 `has:image-edit` 搜索筛选测试；本轮 `git diff --check`、`plutil -lint`、`xmllint --noout` 通过，旧版 `xcrun swiftc -parse` 已覆盖新增图片编辑模型、渲染器、编辑视图和测试文件。
+- 2026-06-22：已新增衣橱洞察 v1，基于现有 `MemoAsset` 计算分类、颜色、季节、场景、未搭配单品、常用单品和搭配建议；衣橱页可将建议填入穿搭草稿，穿搭表单已补季节字段。
+- 2026-06-22：阶段 11 开工前已复查 Git 状态、全量文件清单、衣橱/穿搭模型与 UI；GitHub API 检索未找到可直接复制的现代 SwiftUI MIT 衣橱模块，旧 Swift/ObjC 项目和 Kotlin `AURA` 仅做产品参考。
+- 2026-06-22：已补充衣橱洞察统计与建议单元测试；本轮 `git diff --check`、`plutil -lint`、`xmllint --noout` 通过，旧版 `xcrun swiftc -parse` 已覆盖 `WardrobeInsightEngine.swift`、`ContentView.swift` 和 `SomeTests.swift`。
 
 ## 未能在当前环境完成
 
@@ -149,6 +152,7 @@
 - 2026-06-22：手帐画布拖拽、双指缩放和旋转需要完整 Xcode 16 + 模拟器/真机环境做真实手势验证；当前环境已完成模型替换测试、plist/scheme 校验和旧 Swift parser 对可解析文件的检查。
 - 2026-06-22：手帐画布编辑需要完整 Xcode 16 + 模拟器/真机验证多指缩放/旋转、拖拽边界、滚动页面内手势冲突和真实图片图层显示；当前环境只能验证模型替换逻辑和静态语法。
 - 2026-06-22：图片编辑需要完整 Xcode 16 + 模拟器/真机验证真实照片色彩、保存耗时、素材库 sheet 交互、长边大图内存占用和系统分享/备份链路；当前环境已完成渲染核心静态解析和小图单元测试。
+- 2026-06-22：衣橱洞察需要完整 Xcode 16 + 模拟器/真机验证横向统计条、建议填入表单和真实长列表滚动；当前机器只有 Command Line Tools，缺少 iOS/UIKit SDK，无法对包含 UIKit 的 app 文件做完整 `swiftc -typecheck` 或 `xcodebuild test`。
 - Share Extension 的真实分享面板、App Group 容器和签名能力需要在完整 Xcode + Apple Developer Team 环境里实机或模拟器验证。
 - 旧版 `xcrun swiftc -parse` 只能做语法层检查，不能替代 Xcode 16 的完整 typecheck、XCTest 或 Share Extension 真机验证。
 

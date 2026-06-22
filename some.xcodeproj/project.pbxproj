@@ -80,6 +80,7 @@
 		7AD000010000000000000001 /* ScrapbookEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AD001010000000000000001 /* ScrapbookEditorView.swift */; };
 		7AE000010000000000000001 /* ImageEditRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE001010000000000000001 /* ImageEditRenderer.swift */; };
 		7AE000010000000000000002 /* ImageEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE001010000000000000002 /* ImageEditorView.swift */; };
+		7AF000010000000000000001 /* WardrobeInsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AF001010000000000000001 /* WardrobeInsightEngine.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -176,6 +177,7 @@
 		7AD001010000000000000001 /* ScrapbookEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrapbookEditorView.swift; sourceTree = "<group>"; };
 		7AE001010000000000000001 /* ImageEditRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageEditRenderer.swift; sourceTree = "<group>"; };
 		7AE001010000000000000002 /* ImageEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageEditorView.swift; sourceTree = "<group>"; };
+		7AF001010000000000000001 /* WardrobeInsightEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeInsightEngine.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -300,6 +302,7 @@
 				7AB001010000000000000001 /* AudioTranscriber.swift */,
 				7AC001010000000000000001 /* VideoThumbnailGenerator.swift */,
 				7AE001010000000000000001 /* ImageEditRenderer.swift */,
+				7AF001010000000000000001 /* WardrobeInsightEngine.swift */,
 				7A6001010000000000000001 /* MemoBackupPackage.swift */,
 			);
 			path = Utilities;
@@ -551,6 +554,7 @@
 				7AD000010000000000000001 /* ScrapbookEditorView.swift in Sources */,
 				7AE000010000000000000001 /* ImageEditRenderer.swift in Sources */,
 				7AE000010000000000000002 /* ImageEditorView.swift in Sources */,
+				7AF000010000000000000001 /* WardrobeInsightEngine.swift in Sources */,
 				7A6000010000000000000001 /* MemoBackupPackage.swift in Sources */,
 				7A5000010000000000000003 /* AttachmentPreviewList.swift in Sources */,
 			);

@@ -988,6 +988,7 @@ private struct WardrobeView: View {
     @State private var outfitTitle = ""
     @State private var outfitItems = ""
     @State private var outfitScenes = ""
+    @State private var outfitSeasons = ""
     @State private var statusText: String?
 
     private let categories = ["上装", "下装", "连衣裙", "外套", "鞋履", "包包", "饰品", "其他"]
@@ -1010,17 +1011,107 @@ private struct WardrobeView: View {
         }
     }
 
+    private var insights: WardrobeInsights {
+        WardrobeInsightEngine.insights(for: store.assets)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 10) {
-                StatBadge(title: "单品", value: "\(wardrobeAssets.count)", systemImage: "tshirt")
-                StatBadge(title: "穿搭", value: "\(outfitAssets.count)", systemImage: "sparkles")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    StatBadge(title: "单品", value: "\(insights.items.count)", systemImage: "tshirt")
+                    StatBadge(title: "穿搭", value: "\(insights.outfits.count)", systemImage: "sparkles")
+                    StatBadge(title: "未搭配", value: "\(insights.unusedItems.count)", systemImage: "arrow.triangle.2.circlepath")
+                    StatBadge(title: "场景", value: "\(insights.sceneStats.count)", systemImage: "scope")
+                }
             }
 
+            wardrobeInsightPanel
             wardrobeItemForm
             outfitForm
             wardrobeList
         }
+    }
+
+    private var wardrobeInsightPanel: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("衣橱洞察", systemImage: "chart.bar.doc.horizontal")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+
+            if insights.items.isEmpty {
+                EmptyStateView(title: "还没有衣橱统计")
+            } else {
+                metricStrip(title: "分类", metrics: insights.categoryStats)
+                metricStrip(title: "颜色", metrics: insights.colorStats)
+                metricStrip(title: "季节", metrics: insights.seasonStats)
+                metricStrip(title: "场景", metrics: insights.sceneStats)
+
+                if !insights.unusedItems.isEmpty {
+                    namedStrip(
+                        title: "未搭配",
+                        values: insights.unusedItems.prefix(6).map(\.name)
+                    )
+                }
+
+                if !insights.frequentItems.isEmpty {
+                    namedStrip(
+                        title: "常用",
+                        values: insights.frequentItems.map { "\($0.item.name) \($0.count)次" }
+                    )
+                }
+
+                if !insights.suggestions.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("建议")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.secondaryText)
+
+                        ForEach(insights.suggestions) { suggestion in
+                            Button {
+                                applySuggestion(suggestion)
+                            } label: {
+                                HStack(spacing: 10) {
+                                    Image(systemName: suggestion.systemImage)
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundStyle(Color.accentGreen)
+                                        .frame(width: 24, height: 24)
+                                        .background(Color.greenTint)
+                                        .clipShape(Circle())
+
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(suggestion.title)
+                                            .font(.footnote.weight(.semibold))
+                                            .foregroundStyle(Color.primaryText)
+                                        Text(suggestion.detail)
+                                            .font(.caption)
+                                            .lineLimit(2)
+                                            .foregroundStyle(Color.secondaryText)
+                                    }
+
+                                    Spacer()
+
+                                    Label("填入", systemImage: "wand.and.stars")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(Color.accentGreen)
+                                }
+                                .padding(10)
+                                .background(Color.subtleSurface)
+                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .background(Color.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.border, lineWidth: 1)
+        )
     }
 
     private var wardrobeItemForm: some View {
@@ -1104,6 +1195,12 @@ private struct WardrobeView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
             TextField("场景：通勤、聚餐", text: $outfitScenes)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            TextField("季节：春、秋", text: $outfitSeasons)
                 .textFieldStyle(.plain)
                 .padding(10)
                 .background(Color.subtleSurface)
@@ -1202,7 +1299,8 @@ private struct WardrobeView: View {
         guard store.addOutfit(
             title: outfitTitle,
             itemNames: splitValues(outfitItems),
-            scenes: splitValues(outfitScenes)
+            scenes: splitValues(outfitScenes),
+            seasons: splitValues(outfitSeasons)
         ) != nil else {
             statusText = "穿搭保存失败。"
             return
@@ -1211,7 +1309,51 @@ private struct WardrobeView: View {
         outfitTitle = ""
         outfitItems = ""
         outfitScenes = ""
+        outfitSeasons = ""
         statusText = "已保存穿搭"
+    }
+
+    private func applySuggestion(_ suggestion: WardrobeOutfitSuggestion) {
+        outfitTitle = suggestion.title
+        outfitItems = suggestion.itemNames.joined(separator: "、")
+        outfitScenes = suggestion.scenes.joined(separator: "、")
+        outfitSeasons = suggestion.seasons.joined(separator: "、")
+        statusText = "已填入穿搭草稿"
+    }
+
+    private func metricStrip(title: String, metrics: [WardrobeInsightMetric]) -> some View {
+        namedStrip(
+            title: title,
+            values: metrics.prefix(6).map { "\($0.label) \($0.count)" }
+        )
+    }
+
+    private func namedStrip<T: Collection>(title: String, values: T) -> some View where T.Element == String {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+
+            if values.isEmpty {
+                Text("暂无")
+                    .font(.caption)
+                    .foregroundStyle(Color.tertiaryText)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 7) {
+                        ForEach(Array(values), id: \.self) { value in
+                            Text(value)
+                                .font(.caption)
+                                .foregroundStyle(Color.primaryText)
+                                .padding(.horizontal, 9)
+                                .frame(height: 28)
+                                .background(Color.subtleSurface)
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private func splitValues(_ text: String) -> [String] {

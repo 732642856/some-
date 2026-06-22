@@ -45,5 +45,14 @@
 - 新增 `ImageEditRecipe` 和 `ImageEditRenderer`，支持预设比例中心裁剪、Core Image 滤镜、边框、文字和贴纸渲染。
 - 新增 `ImageEditorView`，素材库图片附件可打开编辑器，保存后生成新的本地 PNG 附件和结构化“图片编辑”记录。
 - 新增 `imageEdit` 素材解析、`has:image-edit` 搜索筛选和相关单元测试。
+
+## 2026-06-22T16:45:00Z
+
+- 进入阶段 11：衣橱统计与搭配增强。
+- 复查 Git 状态、全量文件清单、衣橱/穿搭模型、`WardrobeView`、素材索引、搜索筛选和现有测试；开工前远端同步且工作区干净。
+- GitHub API 继续检索 SwiftUI/iOS/virtual closet/outfit planner 候选；未找到可直接复制进当前 SwiftUI 工程的现代 MIT 模块。`MyFitZ` 为 MIT 但 Swift4/iOS10 且停更，`VirtualClosetAI` 无许可证，`AURA` 为 MIT Kotlin/Android，均只做产品结构参考。
+- 新增 `WardrobeInsightEngine`，从现有 `MemoAsset` 解析单品和穿搭，计算分类、颜色、季节、场景、未搭配单品、常用单品和搭配建议。
+- 更新衣橱页，展示洞察面板，并支持把建议一键填入穿搭草稿；穿搭表单补季节字段。
+- 补充衣橱洞察统计和建议单元测试。
 - 发现并收拢阶段 10 文件碎片：`some/Utilities/ImageEditRenderer.swift` 与 `some/Views/ImageEditorView.swift` 已存在于磁盘但未被 Git 跟踪；本轮已确认二者纳入 Xcode app target 并加入 Git 索引。
 - 静态验证通过：`git diff --check`、`plutil -lint`、`xmllint --noout`、旧 Swift parser 覆盖 `ImageEditRenderer.swift`、`ImageEditorView.swift`、`Memo.swift`、`MemoStore.swift`、`MemoSearchQuery.swift`、`ContentView.swift` 和 `SomeTests.swift`。
