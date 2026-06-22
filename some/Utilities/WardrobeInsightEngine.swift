@@ -82,15 +82,22 @@ enum WardrobeInsightEngine {
             .sorted { $0.createdAt == $1.createdAt ? $0.title < $1.title : $0.createdAt > $1.createdAt }
 
         let usageByName = itemUsageCounts(in: outfits)
-        let items = assets
-            .filter { $0.kind == .wardrobeItem }
-            .compactMap { item(from: $0, outfitCount: usageByName[normalizedName($0.title)] ?? 0) }
+        let wardrobeAssets = assets.filter { $0.kind == .wardrobeItem }
+        let items = wardrobeAssets
+            .compactMap { asset in
+                let usageCount = usageByName[wardrobeNormalizedName(asset.title)] ?? 0
+                return item(from: asset, outfitCount: usageCount)
+            }
             .sorted { $0.createdAt == $1.createdAt ? $0.name < $1.name : $0.createdAt > $1.createdAt }
 
-        let categoryStats = stats(from: items.map(\.category).filter { !$0.isEmpty })
-        let colorStats = stats(from: items.flatMap(\.colors))
-        let seasonStats = stats(from: items.flatMap(\.seasons) + outfits.flatMap(\.seasons))
-        let sceneStats = stats(from: items.flatMap(\.scenes) + outfits.flatMap(\.scenes))
+        let categories = items.map { $0.category }.filter { !$0.isEmpty }
+        let colors = items.flatMap { $0.colors }
+        let seasons = items.flatMap { $0.seasons } + outfits.flatMap { $0.seasons }
+        let scenes = items.flatMap { $0.scenes } + outfits.flatMap { $0.scenes }
+        let categoryStats = stats(from: categories)
+        let colorStats = stats(from: colors)
+        let seasonStats = stats(from: seasons)
+        let sceneStats = stats(from: scenes)
         let unusedItems = items
             .filter { $0.outfitCount == 0 }
             .sorted { $0.createdAt == $1.createdAt ? $0.name < $1.name : $0.createdAt > $1.createdAt }
