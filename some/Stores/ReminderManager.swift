@@ -145,7 +145,7 @@ final class ReminderManager: ObservableObject {
     }
 
     private func currentNotificationSettings() async -> UNNotificationSettings {
-        await withCheckedContinuation { continuation in
+        await withCheckedContinuation { (continuation: CheckedContinuation<UNNotificationSettings, Never>) in
             notificationCenter.getNotificationSettings { settings in
                 continuation.resume(returning: settings)
             }
@@ -153,7 +153,7 @@ final class ReminderManager: ObservableObject {
     }
 
     private func requestNotificationAuthorization() async throws -> Bool {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Bool, Error>) in
             notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
                 if let error {
                     continuation.resume(throwing: error)
@@ -165,7 +165,7 @@ final class ReminderManager: ObservableObject {
     }
 
     private func addNotificationRequest(_ request: UNNotificationRequest) async throws {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             notificationCenter.add(request) { error in
                 if let error {
                     continuation.resume(throwing: error)

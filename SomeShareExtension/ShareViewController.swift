@@ -127,7 +127,7 @@ final class ShareCaptureViewModel: ObservableObject {
     }
 
     private func loadText(from provider: NSItemProvider, typeIdentifier: String) async -> String? {
-        await withCheckedContinuation { continuation in
+        await withCheckedContinuation { (continuation: CheckedContinuation<String?, Never>) in
             provider.loadItem(forTypeIdentifier: typeIdentifier, options: nil) { item, _ in
                 if let text = item as? String {
                     continuation.resume(returning: text)
@@ -271,7 +271,7 @@ final class ShareCaptureViewModel: ObservableObject {
     }
 
     private func loadDataRepresentation(from provider: NSItemProvider, typeIdentifier: String) async -> Data? {
-        await withCheckedContinuation { continuation in
+        await withCheckedContinuation { (continuation: CheckedContinuation<Data?, Never>) in
             provider.loadDataRepresentation(forTypeIdentifier: typeIdentifier) { data, _ in
                 continuation.resume(returning: data)
             }
@@ -279,7 +279,7 @@ final class ShareCaptureViewModel: ObservableObject {
     }
 
     private func loadURL(from provider: NSItemProvider) async -> URL? {
-        await withCheckedContinuation { continuation in
+        await withCheckedContinuation { (continuation: CheckedContinuation<URL?, Never>) in
             provider.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { item, _ in
                 if let url = item as? URL {
                     continuation.resume(returning: url)

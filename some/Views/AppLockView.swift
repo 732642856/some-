@@ -39,9 +39,9 @@ final class AppLockManager: ObservableObject {
     }
 
     func unlock() async {
-        await authenticate(reason: "解锁 some，查看你的记录。") {
-            isLocked = false
-            statusMessage = nil
+        await authenticate(reason: "解锁 some，查看你的记录。") { [self] in
+            self.isLocked = false
+            self.statusMessage = nil
         }
     }
 
@@ -49,23 +49,23 @@ final class AppLockManager: ObservableObject {
         guard enabled != isEnabled else { return }
 
         if enabled {
-            await authenticate(reason: "开启隐私锁，用于保护你的本地记录。") {
-                defaults.set(true, forKey: Self.isEnabledKey)
-                isEnabled = true
-                isLocked = false
-                statusMessage = "隐私锁已开启。"
+            await authenticate(reason: "开启隐私锁，用于保护你的本地记录。") { [self] in
+                self.defaults.set(true, forKey: Self.isEnabledKey)
+                self.isEnabled = true
+                self.isLocked = false
+                self.statusMessage = "隐私锁已开启。"
             }
         } else {
-            await authenticate(reason: "关闭隐私锁。") {
-                defaults.set(false, forKey: Self.isEnabledKey)
-                isEnabled = false
-                isLocked = false
-                statusMessage = "隐私锁已关闭。"
+            await authenticate(reason: "关闭隐私锁。") { [self] in
+                self.defaults.set(false, forKey: Self.isEnabledKey)
+                self.isEnabled = false
+                self.isLocked = false
+                self.statusMessage = "隐私锁已关闭。"
             }
         }
     }
 
-    private func authenticate(reason: String, onSuccess: @escaping () -> Void) async {
+    private func authenticate(reason: String, onSuccess: @MainActor @escaping () -> Void) async {
         let context = LAContext()
         var error: NSError?
 
