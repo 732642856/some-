@@ -252,6 +252,10 @@ final class MemoStore: ObservableObject {
         let previousReviewMemo = reviewMemo
         let previousSelectedTag = selectedTag
         let previousRevisions = revisionsByMemoID[memo.id] ?? []
+        let attachmentsToDelete = SharedAttachmentStore.attachments(in: memos[index].text)
+            + previousRevisions.flatMap { revision in
+                SharedAttachmentStore.attachments(in: revision.text)
+            }
         let removedMemo = memos.remove(at: index)
         if reviewMemo?.id == memo.id {
             reviewMemo = nil
@@ -261,7 +265,7 @@ final class MemoStore: ObservableObject {
             self.selectedTag = nil
         }
         if deleteFromStorage(removedMemo) {
-            deleteAttachmentsIfUnreferenced(SharedAttachmentStore.attachments(in: removedMemo.text))
+            deleteAttachmentsIfUnreferenced(attachmentsToDelete)
         } else {
             memos.insert(removedMemo, at: index)
             reviewMemo = previousReviewMemo

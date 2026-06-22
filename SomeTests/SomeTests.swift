@@ -768,7 +768,7 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: sourceURL.path))
     }
 
-    func testMemoUpdateDeletesRemovedAttachmentFile() throws {
+    func testMemoUpdateKeepsRemovedAttachmentReferencedByRevision() throws {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         let attachment = try SharedAttachmentStore.save(
             data: Data("temporary".utf8),
@@ -786,7 +786,8 @@ final class SomeTests: XCTestCase {
 
         XCTAssertTrue(store.update(memo, text: "保留正文"))
 
-        XCTAssertFalse(FileManager.default.fileExists(atPath: attachmentURL.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: attachmentURL.path))
+        SharedAttachmentStore.delete(attachment)
     }
 
     func testMemoUpdateKeepsAttachmentReferencedByAnotherMemo() throws {
@@ -852,6 +853,32 @@ final class SomeTests: XCTestCase {
         }
 
         store.delete(memo)
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: attachmentURL.path))
+    }
+
+    func testMemoDeleteDeletesAttachmentReferencedOnlyByRevision() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let attachment = try SharedAttachmentStore.save(
+            data: Data("revision only".utf8),
+            suggestedFilename: "revision-delete-\(UUID().uuidString).txt",
+            typeIdentifier: UTType.plainText.identifier
+        )
+        guard let attachmentURL = SharedAttachmentStore.url(for: attachment) else {
+            return XCTFail("Expected attachment URL")
+        }
+        store.addMemo(text: "历史附件\n\n\(attachment.referenceLine)")
+
+        guard let memo = store.memos.first else {
+            return XCTFail("Expected memo")
+        }
+
+        XCTAssertTrue(store.update(memo, text: "当前正文"))
+        guard let updatedMemo = store.memos.first else {
+            return XCTFail("Expected updated memo")
+        }
+
+        store.delete(updatedMemo)
 
         XCTAssertFalse(FileManager.default.fileExists(atPath: attachmentURL.path))
     }
