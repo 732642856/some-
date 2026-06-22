@@ -1,6 +1,22 @@
 import Foundation
 
 enum SharedMemoStorage {
+    enum Requirement {
+        case sharedContainerPreferred
+        case sharedContainerRequired
+    }
+
+    enum StorageError: LocalizedError {
+        case missingSharedContainer(String)
+
+        var errorDescription: String? {
+            switch self {
+            case .missingSharedContainer(let identifier):
+                return "App Group “\(identifier)”不可用，请确认主 App 和分享扩展启用了同一个 App Group。"
+            }
+        }
+    }
+
     static var appGroupIdentifier: String {
         let configuredIdentifier = Bundle.main.object(forInfoDictionaryKey: "SomeAppGroupIdentifier") as? String
         let trimmedIdentifier = configuredIdentifier?.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -19,18 +35,81 @@ enum SharedMemoStorage {
     }
 
     static func storageDirectory(fileManager: FileManager = .default) -> URL {
-        let standardDirectory = documentsDirectory(fileManager: fileManager)
-        let storageDirectory = sharedDocumentsDirectory(fileManager: fileManager) ?? standardDirectory
-        try? fileManager.createDirectory(
-            at: storageDirectory,
-            withIntermediateDirectories: true
+        (try? storageDirectory(
+            fileManager: fileManager,
+            requirement: .sharedContainerPreferred
+        )) ?? documentsDirectory(fileManager: fileManager)
+    }
+
+    static func storageDirectory(
+        fileManager: FileManager = .default,
+        requirement: Requirement
+    ) throws -> URL {
+        try resolveStorageDirectory(
+            standardDirectory: documentsDirectory(fileManager: fileManager),
+            sharedDirectory: sharedDocumentsDirectory(fileManager: fileManager),
+            appGroupIdentifier: appGroupIdentifier,
+            requirement: requirement,
+            fileManager: fileManager
         )
-        return storageDirectory
     }
 
     static func urls(filename: String = "some-memos.json") -> URLs {
+        (try? urls(
+            filename: filename,
+            requirement: .sharedContainerPreferred
+        )) ?? urls(
+            filename: filename,
+            storageDirectory: documentsDirectory(),
+            standardDirectory: documentsDirectory()
+        )
+    }
+
+    static func urls(
+        filename: String = "some-memos.json",
+        requirement: Requirement
+    ) throws -> URLs {
         let standardDirectory = documentsDirectory()
-        let storageDirectory = Self.storageDirectory()
+        let storageDirectory = try Self.storageDirectory(requirement: requirement)
+
+        return urls(
+            filename: filename,
+            storageDirectory: storageDirectory,
+            standardDirectory: standardDirectory
+        )
+    }
+
+    static func resolveStorageDirectory(
+        standardDirectory: URL,
+        sharedDirectory: URL?,
+        appGroupIdentifier: String,
+        requirement: Requirement,
+        fileManager: FileManager = .default
+    ) throws -> URL {
+        guard let sharedDirectory = sharedDirectory else {
+            if requirement == .sharedContainerRequired {
+                throw StorageError.missingSharedContainer(appGroupIdentifier)
+            }
+
+            try fileManager.createDirectory(
+                at: standardDirectory,
+                withIntermediateDirectories: true
+            )
+            return standardDirectory
+        }
+
+        try fileManager.createDirectory(
+            at: sharedDirectory,
+            withIntermediateDirectories: true
+        )
+        return sharedDirectory
+    }
+
+    private static func urls(
+        filename: String,
+        storageDirectory: URL,
+        standardDirectory: URL
+    ) -> URLs {
         try? FileManager.default.createDirectory(
             at: storageDirectory,
             withIntermediateDirectories: true

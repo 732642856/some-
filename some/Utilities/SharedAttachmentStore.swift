@@ -34,15 +34,20 @@ enum SharedAttachmentStore {
         data: Data,
         suggestedFilename: String?,
         typeIdentifier: String?,
-        fileManager: FileManager = .default
+        fileManager: FileManager = .default,
+        storageRequirement: SharedMemoStorage.Requirement = .sharedContainerPreferred
     ) throws -> SharedAttachment {
         let type = typeIdentifier.flatMap(UTType.init)
         let filename = makeUniqueFilename(
             suggestedFilename: suggestedFilename,
             type: type,
-            fileManager: fileManager
+            fileManager: fileManager,
+            storageRequirement: storageRequirement
         )
-        let directory = try attachmentsDirectory(fileManager: fileManager)
+        let directory = try attachmentsDirectory(
+            fileManager: fileManager,
+            storageRequirement: storageRequirement
+        )
         let url = directory.appendingPathComponent(filename, isDirectory: false)
         try data.write(to: url, options: [.atomic])
 
@@ -59,7 +64,8 @@ enum SharedAttachmentStore {
         fileAt sourceURL: URL,
         suggestedFilename: String?,
         typeIdentifier: String?,
-        fileManager: FileManager = .default
+        fileManager: FileManager = .default,
+        storageRequirement: SharedMemoStorage.Requirement = .sharedContainerPreferred
     ) throws -> SharedAttachment {
         let accessed = sourceURL.startAccessingSecurityScopedResource()
         defer {
@@ -76,9 +82,13 @@ enum SharedAttachmentStore {
         let filename = makeUniqueFilename(
             suggestedFilename: resolvedFilename,
             type: type,
-            fileManager: fileManager
+            fileManager: fileManager,
+            storageRequirement: storageRequirement
         )
-        let directory = try attachmentsDirectory(fileManager: fileManager)
+        let directory = try attachmentsDirectory(
+            fileManager: fileManager,
+            storageRequirement: storageRequirement
+        )
         let destinationURL = directory.appendingPathComponent(filename, isDirectory: false)
         try copyFileAtomically(from: sourceURL, to: destinationURL, fileManager: fileManager)
         let byteCount = destinationURL.fileByteCount(fileManager: fileManager)
@@ -178,14 +188,16 @@ enum SharedAttachmentStore {
         filename: String,
         relativePath: String,
         typeIdentifier: String,
-        fileManager: FileManager = .default
+        fileManager: FileManager = .default,
+        storageRequirement: SharedMemoStorage.Requirement = .sharedContainerPreferred
     ) throws -> SharedAttachment {
         guard let safePath = safeRelativePath(relativePath) else {
             return try save(
                 data: data,
                 suggestedFilename: filename,
                 typeIdentifier: typeIdentifier,
-                fileManager: fileManager
+                fileManager: fileManager,
+                storageRequirement: storageRequirement
             )
         }
 
@@ -207,7 +219,8 @@ enum SharedAttachmentStore {
                 data: data,
                 suggestedFilename: filename,
                 typeIdentifier: typeIdentifier,
-                fileManager: fileManager
+                fileManager: fileManager,
+                storageRequirement: storageRequirement
             )
         }
 
@@ -216,7 +229,8 @@ enum SharedAttachmentStore {
                 data: data,
                 suggestedFilename: filename,
                 typeIdentifier: typeIdentifier,
-                fileManager: fileManager
+                fileManager: fileManager,
+                storageRequirement: storageRequirement
             )
         }
 
@@ -328,8 +342,14 @@ enum SharedAttachmentStore {
         )
     }
 
-    private static func attachmentsDirectory(fileManager: FileManager = .default) throws -> URL {
-        let root = SharedMemoStorage.storageDirectory(fileManager: fileManager)
+    private static func attachmentsDirectory(
+        fileManager: FileManager = .default,
+        storageRequirement: SharedMemoStorage.Requirement = .sharedContainerPreferred
+    ) throws -> URL {
+        let root = try SharedMemoStorage.storageDirectory(
+            fileManager: fileManager,
+            requirement: storageRequirement
+        )
         let directory = root.appendingPathComponent(directoryName, isDirectory: true)
         try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
         return directory
@@ -386,9 +406,13 @@ enum SharedAttachmentStore {
     private static func makeUniqueFilename(
         suggestedFilename: String?,
         type: UTType?,
-        fileManager: FileManager
+        fileManager: FileManager,
+        storageRequirement: SharedMemoStorage.Requirement
     ) -> String {
-        let directory = (try? attachmentsDirectory(fileManager: fileManager))
+        let directory = (try? attachmentsDirectory(
+            fileManager: fileManager,
+            storageRequirement: storageRequirement
+        ))
             ?? URL(fileURLWithPath: NSTemporaryDirectory())
         let sanitized = sanitizedFilename(suggestedFilename, type: type)
         let baseURL = URL(fileURLWithPath: sanitized)

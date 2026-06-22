@@ -262,6 +262,36 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(reloaded.memos.first?.tags, ["数据库"])
     }
 
+    func testSharedStorageRequiresSharedContainerWhenConfigured() throws {
+        let standardDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("standard-\(UUID().uuidString)", isDirectory: true)
+
+        XCTAssertThrowsError(
+            try SharedMemoStorage.resolveStorageDirectory(
+                standardDirectory: standardDirectory,
+                sharedDirectory: nil,
+                appGroupIdentifier: "group.missing.some",
+                requirement: .sharedContainerRequired
+            )
+        )
+    }
+
+    func testSharedStorageFallsBackWhenSharedContainerIsPreferred() throws {
+        let standardDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("standard-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: standardDirectory) }
+
+        let resolved = try SharedMemoStorage.resolveStorageDirectory(
+            standardDirectory: standardDirectory,
+            sharedDirectory: nil,
+            appGroupIdentifier: "group.missing.some",
+            requirement: .sharedContainerPreferred
+        )
+
+        XCTAssertEqual(resolved.path, standardDirectory.path)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: standardDirectory.path))
+    }
+
     func testSQLiteMigrationFallsBackToBackupWhenMainJSONIsCorrupt() throws {
         let filename = "test-\(UUID().uuidString).json"
         let fileURL = documentsURL().appendingPathComponent(filename)

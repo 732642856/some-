@@ -38,11 +38,11 @@ final class ShareViewController: UIViewController {
 
     @MainActor
     private func save() {
-        let store = MemoStore()
+        let store = MemoStore(storageRequirement: .sharedContainerRequired)
         if store.addMemo(text: viewModel.saveText) != nil {
             extensionContext?.completeRequest(returningItems: nil)
         } else {
-            viewModel.errorMessage = "保存失败，请回到 some 检查存储空间后再试"
+            viewModel.errorMessage = "保存失败，请确认 some 和分享扩展启用了同一个 App Group"
         }
     }
 }
@@ -175,7 +175,8 @@ final class ShareCaptureViewModel: ObservableObject {
             return try? SharedAttachmentStore.save(
                 data: data,
                 suggestedFilename: provider.suggestedName,
-                typeIdentifier: typeIdentifier
+                typeIdentifier: typeIdentifier,
+                storageRequirement: .sharedContainerRequired
             )
         }
 
@@ -231,19 +232,22 @@ final class ShareCaptureViewModel: ObservableObject {
                     continuation.resume(returning: try? SharedAttachmentStore.save(
                         fileAt: url,
                         suggestedFilename: suggestedFilename,
-                        typeIdentifier: typeIdentifier
+                        typeIdentifier: typeIdentifier,
+                        storageRequirement: .sharedContainerRequired
                     ))
                 } else if let data = item as? Data {
                     continuation.resume(returning: try? SharedAttachmentStore.save(
                         data: data,
                         suggestedFilename: suggestedFilename,
-                        typeIdentifier: typeIdentifier
+                        typeIdentifier: typeIdentifier,
+                        storageRequirement: .sharedContainerRequired
                     ))
                 } else if let image = item as? UIImage, let data = image.pngData() {
                     continuation.resume(returning: try? SharedAttachmentStore.save(
                         data: data,
                         suggestedFilename: suggestedFilename,
-                        typeIdentifier: UTType.png.identifier
+                        typeIdentifier: UTType.png.identifier,
+                        storageRequirement: .sharedContainerRequired
                     ))
                 } else {
                     continuation.resume(returning: nil)
@@ -267,7 +271,8 @@ final class ShareCaptureViewModel: ObservableObject {
                 let attachment = try? SharedAttachmentStore.save(
                     fileAt: url,
                     suggestedFilename: suggestedFilename ?? url.lastPathComponent,
-                    typeIdentifier: typeIdentifier
+                    typeIdentifier: typeIdentifier,
+                    storageRequirement: .sharedContainerRequired
                 )
                 continuation.resume(returning: attachment)
             }

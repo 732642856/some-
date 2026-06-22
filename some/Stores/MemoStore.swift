@@ -42,12 +42,28 @@ final class MemoStore: ObservableObject {
     private let fileURL: URL
     private let backupFileURL: URL
     private let database: SQLiteMemoDatabase?
+    private let storageError: Error?
 
-    init(filename: String = "some-memos.json") {
-        let storageURLs = SharedMemoStorage.urls(filename: filename)
-        self.fileURL = storageURLs.fileURL
-        self.backupFileURL = storageURLs.backupFileURL
-        self.database = try? SQLiteMemoDatabase(databaseURL: storageURLs.databaseURL)
+    init(
+        filename: String = "some-memos.json",
+        storageRequirement: SharedMemoStorage.Requirement = .sharedContainerPreferred
+    ) {
+        do {
+            let storageURLs = try SharedMemoStorage.urls(
+                filename: filename,
+                requirement: storageRequirement
+            )
+            self.fileURL = storageURLs.fileURL
+            self.backupFileURL = storageURLs.backupFileURL
+            self.database = try? SQLiteMemoDatabase(databaseURL: storageURLs.databaseURL)
+            self.storageError = nil
+        } catch {
+            let storageURLs = SharedMemoStorage.urls(filename: filename)
+            self.fileURL = storageURLs.fileURL
+            self.backupFileURL = storageURLs.backupFileURL
+            self.database = nil
+            self.storageError = error
+        }
 
         load()
     }
@@ -140,6 +156,10 @@ final class MemoStore: ObservableObject {
 
     @discardableResult
     func addMemo(text: String) -> Memo? {
+        guard storageError == nil else {
+            return nil
+        }
+
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
 
@@ -329,6 +349,10 @@ final class MemoStore: ObservableObject {
     }
 
     func importJSON(_ text: String) throws -> Int {
+        if let storageError {
+            throw storageError
+        }
+
         let data = Data(text.utf8)
         if let archive = try? JSONDecoder.memoDecoder.decode(MemoBackupArchive.self, from: data) {
             return try importBackupArchive(archive)
@@ -358,6 +382,10 @@ final class MemoStore: ObservableObject {
     }
 
     func importBackupArchive(_ archive: MemoBackupArchive) throws -> Int {
+        if let storageError {
+            throw storageError
+        }
+
         let previousMemos = memos
         let importableMemos = archive.memos.filter { memo in
             !memo.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -470,6 +498,10 @@ final class MemoStore: ObservableObject {
     }
 
     func importPlainText(_ text: String) -> Int {
+        guard storageError == nil else {
+            return 0
+        }
+
         let chunks = text
             .components(separatedBy: "\n\n")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -484,6 +516,10 @@ final class MemoStore: ObservableObject {
     }
 
     func addMemo(from url: URL) {
+        guard storageError == nil else {
+            return
+        }
+
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
 
         let text = components.queryItems?.first(where: { $0.name == "text" })?.value
@@ -603,6 +639,11 @@ final class MemoStore: ObservableObject {
     }
 
     private func load() {
+        if storageError != nil {
+            memos = []
+            return
+        }
+
         if let database = database {
             do {
                 if try database.isEmpty(), let legacyMemos = loadLegacyMemos() {
