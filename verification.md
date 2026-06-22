@@ -73,6 +73,11 @@
 - 2026-06-22：已对照 usememos `MemoRelation` / `REFERENCE` / `COMMENT` 与 flomo 101 引用批注，新增卡片引用 v1。
 - 2026-06-22：已新增 `MemoReferenceParser`，并确认纳入主 App 与 Share Extension sources。
 - 2026-06-22：已补充内部引用解析、隐藏引用行、添加引用、反向引用、引用去重、普通链接过滤内部引用相关单元测试。
+- 2026-06-22：已复查主仓库、未跟踪文件和 Documents 下同名目录，未发现当前主仓库外的活跃 some 工程碎片；外部只看到旧 Codex 会话目录。
+- 2026-06-22：已对照 usememos/memos 的 memo relations、link metadata 与内容 payload/filter 思路，新增搜索三期第一段：`has:link`、`has:attachment`、`has:task`、`has:open-task`、`has:completed-task`、`has:reference`、`has:backlink`，并支持 `-has:` / `no:` / `without:` 排除。
+- 2026-06-22：已补充结构化搜索解析、未知 `has:` 回落为普通文本、链接/附件/任务/引用/反向引用筛选、排除筛选相关单元测试。
+- 2026-06-22：已将 `LinkExtractor.swift` 纳入 Share Extension sources，避免共享 `MemoStore` 使用链接筛选时扩展 target 缺符号。
+- 2026-06-22：本轮 `git diff --check`、`plutil -lint`、`xmllint --noout` 通过；旧版 `xcrun swiftc -parse` 已覆盖新增搜索解析器、`MemoStore` 和测试文件的语法层检查。
 
 ## 未能在当前环境完成
 
@@ -80,7 +85,7 @@
 - 当前 Command Line Tools 的 Swift 编译器为旧版 Swift 5.4，无法 typecheck Swift concurrency 代码；本轮只完成了 plist、scheme、target 引用和源码静态扫描。
 - 2026-06-22 复查：`xcodebuild -version` 仍失败，提示 active developer directory 为 `/Library/Developer/CommandLineTools`；`xcrun swiftc -version` 为 Apple Swift 5.4。
 - Share Extension 的真实分享面板、App Group 容器和签名能力需要在完整 Xcode + Apple Developer Team 环境里实机或模拟器验证。
-- 尝试用旧版 `xcrun swiftc` 对纯 Foundation 文件做轻量 typecheck，但当前 Command Line Tools 运行缓慢且不适合作为本项目编译结论，已中止进程。
+- 旧版 `xcrun swiftc -parse` 只能做语法层检查，不能替代 Xcode 16 的完整 typecheck、XCTest 或 Share Extension 真机验证。
 
 ## 下一步建议
 

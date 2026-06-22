@@ -99,10 +99,12 @@ P3 只参考：
 
 2026-06-22 本轮实现决策：对照 usememos 的 `MemoRelation` / `REFERENCE` / `COMMENT` API 和 Web 端 link memo 插入流程后，some 先做轻量本地 `REFERENCE`：用 `[引用: 标题](some-memo://UUID)` 写入正文，详情页展示正向/反向引用。没有复制 usememos 的 MIT Web/Go/Proto 代码，也没有复制 MoeMemos 的 MPL 源码；选择正文内链接是为了让现有 SQLite、备份、历史版本和 Markdown 导出无需 schema 大迁移即可保留关系。
 
+2026-06-22 本轮实现决策：继续对照 usememos/memos 的 memo relations、link metadata 和内容 payload/filter 思路，补 some 搜索三期第一段。新增 `has:*` / `-has:*` 语法复用本项目已有 `LinkExtractor`、`SharedAttachmentStore`、`MemoTaskParser`、`MemoReferenceParser`，没有复制 usememos 的 MIT 代码；选择文本语法是为了让保存搜索、最近搜索和现有 FTS 查询链都能直接组合使用。
+
 下一轮开发建议做引用批注二期或搜索三期，因为：
 
 - Share Extension 附件 v1 已完成，主动网页标题抓取可后置到联网能力更明确时。
-- 搜索二期已完成基础版；下一步应做搜索三期：命中高亮、按日期/附件/任务状态筛选、保存筛选重命名。
+- 搜索二期已完成基础版，搜索三期第一段已补结构化筛选；下一步应继续做命中高亮、按日期筛选、保存筛选重命名。
 - 历史版本基础版已完成；下一步应做差异对比、版本备注、按版本复制。
 - 卡片引用 v1 已完成；下一步应补批注正文、关系图和引用搜索筛选。
 - 两者都不依赖签名证书，适合在当前环境继续推进。
@@ -110,7 +112,7 @@ P3 只参考：
 推荐路线：
 
 1. 引用批注二期：批注正文、关系图、引用搜索筛选。
-2. 搜索三期：命中高亮、按日期/附件/任务状态筛选、保存筛选重命名。
+2. 搜索三期：命中高亮、按日期筛选、保存筛选重命名。
 3. 历史版本二期：差异对比、版本备注、按版本复制。
 4. 附件后续：如需按年月拆分 Markdown 和附件目录，再引入 ZIPFoundation 做 zip 包导出。
 5. 网页后续：在明确网络策略后再做标题抓取。

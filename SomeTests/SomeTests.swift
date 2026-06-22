@@ -401,6 +401,27 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(query.isArchived, false)
     }
 
+    func testSearchQueryParserExtractsContentFilters() {
+        let query = MemoSearchQueryParser.parse("has:link has:attachment has:reference no:task without:backlink 复盘")
+
+        XCTAssertEqual(query.textTerms, ["复盘"])
+        XCTAssertEqual(
+            query.requiredContentFilters,
+            [.attachment, .link, .reference]
+        )
+        XCTAssertEqual(
+            query.excludedContentFilters,
+            [.backlink, .task]
+        )
+    }
+
+    func testSearchQueryParserKeepsUnknownContentFiltersAsText() {
+        let query = MemoSearchQueryParser.parse("has:unknown 资料")
+
+        XCTAssertEqual(query.textTerms, ["has:unknown", "资料"])
+        XCTAssertTrue(query.requiredContentFilters.isEmpty)
+    }
+
     func testSearchCanFilterByTagAndPinnedState() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "优化输入体验 #产品/输入")
@@ -414,6 +435,59 @@ final class SomeTests: XCTestCase {
         store.searchText = "#产品 is:pinned 输入"
 
         XCTAssertEqual(store.filteredMemos.map(\.text), ["优化输入体验 #产品/输入"])
+    }
+
+    func testSearchCanFilterByContentTypes() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.addMemo(text: "链接资料 https://example.com/a")
+        store.addMemo(text: "附件资料\n\n[附件: image.png](some-attachment://image.png)")
+        store.addMemo(text: "任务资料\n- [ ] 写提纲\n- [x] 校对")
+        store.addMemo(text: "普通资料")
+
+        store.searchText = "has:link"
+        XCTAssertEqual(store.filteredMemos.map(\.text), ["链接资料 https://example.com/a"])
+
+        store.searchText = "has:attachment"
+        XCTAssertEqual(store.filteredMemos.map(\.text), ["附件资料\n\n[附件: image.png](some-attachment://image.png)"])
+
+        store.searchText = "has:task"
+        XCTAssertEqual(store.filteredMemos.map(\.text), ["任务资料\n- [ ] 写提纲\n- [x] 校对"])
+
+        store.searchText = "has:open-task"
+        XCTAssertEqual(store.filteredMemos.map(\.text), ["任务资料\n- [ ] 写提纲\n- [x] 校对"])
+
+        store.searchText = "has:completed-task"
+        XCTAssertEqual(store.filteredMemos.map(\.text), ["任务资料\n- [ ] 写提纲\n- [x] 校对"])
+    }
+
+    func testSearchCanExcludeContentTypes() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.addMemo(text: "资料带链接 https://example.com/a")
+        store.addMemo(text: "资料无链接")
+
+        store.searchText = "资料 -has:link"
+
+        XCTAssertEqual(store.filteredMemos.map(\.text), ["资料无链接"])
+    }
+
+    func testSearchCanFilterByReferencesAndBacklinks() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.addMemo(text: "源记录 #关系")
+        store.addMemo(text: "目标记录 #关系")
+        store.addMemo(text: "旁路记录 #关系")
+
+        guard let source = store.memos.first(where: { $0.text.contains("源记录") }),
+              let target = store.memos.first(where: { $0.text.contains("目标记录") }) else {
+            return XCTFail("Expected memos")
+        }
+
+        XCTAssertTrue(store.addReference(from: source, to: target))
+
+        store.searchText = "has:reference"
+        XCTAssertEqual(store.filteredMemos.map(\.id), [source.id])
+
+        store.searchText = "has:backlink"
+        XCTAssertEqual(store.filteredMemos.map(\.id), [target.id])
     }
 
     func testSearchCanIncludeArchivedFromQuery() {

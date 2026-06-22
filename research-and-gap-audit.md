@@ -116,13 +116,14 @@
 - App Group 共享存储：主 App 与 Share Extension 共用 SQLite
 - 快速输入增强：自动聚焦、保存并继续、标签建议、链接预览
 - SQLite FTS 搜索索引：正文/标签全文检索
-- 搜索语法：`#标签`、`tag:标签`、`is:pinned`、`is:archived`、`is:active`
+- 搜索语法：`#标签`、`tag:标签`、`is:pinned`、`is:archived`、`is:active`、`has:link` / `has:attachment` / `has:task` / `has:reference`
 - Markdown 阅读渲染：列表与详情页使用系统 Markdown 富文本展示
 - Markdown 任务项：识别 `- [ ]` / `- [x]`，详情页可直接勾选并写回 SQLite
 - App Intents / Shortcuts：快捷指令可保存新随记，复用本地 SQLite 存储
 - Share Extension 附件 v1：支持图片/文件分享，本地 App Group 附件目录保存，列表/详情展示附件卡片
 - 历史版本：编辑前保存旧正文，详情页可查看并恢复，完整备份会包含历史版本及其附件
 - 搜索二期：提交搜索会记录最近搜索，可保存常用组合筛选，首页显示搜索结果数量，卡片显示命中摘录
+- 搜索三期第一段：参考 usememos 的关系、链接元数据与内容 payload/filter 思路，新增 `has:*` 结构化筛选；覆盖链接、附件、任务、未完成/已完成任务、正向引用和反向引用，并支持 `-has:` / `no:` / `without:` 排除
 - 卡片引用 v1：详情页可添加内部 `some-memo://UUID` 引用，并展示正向引用与反向引用；引用保存在正文中，随导出、备份和历史版本迁移
 
 ## AI 对标补充
@@ -142,7 +143,7 @@ P0：
 P1：
 
 - Share Extension 二期：主动网页标题抓取、保存后自动返回来源 App 的体验验证
-- 搜索三期：命中高亮、按日期/附件/任务状态筛选、保存筛选重命名
+- 搜索三期：命中高亮、按日期筛选、保存筛选重命名；附件/任务/引用结构化筛选已先完成
 - Markdown 二期：完整块级渲染、代码块、引用批注、附件卡片
 - 历史版本二期：差异对比、版本备注、按版本复制
 

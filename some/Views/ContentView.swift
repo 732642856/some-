@@ -38,7 +38,7 @@ struct ContentView: View {
             }
             .navigationTitle("some")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $store.searchText, prompt: "搜索内容、#标签或 is:pinned")
+            .searchable(text: $store.searchText, prompt: "搜索内容、#标签、is:pinned 或 has:link")
             .onSubmit(of: .search) {
                 store.recordCurrentSearch()
             }

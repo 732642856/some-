@@ -1,9 +1,21 @@
 import Foundation
 
+enum MemoContentFilter: String, CaseIterable, Hashable {
+    case link
+    case attachment
+    case task
+    case openTask = "open-task"
+    case completedTask = "completed-task"
+    case reference
+    case backlink
+}
+
 struct MemoSearchQuery: Equatable {
     let rawText: String
     let textTerms: [String]
     let tagFilters: [String]
+    let requiredContentFilters: [MemoContentFilter]
+    let excludedContentFilters: [MemoContentFilter]
     let isPinned: Bool?
     let isArchived: Bool?
 
@@ -14,12 +26,18 @@ struct MemoSearchQuery: Equatable {
     var hasTextTerms: Bool {
         !textTerms.isEmpty
     }
+
+    var hasContentFilters: Bool {
+        !requiredContentFilters.isEmpty || !excludedContentFilters.isEmpty
+    }
 }
 
 enum MemoSearchQueryParser {
     static func parse(_ rawText: String) -> MemoSearchQuery {
         var textTerms: [String] = []
         var tagFilters: [String] = []
+        var requiredContentFilters: [MemoContentFilter] = []
+        var excludedContentFilters: [MemoContentFilter] = []
         var isPinned: Bool?
         var isArchived: Bool?
 
@@ -44,6 +62,14 @@ enum MemoSearchQueryParser {
                 if !tag.isEmpty {
                     tagFilters.append(tag)
                 }
+            } else if let filter = contentFilter(in: token, prefix: "has:") {
+                requiredContentFilters.append(filter)
+            } else if let filter = contentFilter(in: token, prefix: "-has:") {
+                excludedContentFilters.append(filter)
+            } else if let filter = contentFilter(in: token, prefix: "no:") {
+                excludedContentFilters.append(filter)
+            } else if let filter = contentFilter(in: token, prefix: "without:") {
+                excludedContentFilters.append(filter)
             } else {
                 textTerms.append(token)
             }
@@ -55,6 +81,8 @@ enum MemoSearchQueryParser {
             tagFilters: Array(Set(tagFilters)).sorted {
                 $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
             },
+            requiredContentFilters: uniqueContentFilters(requiredContentFilters),
+            excludedContentFilters: uniqueContentFilters(excludedContentFilters),
             isPinned: isPinned,
             isArchived: isArchived
         )
@@ -88,5 +116,45 @@ enum MemoSearchQueryParser {
         if !trimmed.isEmpty {
             tokens.append(trimmed)
         }
+    }
+
+    private static func contentFilter(in token: String, prefix: String) -> MemoContentFilter? {
+        let lowercased = token.lowercased()
+        guard lowercased.hasPrefix(prefix) else {
+            return nil
+        }
+
+        let value = String(token.dropFirst(prefix.count))
+        return contentFilter(from: value)
+    }
+
+    private static func contentFilter(from value: String) -> MemoContentFilter? {
+        let normalized = value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .replacingOccurrences(of: "_", with: "-")
+
+        switch normalized {
+        case "link", "links", "url", "urls", "链接", "网址":
+            return .link
+        case "attachment", "attachments", "file", "files", "resource", "resources", "附件", "文件":
+            return .attachment
+        case "task", "tasks", "todo", "todos", "checkbox", "checkboxes", "任务", "待办":
+            return .task
+        case "open-task", "open-tasks", "unchecked", "incomplete-task", "incomplete-tasks", "未完成":
+            return .openTask
+        case "done-task", "done-tasks", "completed-task", "completed-tasks", "checked", "已完成":
+            return .completedTask
+        case "reference", "references", "ref", "refs", "引用":
+            return .reference
+        case "backlink", "backlinks", "incoming-reference", "incoming-references", "被引用", "反向引用":
+            return .backlink
+        default:
+            return nil
+        }
+    }
+
+    private static func uniqueContentFilters(_ filters: [MemoContentFilter]) -> [MemoContentFilter] {
+        Array(Set(filters)).sorted { $0.rawValue < $1.rawValue }
     }
 }

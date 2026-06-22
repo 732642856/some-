@@ -9,8 +9,8 @@
 - 支持 `#项目/子类` 多级标签
 - 标签筛选
 - SQLite FTS 全文搜索
-- 搜索语法：`#标签`、`tag:标签`、`is:pinned`、`is:archived`、`is:active`
-- 搜索二期：最近搜索、保存搜索、结果数量、命中摘录
+- 搜索语法：`#标签`、`tag:标签`、`is:pinned`、`is:archived`、`is:active`、`has:link`
+- 搜索增强：最近搜索、保存搜索、结果数量、命中摘录、链接/附件/任务/引用结构化筛选
 - 置顶
 - 编辑和删除
 - 本地 SQLite 持久化
@@ -47,6 +47,11 @@
 - `#标签` 或 `tag:标签`：按标签过滤，支持匹配子标签，例如 `#产品`
 - `is:pinned` / `is:unpinned`：只看置顶或未置顶
 - `is:archived` / `is:active`：只看归档或当前记录
+- `has:link`：只看包含普通网页链接的记录
+- `has:attachment`：只看包含本地附件引用的记录
+- `has:task` / `has:open-task` / `has:completed-task`：只看包含任务、未完成任务或已完成任务的记录
+- `has:reference` / `has:backlink`：只看引用了其他记录或被其他记录引用的记录
+- `-has:link` / `no:task` / `without:attachment`：排除对应类型，能和普通文字、标签、置顶、归档筛选组合使用
 - 双引号：把空格内容作为一个搜索词，例如 `"输入体验"`
 - 提交搜索后会进入“最近”，也可以把常用组合保存成快捷筛选。
 

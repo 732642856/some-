@@ -72,6 +72,7 @@
 		7A5000010000000000000003 /* AttachmentPreviewList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5001010000000000000002 /* AttachmentPreviewList.swift */; };
 		7A8000010000000000000001 /* MemoReferenceParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A8001010000000000000001 /* MemoReferenceParser.swift */; };
 		7A8000010000000000000002 /* MemoReferenceParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A8001010000000000000001 /* MemoReferenceParser.swift */; };
+		7A9000010000000000000001 /* LinkExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000035 /* LinkExtractor.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -553,6 +554,7 @@
 				7A2000010000000000000014 /* DateFormatters.swift in Sources */,
 				7A5000010000000000000002 /* SharedAttachmentStore.swift in Sources */,
 				7A8000010000000000000002 /* MemoReferenceParser.swift in Sources */,
+				7A9000010000000000000001 /* LinkExtractor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

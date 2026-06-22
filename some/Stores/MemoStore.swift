@@ -148,6 +148,9 @@ final class MemoStore: ObservableObject {
                 query.tagFilters.allSatisfy { matchesTag($0, in: memo) }
             }
             .filter { memo in
+                matchesContentFilters(memo, query: query)
+            }
+            .filter { memo in
                 matchesText(memo, query: query, searchRanks: searchRanks)
             }
             .sorted { sortMemos($0, $1, searchRanks: searchRanks, query: query) }
@@ -848,6 +851,41 @@ final class MemoStore: ObservableObject {
         memo.tags.contains { tag in
             tag == selectedTag || tag.hasPrefix("\(selectedTag)/")
         }
+    }
+
+    private func matchesContentFilters(_ memo: Memo, query: MemoSearchQuery) -> Bool {
+        guard query.hasContentFilters else {
+            return true
+        }
+
+        return query.requiredContentFilters.allSatisfy { matchesContentFilter($0, in: memo) }
+            && query.excludedContentFilters.allSatisfy { !matchesContentFilter($0, in: memo) }
+    }
+
+    private func matchesContentFilter(_ filter: MemoContentFilter, in memo: Memo) -> Bool {
+        switch filter {
+        case .link:
+            return !LinkExtractor.urls(in: memo.text).isEmpty
+        case .attachment:
+            return !SharedAttachmentStore.attachments(in: memo.text).isEmpty
+        case .task:
+            return !taskItems(in: memo).isEmpty
+        case .openTask:
+            return taskItems(in: memo).contains { !$0.isCompleted }
+        case .completedTask:
+            return taskItems(in: memo).contains { $0.isCompleted }
+        case .reference:
+            return !MemoReferenceParser.references(in: memo.text).isEmpty
+        case .backlink:
+            return !backlinkMemos(to: memo).isEmpty
+        }
+    }
+
+    private func taskItems(in memo: Memo) -> [MemoTaskItem] {
+        let displayText = MemoReferenceParser.displayTextWithoutReferences(
+            SharedAttachmentStore.displayTextWithoutAttachmentReferences(memo.text)
+        )
+        return MemoTaskParser.taskItems(in: displayText)
     }
 
     private func matchesPinnedFilter(_ memo: Memo, query: MemoSearchQuery) -> Bool {
