@@ -1581,6 +1581,67 @@ final class SomeTests: XCTestCase {
         XCTAssertNil(VideoThumbnailGenerator.image(for: missingURL))
     }
 
+    func testMediaMetadataDurationFormatting() {
+        XCTAssertEqual(MediaMetadata.formatDuration(5), "0:05")
+        XCTAssertEqual(MediaMetadata.formatDuration(125), "2:05")
+        XCTAssertEqual(MediaMetadata.formatDuration(3_725), "1:02:05")
+    }
+
+    func testMediaMetadataExtractorReadsImageDimensionsAndSize() throws {
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 12, height: 8)).image { context in
+            UIColor.systemTeal.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 12, height: 8))
+        }
+        let data = try XCTUnwrap(image.pngData())
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("metadata-\(UUID().uuidString).png")
+        try data.write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let metadata = try XCTUnwrap(MediaMetadataExtractor.metadata(
+            for: url,
+            typeIdentifier: UTType.png.identifier
+        ))
+
+        XCTAssertEqual(metadata.pixelWidth, 12)
+        XCTAssertEqual(metadata.pixelHeight, 8)
+        XCTAssertEqual(metadata.byteCount, data.count)
+        XCTAssertTrue(metadata.summary?.contains("12x8") == true)
+        XCTAssertTrue(metadata.summary?.contains(SharedAttachmentStore.formatByteCount(data.count)) == true)
+    }
+
+    func testVideoThumbnailCacheURLChangesWhenFileChanges() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cache-key-\(UUID().uuidString).mov")
+        try Data("one".utf8).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let firstURL = try XCTUnwrap(VideoThumbnailGenerator.cachedImageURL(for: url))
+        sleep(1)
+        try Data("two-two".utf8).write(to: url)
+        let secondURL = try XCTUnwrap(VideoThumbnailGenerator.cachedImageURL(for: url))
+
+        XCTAssertNotEqual(firstURL.lastPathComponent, secondURL.lastPathComponent)
+    }
+
+    func testVideoThumbnailRemoveCachedImageDeletesExpectedFile() throws {
+        let sourceURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cache-delete-\(UUID().uuidString).mov")
+        try Data("video placeholder".utf8).write(to: sourceURL)
+        defer { try? FileManager.default.removeItem(at: sourceURL) }
+
+        let cacheURL = try XCTUnwrap(VideoThumbnailGenerator.cachedImageURL(for: sourceURL))
+        try FileManager.default.createDirectory(
+            at: cacheURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try Data("cached".utf8).write(to: cacheURL)
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: cacheURL.path))
+        VideoThumbnailGenerator.removeCachedImage(for: sourceURL)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: cacheURL.path))
+    }
+
     func testImageTextRecognizerBuildsMemoText() {
         let attachment = SharedAttachment(
             id: "receipt.png",
