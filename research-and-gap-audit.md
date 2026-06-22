@@ -37,6 +37,7 @@
 - 记录模型与历史：`some/Models/Memo.swift`、`some/Models/MemoRevision.swift`
 - 存储与迁移：`some/Stores/MemoStore.swift`、`some/Stores/SQLiteMemoDatabase.swift`
 - 备份与附件：`some/Models/MemoBackupArchive.swift`、`some/Utilities/MemoBackupPackage.swift`、`some/Utilities/SharedAttachmentStore.swift`
+- 媒体理解：`some/Utilities/ImageTextRecognizer.swift`、`some/Utilities/AudioTranscriber.swift`、`some/Utilities/VideoThumbnailGenerator.swift`
 - 搜索与解析：`some/Utilities/MemoSearchQuery.swift`、`some/Utilities/TagParser.swift`、`some/Utilities/LinkExtractor.swift`、`some/Utilities/MemoTaskParser.swift`、`some/Utilities/MemoReferenceParser.swift`
 - 分享与快捷入口：`SomeShareExtension/ShareViewController.swift`、`some/AppIntents/SaveMemoIntent.swift`、`some/AppIntents/SomeAppShortcuts.swift`
 - 隐私与提醒：`some/Views/AppLockView.swift`、`some/Stores/ReminderManager.swift`
@@ -45,7 +46,7 @@
 - 测试：`SomeTests/SomeTests.swift`
 - 发布/说明文档：`README.md`、`AppStore/`、`docs/`、`verification.md`
 
-当前明显缺口：已有 `MemoAsset` 索引表作为素材入口，但还没有独立媒体资产表、网页摘录实体表、手帐页面/图层模型、图片编辑管线、音视频采集管线、衣橱单品/搭配模型。这些缺口已提升为下一轮优先级。
+当前明显缺口：已有 `MemoAsset` 索引表作为素材入口，已补图片 OCR、音频本机转写和视频按需缩略图；但还没有独立媒体资产表、网页摘录实体表、图片编辑管线、完整手帐画布、音视频长内容处理、衣橱单品/搭配统计模型。这些缺口已提升为下一轮优先级。
 
 ## 开工前强制审计流程
 
@@ -218,7 +219,7 @@ P1：
 - 网页摘录 MVP：链接标题/description/段落候选提取、摘要和重点保存已完成 v1；正文清洗质量、引用片段选择、批量网页导入、扫描校正和区域 OCR 仍待补
 - 电子衣橱 MVP：单品和穿搭记录入口已完成第一段；分类/颜色/季节/场景、图片附件、穿着频率、旅行打包、搭配推荐和灵感板仍待补
 - 电子手帐 MVP：页面结构化记录、图层 JSON 底座和列表预览已完成第一段；真正的拖拽缩放编辑器、图片/文字/贴纸/边框/背景工具栏、字体与装饰编辑、导出图片/PDF 仍待补
-- 工作日志 MVP：勾选记录生成日报/周报/项目日志，支持进展、问题、下一步和汇总
+- 工作日志 MVP：已完成首页“日志”模式、勾选记录生成日报/周报/项目日志、进展/问题/下一步字段、来源引用、素材索引和 `has:worklog` 搜索；后续增强项目字段、周期模板、导出和 AI 润色
 - 图片编辑 MVP：裁剪、滤镜、边框、文字、贴纸、基础拼贴；抠图/背景移除作为下一阶段
 - 电子衣橱 MVP：单品建档、分类、颜色/季节/场景标签、搭配组合、穿着日历和使用统计
 

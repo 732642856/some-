@@ -422,12 +422,12 @@ final class SomeTests: XCTestCase {
     }
 
     func testSearchQueryParserExtractsContentFilters() {
-        let query = MemoSearchQueryParser.parse("has:link has:web has:ocr has:attachment has:reference has:scrapbook has:audio has:video has:wardrobe has:outfit no:task without:backlink 复盘")
+        let query = MemoSearchQueryParser.parse("has:link has:web has:ocr has:attachment has:reference has:scrapbook has:worklog has:audio has:video has:wardrobe has:outfit no:task without:backlink 复盘")
 
         XCTAssertEqual(query.textTerms, ["复盘"])
         XCTAssertEqual(
             query.requiredContentFilters,
-            [.attachment, .audio, .link, .outfit, .reference, .scrapbook, .screenshot, .video, .wardrobe, .webClip]
+            [.attachment, .audio, .link, .outfit, .reference, .scrapbook, .screenshot, .video, .wardrobe, .webClip, .workLog]
         )
         XCTAssertEqual(
             query.excludedContentFilters,
@@ -560,6 +560,7 @@ final class SomeTests: XCTestCase {
         store.addMemo(text: "附件资料\n\n[附件: image.png](some-attachment://image.png)")
         store.addMemo(text: "任务资料\n- [ ] 写提纲\n- [x] 校对")
         store.addMemo(text: "手帐页面：六月手帐\n模板：日记\n素材：图片、摘录")
+        store.addMemo(text: "工作日志：今日工作日志\n范围：今日\n进展：完成视频缩略图")
         store.addMemo(text: audioMemoText)
         store.addMemo(text: videoMemoText)
         store.addMemo(text: "衣橱单品：白衬衫\n分类：上装\n颜色：白")
@@ -635,6 +636,9 @@ final class SomeTests: XCTestCase {
         store.searchText = "has:scrapbook"
         XCTAssertEqual(store.filteredMemos.map(\.text), ["手帐页面：六月手帐\n模板：日记\n素材：图片、摘录"])
 
+        store.searchText = "has:worklog"
+        XCTAssertEqual(store.filteredMemos.map(\.text), ["工作日志：今日工作日志\n范围：今日\n进展：完成视频缩略图"])
+
         store.searchText = "has:audio"
         XCTAssertEqual(store.filteredMemos.map(\.text), [audioMemoText])
 
@@ -646,6 +650,37 @@ final class SomeTests: XCTestCase {
 
         store.searchText = "has:outfit"
         XCTAssertEqual(store.filteredMemos.map(\.text), ["穿搭组合：周一通勤\n单品：白衬衫、黑裤"])
+    }
+
+    func testAddWorkLogCreatesStructuredAssetWithReferences() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.addMemo(text: "完成视频预览\n- [x] 接入缩略图")
+        store.addMemo(text: "明天继续\n- [ ] 做缓存")
+
+        let sourceMemos = store.memos
+        guard let log = store.addWorkLog(
+            title: "今日工作日志",
+            scope: "今日",
+            progress: ["接入缩略图"],
+            blockers: ["无"],
+            nextSteps: ["做缓存"],
+            sourceMemos: sourceMemos,
+            note: "媒体体验"
+        ) else {
+            return XCTFail("Expected work log")
+        }
+
+        XCTAssertTrue(log.text.contains("工作日志：今日工作日志"))
+        XCTAssertTrue(log.text.contains("范围：今日"))
+        XCTAssertTrue(log.text.contains("进展：接入缩略图"))
+        XCTAssertTrue(log.text.contains("问题：无"))
+        XCTAssertTrue(log.text.contains("下一步：做缓存"))
+        XCTAssertTrue(log.text.contains("备注：媒体体验"))
+        XCTAssertEqual(MemoReferenceParser.references(in: log.text).count, 2)
+
+        let asset = store.assets(for: log).first { $0.kind == .workLog }
+        XCTAssertEqual(asset?.title, "今日工作日志")
+        XCTAssertTrue(asset?.summary?.contains("进展：接入缩略图") == true)
     }
 
     func testSearchCanExcludeContentTypes() {
@@ -1536,6 +1571,13 @@ final class SomeTests: XCTestCase {
             """
         )
         XCTAssertNil(AudioTranscriber.memoText(for: attachment, transcript: "   "))
+    }
+
+    func testVideoThumbnailGeneratorReturnsNilForMissingFile() {
+        let missingURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("missing-\(UUID().uuidString).mov")
+
+        XCTAssertNil(VideoThumbnailGenerator.image(for: missingURL))
     }
 
     func testImageTextRecognizerBuildsMemoText() {

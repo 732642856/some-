@@ -108,6 +108,7 @@
 ### 工作日志和 flomo 补漏
 
 - 工作日志生成更像本项目已有 memo/搜索/AI 洞察的组合，不需要先找大型开源 App；应复用现有保存搜索、日期过滤、任务项、标签、引用和 AI composer。
+- 2026-06-22 工作日志 MVP 检索决策：继续前复查 Git 状态、未跟踪文件、当前文件清单和已有工作日志半成品；GitHub API 检索 `SwiftUI work log daily report MIT`、`iOS daily work journal SwiftUI MIT`、`SwiftUI daily report work log` 均返回 0 个候选。本轮不复制第三方源码，直接复用 `Memo`、`MemoAsset.workLog`、`MemoTaskParser`、`MemoReferenceParser` 和 `has:worklog` 搜索，生成可迁移的结构化正文。
 - flomo 仍有未覆盖能力：禅定模式、小组件、公开 API、MCP 读写接口、AI 语音输入、AI 记忆档案、微信服务号输入替代方案。后续每项开工前继续单独检索可复用实现。
 
 ### 统一素材模型（2026-06-22 实现决策）
@@ -132,6 +133,8 @@
 
 2026-06-22 语音转写入口检索决策：继续前已复查 Git 状态、未跟踪文件和现有音频附件链路，并检索 `iOS SFSpeechRecognizer audio file transcription Swift MIT`、`SFSpeechURLRecognitionRequest Swift MIT`。GitHub API 两个查询均返回 0，Apple `SFSpeechRecognizer` 与 `SFSpeechURLRecognitionRequest` 官方文档可达。本轮不复制第三方代码，不把原始音频发送到 OpenAI，采用 Apple Speech 的 `requiresOnDeviceRecognition` 本机识别；设备或语言不支持本机识别时直接提示不可用。
 
+2026-06-22 视频缩略图检索决策：继续前已复查 Git 状态、未跟踪文件、当前文件清单和视频附件展示链路，并检索 `SwiftUI AVAssetImageGenerator video thumbnail MIT`、`iOS video thumbnail AVAssetImageGenerator MIT Swift`、`SwiftUI video thumbnail open source GitHub`。GitHub API 未返回可直接复制的成熟 MIT SwiftUI 模块，网页检索也未发现比系统能力更适合当前架构的独立库；本轮采用 Apple `AVAssetImageGenerator` 在本机按需取帧，不新增第三方依赖，失败时保留原视频图标回退。
+
 2026-06-22 手帐/贴纸画布补充检索：继续通过 GitHub API 搜索 `SwiftUI sticker drag resize rotate MIT`、`SwiftUI collage editor MIT`、`StickerView iOS Swift`、`DraggableResizableView SwiftUI`、`SwiftUI canvas layers editor`。可参考候选包括 `irons163/IRSticker-swift`、`artemnovichkov/StickerViewExample`、`native-mobile-app-developers/SwiftStickerView` 等 MIT 项目，但核心多为 UIKit 贴纸视图或背景移除示例，不是当前 SwiftUI 首页/素材索引可直接复制的完整手帐画布。本轮仅记录其拖拽、缩放、旋转和背景移除方向，未复制第三方源码；当前先自建可迁移 `ScrapbookPageLayout` / `ScrapbookLayer` JSON 底座，下一步做真正画布时再针对具体类文件做许可证头、依赖体量和 iOS 版本验证。
 
 ## some 当前缺口与复用优先级
@@ -141,7 +144,7 @@ P0 验证：
 - 完整 Xcode 编译、单元测试、模拟器/真机运行。
 - App Group、Share Extension、FTS 搜索在真机/模拟器上验证。
 - 统一素材模型：v1 已建立 `MemoAsset` 索引，网页摘录、手帐页面、衣橱和穿搭已有轻量正文结构；编辑版本、穿着记录、手帐图层等仍需要独立实体和关系。
-- 本地媒体存储与备份：原始素材、缩略图、编辑版本、导出版本、衣橱抠图和手帐页面需要可追踪。
+- 本地媒体存储与备份：原始素材、编辑版本、导出版本、衣橱抠图和手帐页面需要可追踪；视频缩略图 v1 已按需生成，后续还需持久化缩略图缓存和批量媒体元数据。
 
 P1 优先复用：
 

@@ -5,6 +5,7 @@ enum MemoHomeMode: String, CaseIterable, Identifiable {
     case timeline
     case assets
     case scrapbook
+    case workLog
     case wardrobe
     case ai
     case review
@@ -18,6 +19,7 @@ enum MemoHomeMode: String, CaseIterable, Identifiable {
         case .timeline: return "记录"
         case .assets: return "素材"
         case .scrapbook: return "手帐"
+        case .workLog: return "日志"
         case .wardrobe: return "衣橱"
         case .ai: return "AI"
         case .review: return "回顾"
@@ -31,6 +33,7 @@ enum MemoHomeMode: String, CaseIterable, Identifiable {
         case .timeline: return "square.and.pencil"
         case .assets: return "square.grid.2x2"
         case .scrapbook: return "rectangle.stack"
+        case .workLog: return "doc.text"
         case .wardrobe: return "tshirt"
         case .ai: return "sparkles.rectangle.stack"
         case .review: return "sparkles"
@@ -317,6 +320,41 @@ final class MemoStore: ObservableObject {
         appendField("场景", values: scenes, to: &lines)
         appendField("季节", values: seasons, to: &lines)
         appendField("备注", value: note, to: &lines)
+        return addStructuredMemo(lines: lines, attachment: nil)
+    }
+
+    @discardableResult
+    func addWorkLog(
+        title: String,
+        scope: String,
+        progress: [String] = [],
+        blockers: [String] = [],
+        nextSteps: [String] = [],
+        sourceMemos: [Memo] = [],
+        note: String? = nil
+    ) -> Memo? {
+        let cleanedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanedTitle.isEmpty else {
+            return nil
+        }
+
+        var lines = ["工作日志：\(cleanedTitle)"]
+        appendField("范围", value: scope, to: &lines)
+        appendField("进展", values: progress, to: &lines)
+        appendField("问题", values: blockers, to: &lines)
+        appendField("下一步", values: nextSteps, to: &lines)
+        appendField("备注", value: note, to: &lines)
+
+        let references = sourceMemos
+            .filter { !$0.isArchived }
+            .reduce(into: [UUID: Memo]()) { result, memo in
+                result[memo.id] = memo
+            }
+            .values
+            .sorted { $0.createdAt > $1.createdAt }
+            .map { MemoReferenceParser.referenceLine(for: $0) }
+
+        lines.append(contentsOf: references)
         return addStructuredMemo(lines: lines, attachment: nil)
     }
 
@@ -1022,6 +1060,8 @@ final class MemoStore: ObservableObject {
             return assets(for: memo).contains { $0.kind == .video }
         case .scrapbook:
             return assets(for: memo).contains { $0.kind == .scrapbookPage }
+        case .workLog:
+            return assets(for: memo).contains { $0.kind == .workLog }
         case .wardrobe:
             return assets(for: memo).contains { $0.kind == .wardrobeItem }
         case .outfit:

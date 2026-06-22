@@ -26,6 +26,8 @@ struct ContentView: View {
                             AssetLibraryView()
                         case .scrapbook:
                             ScrapbookView()
+                        case .workLog:
+                            WorkLogView()
                         case .wardrobe:
                             WardrobeView()
                         case .ai:
@@ -224,6 +226,7 @@ private struct HeaderView: View {
         case .timeline: return "今天先记下来"
         case .assets: return "整理素材"
         case .scrapbook: return "排一页手帐"
+        case .workLog: return "汇总工作"
         case .wardrobe: return "搭出今天"
         case .ai: return "让 AI 帮你排版"
         case .review: return "让旧念头冒泡"
@@ -587,6 +590,378 @@ private struct ScrapbookPagePreview: View {
             green: Double((value >> 8) & 0xFF) / 255.0,
             blue: Double(value & 0xFF) / 255.0
         )
+    }
+}
+
+private struct WorkLogView: View {
+    @EnvironmentObject private var store: MemoStore
+    @State private var logTitle = ""
+    @State private var scope = "今日"
+    @State private var progress = ""
+    @State private var blockers = ""
+    @State private var nextSteps = ""
+    @State private var note = ""
+    @State private var selectedMemoIDs = Set<UUID>()
+    @State private var statusText: String?
+
+    private let scopes = ["今日", "本周", "项目", "复盘"]
+
+    private var workLogAssets: [MemoAsset] {
+        store.assets.filter { $0.kind == .workLog }
+    }
+
+    private var candidateMemos: [Memo] {
+        store.activeMemos
+            .filter { memo in
+                !store.assets(for: memo).contains { $0.kind == .workLog }
+            }
+            .sorted { $0.createdAt > $1.createdAt }
+            .prefix(24)
+            .map { $0 }
+    }
+
+    private var selectedMemos: [Memo] {
+        candidateMemos.filter { selectedMemoIDs.contains($0.id) }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 10) {
+                StatBadge(title: "日志", value: "\(workLogAssets.count)", systemImage: "doc.text")
+                StatBadge(title: "已选", value: "\(selectedMemoIDs.count)", systemImage: "checklist")
+            }
+
+            logForm
+            sourcePicker
+            workLogList
+        }
+    }
+
+    private var logForm: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("新工作日志", systemImage: "plus.circle")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+
+            TextField("日志标题", text: $logTitle)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            Picker("范围", selection: $scope) {
+                ForEach(scopes, id: \.self) { scope in
+                    Text(scope).tag(scope)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            TextField("进展：完成了什么，可用顿号分隔", text: $progress)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            TextField("问题：卡点、风险、等待事项", text: $blockers)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            TextField("下一步：后续动作", text: $nextSteps)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            TextField("备注：项目、背景或要汇报的人", text: $note)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            HStack(spacing: 10) {
+                if let statusText = statusText {
+                    Text(statusText)
+                        .font(.caption)
+                        .foregroundStyle(Color.secondaryText)
+                }
+
+                Spacer()
+
+                Button {
+                    autofillFromSelection()
+                } label: {
+                    Image(systemName: "wand.and.stars")
+                        .font(.footnote.weight(.semibold))
+                        .frame(width: 36, height: 34)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.accentGreen)
+                .background(Color.greenTint)
+                .clipShape(Capsule())
+                .disabled(selectedMemoIDs.isEmpty)
+                .accessibilityLabel("从已选记录提取日志")
+
+                Button {
+                    saveLog()
+                } label: {
+                    Label("保存日志", systemImage: "checkmark.circle.fill")
+                        .font(.footnote.weight(.semibold))
+                        .frame(height: 34)
+                        .padding(.horizontal, 12)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.white)
+                .background(canSave ? Color.accentGreen : Color.disabled)
+                .clipShape(Capsule())
+                .disabled(!canSave)
+            }
+        }
+        .padding(14)
+        .background(Color.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.border, lineWidth: 1)
+        )
+    }
+
+    private var sourcePicker: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("勾选记录", systemImage: "checklist")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.secondaryText)
+
+                Spacer()
+
+                Button {
+                    toggleRecentToday()
+                } label: {
+                    Image(systemName: "calendar.badge.checkmark")
+                        .frame(width: 34, height: 30)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.accentGreen)
+                .accessibilityLabel("选择今日记录")
+            }
+
+            if candidateMemos.isEmpty {
+                EmptyStateView(title: "还没有可汇总的记录")
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(candidateMemos) { memo in
+                        Button {
+                            toggle(memo)
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: selectedMemoIDs.contains(memo.id) ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(selectedMemoIDs.contains(memo.id) ? Color.accentGreen : Color.tertiaryText)
+                                    .frame(width: 24, height: 24)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(MemoReferenceParser.title(for: memo, maxLength: 42))
+                                        .font(.footnote.weight(.semibold))
+                                        .foregroundStyle(Color.primaryText)
+                                        .lineLimit(1)
+
+                                    Text(sourceSummary(for: memo))
+                                        .font(.caption)
+                                        .foregroundStyle(Color.secondaryText)
+                                        .lineLimit(2)
+                                }
+
+                                Spacer(minLength: 8)
+
+                                Text(DateFormatters.row.localizedString(for: memo.createdAt, relativeTo: Date()))
+                                    .font(.caption)
+                                    .foregroundStyle(Color.tertiaryText)
+                                    .lineLimit(1)
+                            }
+                            .padding(10)
+                            .background(selectedMemoIDs.contains(memo.id) ? Color.greenTint : Color.subtleSurface)
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .background(Color.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.border, lineWidth: 1)
+        )
+    }
+
+    private var workLogList: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("工作日志", systemImage: "square.grid.2x2")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+
+            let assets = workLogAssets.sorted {
+                $0.createdAt == $1.createdAt ? $0.title < $1.title : $0.createdAt > $1.createdAt
+            }
+
+            if assets.isEmpty {
+                EmptyStateView(title: "还没有工作日志")
+            } else {
+                ForEach(assets) { asset in
+                    if let memo = store.memos.first(where: { $0.id == asset.memoID }) {
+                        AssetNavigationRow(asset: asset, memo: memo)
+                    }
+                }
+            }
+        }
+    }
+
+    private var defaultTitle: String {
+        "\(scope)工作日志"
+    }
+
+    private var canSave: Bool {
+        !resolvedTitle.isEmpty
+            && (!splitValues(progress).isEmpty || !splitValues(blockers).isEmpty || !splitValues(nextSteps).isEmpty || !selectedMemoIDs.isEmpty)
+    }
+
+    private var resolvedTitle: String {
+        let title = logTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        return title.isEmpty ? defaultTitle : title
+    }
+
+    private func toggle(_ memo: Memo) {
+        if selectedMemoIDs.contains(memo.id) {
+            selectedMemoIDs.remove(memo.id)
+        } else {
+            selectedMemoIDs.insert(memo.id)
+        }
+    }
+
+    private func toggleRecentToday() {
+        let todayIDs = candidateMemos
+            .filter { Calendar.current.isDateInToday($0.createdAt) }
+            .map(\.id)
+        let allSelected = !todayIDs.isEmpty && todayIDs.allSatisfy { selectedMemoIDs.contains($0) }
+
+        if allSelected {
+            todayIDs.forEach { selectedMemoIDs.remove($0) }
+        } else {
+            todayIDs.forEach { selectedMemoIDs.insert($0) }
+        }
+    }
+
+    private func autofillFromSelection() {
+        let progressValues = inferredProgress()
+        let nextStepValues = inferredNextSteps()
+
+        if progress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            progress = progressValues.joined(separator: "、")
+        }
+
+        if nextSteps.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            nextSteps = nextStepValues.joined(separator: "、")
+        }
+
+        if note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            note = selectedMemos
+                .map { MemoReferenceParser.title(for: $0, maxLength: 18) }
+                .prefix(6)
+                .joined(separator: "、")
+        }
+
+        statusText = "已从勾选记录提取"
+    }
+
+    private func saveLog() {
+        guard store.addWorkLog(
+            title: resolvedTitle,
+            scope: scope,
+            progress: splitValues(progress).isEmpty ? inferredProgress() : splitValues(progress),
+            blockers: splitValues(blockers),
+            nextSteps: splitValues(nextSteps).isEmpty ? inferredNextSteps() : splitValues(nextSteps),
+            sourceMemos: selectedMemos,
+            note: note
+        ) != nil else {
+            statusText = "日志保存失败。"
+            return
+        }
+
+        logTitle = ""
+        progress = ""
+        blockers = ""
+        nextSteps = ""
+        note = ""
+        selectedMemoIDs = []
+        statusText = "已保存工作日志"
+    }
+
+    private func inferredProgress() -> [String] {
+        let completedTasks = selectedMemos
+            .flatMap { MemoTaskParser.taskItems(in: displayText(for: $0)) }
+            .filter(\.isCompleted)
+            .map(\.text)
+
+        if !completedTasks.isEmpty {
+            return uniqueValues(completedTasks)
+        }
+
+        return uniqueValues(
+            selectedMemos.map { MemoReferenceParser.title(for: $0, maxLength: 24) }
+        )
+    }
+
+    private func inferredNextSteps() -> [String] {
+        uniqueValues(
+            selectedMemos
+                .flatMap { MemoTaskParser.taskItems(in: displayText(for: $0)) }
+                .filter { !$0.isCompleted }
+                .map(\.text)
+        )
+    }
+
+    private func sourceSummary(for memo: Memo) -> String {
+        let text = displayText(for: memo)
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard text.count > 80 else {
+            return text.isEmpty ? "空记录" : text
+        }
+
+        let endIndex = text.index(text.startIndex, offsetBy: 80)
+        return "\(text[..<endIndex])..."
+    }
+
+    private func displayText(for memo: Memo) -> String {
+        MemoReferenceParser.displayTextWithoutReferences(
+            SharedAttachmentStore.displayTextWithoutAttachmentReferences(memo.text)
+        )
+    }
+
+    private func splitValues(_ text: String) -> [String] {
+        text
+            .components(separatedBy: CharacterSet(charactersIn: "、,，/"))
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
+    private func uniqueValues(_ values: [String]) -> [String] {
+        var seen = Set<String>()
+        var result: [String] = []
+
+        for value in values {
+            let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !normalized.isEmpty, !seen.contains(normalized) else {
+                continue
+            }
+            seen.insert(normalized)
+            result.append(normalized)
+        }
+
+        return result
     }
 }
 
@@ -1139,6 +1514,15 @@ private struct AssetRowView: View {
                 .scaledToFill()
                 .frame(width: 54, height: 54)
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        } else if let attachment = attachment,
+                  attachment.isVideo,
+                  let url = SharedAttachmentStore.url(for: attachment) {
+            VideoThumbnailPreview(
+                url: url,
+                size: 54,
+                cornerRadius: 8,
+                fallbackSystemImage: iconName
+            )
         } else {
             Image(systemName: iconName)
                 .font(.system(size: 20, weight: .semibold))

@@ -69,6 +69,14 @@ struct AttachmentPreviewList: View {
                 .scaledToFill()
                 .frame(width: compact ? 32 : 38, height: compact ? 32 : 38)
                 .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        } else if attachment.isVideo,
+                  let url = SharedAttachmentStore.url(for: attachment) {
+            VideoThumbnailPreview(
+                url: url,
+                size: compact ? 32 : 38,
+                cornerRadius: 6,
+                fallbackSystemImage: iconName(for: attachment)
+            )
         } else {
             Image(systemName: iconName(for: attachment))
                 .font(.system(size: compact ? 16 : 18, weight: .semibold))
@@ -116,5 +124,68 @@ struct AttachmentPreviewList: View {
         }
 
         return "文件"
+    }
+}
+
+struct VideoThumbnailPreview: View {
+    let url: URL
+    let size: CGFloat
+    var cornerRadius: CGFloat = 8
+    var fallbackSystemImage = "video"
+
+    @State private var image: UIImage?
+    @State private var requestedURL: URL?
+
+    var body: some View {
+        ZStack {
+            if let image = image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Image(systemName: fallbackSystemImage)
+                    .font(.system(size: max(14, size * 0.42), weight: .semibold))
+                    .foregroundStyle(Color.accentGreen)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.greenTint)
+            }
+
+            if image != nil {
+                Circle()
+                    .fill(Color.black.opacity(0.46))
+                    .frame(width: max(18, size * 0.44), height: max(18, size * 0.44))
+                    .overlay(
+                        Image(systemName: "play.fill")
+                            .font(.system(size: max(8, size * 0.18), weight: .bold))
+                            .foregroundStyle(Color.white)
+                            .offset(x: 1)
+                    )
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .clipped()
+        .onAppear(perform: requestThumbnailIfNeeded)
+    }
+
+    private func requestThumbnailIfNeeded() {
+        guard requestedURL != url else {
+            return
+        }
+
+        requestedURL = url
+        image = nil
+        let thumbnailURL = url
+        let pixelSize = CGSize(width: size * 3, height: size * 3)
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let thumbnail = VideoThumbnailGenerator.image(for: thumbnailURL, maximumSize: pixelSize)
+            DispatchQueue.main.async {
+                guard requestedURL == thumbnailURL else {
+                    return
+                }
+                image = thumbnail
+            }
+        }
     }
 }

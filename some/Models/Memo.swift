@@ -325,6 +325,7 @@ enum MemoAssetKind: String, Codable, CaseIterable, Hashable {
     case webClip
     case imageEdit
     case scrapbookPage
+    case workLog
     case wardrobeItem
     case outfit
     case audio
@@ -343,6 +344,7 @@ extension MemoAssetKind {
         case .webClip: return "网页"
         case .imageEdit: return "图片"
         case .scrapbookPage: return "手帐"
+        case .workLog: return "日志"
         case .wardrobeItem: return "衣橱"
         case .outfit: return "穿搭"
         case .audio: return "音频"
@@ -361,6 +363,7 @@ extension MemoAssetKind {
         case .webClip: return "doc.text.magnifyingglass"
         case .imageEdit: return "wand.and.stars"
         case .scrapbookPage: return "rectangle.stack"
+        case .workLog: return "doc.text"
         case .wardrobeItem: return "tshirt"
         case .outfit: return "sparkles"
         case .audio: return "waveform"
@@ -539,6 +542,16 @@ extension MemoAsset {
             )
         }
 
+        if let workLog = workLogAsset(in: visibleText) {
+            append(
+                kind: .workLog,
+                title: workLog.title,
+                summary: workLog.summary,
+                typeIdentifier: UTType.text.identifier,
+                stableKey: "worklog:\(workLog.title):\(workLog.summary ?? "")"
+            )
+        }
+
         for attachment in SharedAttachmentStore.attachments(in: memo.text) {
             append(
                 kind: assetKind(for: attachment),
@@ -643,6 +656,10 @@ extension MemoAsset {
             .compactMap { $0 }
             .joined(separator: " · ")
         return (asset.title, limitedSummary(summary, maxLength: 500))
+    }
+
+    private static func workLogAsset(in text: String) -> (title: String, summary: String?)? {
+        structuredAsset(in: text, prefixes: ["工作日志：", "工作日志:", "工作记录：", "工作记录:", "日报：", "日报:", "周报：", "周报:", "项目日志：", "项目日志:"])
     }
 
     private static func structuredAsset(in text: String, prefixes: [String]) -> (title: String, summary: String?)? {
