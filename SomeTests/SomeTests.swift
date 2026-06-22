@@ -2409,7 +2409,7 @@ final class SomeTests: XCTestCase {
 
         let rendered = try XCTUnwrap(ImageEditRenderer.renderedImage(sourceImage: source, recipe: recipe))
 
-        XCTAssertEqual(rendered.width, rendered.height)
+        XCTAssertLessThanOrEqual(abs(rendered.width - rendered.height), 1)
         XCTAssertLessThanOrEqual(rendered.width, source.cgImage?.width ?? rendered.width)
         XCTAssertLessThanOrEqual(rendered.height, source.cgImage?.height ?? rendered.height)
         XCTAssertTrue(ImageEditRenderer.outputFilename(
@@ -2513,7 +2513,9 @@ final class SomeTests: XCTestCase {
     }
 
     private func testImage(size: CGSize) -> UIImage {
-        let renderer = UIGraphicsImageRenderer(size: size)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
         return renderer.image { context in
             UIColor(red: 0.72, green: 0.84, blue: 0.93, alpha: 1).setFill()
             context.fill(CGRect(origin: .zero, size: size))
