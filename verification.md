@@ -63,11 +63,19 @@
 - 2026-06-21：已修正隐私政策中“默认本地保存”和“可选 AI 会发送所需内容”的表述，避免 App Store 审核口径前后冲突
 - 2026-06-21：已新增 `.gitignore`，避免 Xcode 本地状态、构建产物、Archive、IPA 和签名材料误提交
 - 2026-06-21：已修正文档中的旧工作区路径，并把隐私政策联系方式占位改为 App Store 支持链接口径
+- 2026-06-22：已复查当前主仓库、旧 Codex 工作区和已克隆开源参考，未发现当前主仓库外仍需合入的新 some 工程碎片。
+- 2026-06-22：已对照 flomo 101 官方功能导航、MoeMemos 与 usememos/memos，确认本轮优先补搜索二期而非继续扩展表面功能。
+- 2026-06-22：已新增最近搜索、保存搜索、搜索结果数量和卡片命中摘录。
+- 2026-06-22：已补充最近搜索去重/持久化、最近搜索上限、保存搜索持久化/应用、命中摘录相关单元测试。
+- 2026-06-22：`Info.plist`、`PrivacyInfo.xcprivacy`、主 App/扩展 entitlements、Share Extension `Info.plist`、`project.pbxproj` 通过 `plutil -lint`。
+- 2026-06-22：`some.xcscheme` 通过 `xmllint --noout`。
+- 2026-06-22：已扫描 `text.magnifyingglass`、`TODO`、`FIXME`、`try!`、`as!`，未发现命中。
 
 ## 未能在当前环境完成
 
 - 当前机器的 `xcode-select` 指向 Command Line Tools，且 `/Applications/Xcode.app` 是 Xcode 13.2.1；当前 iOS 16+ 工程需要 Xcode 16 或更新版本才能可靠编译、测试、模拟器运行、Archive、签名或上传 App Store Connect。
 - 当前 Command Line Tools 的 Swift 编译器为旧版 Swift 5.4，无法 typecheck Swift concurrency 代码；本轮只完成了 plist、scheme、target 引用和源码静态扫描。
+- 2026-06-22 复查：`xcodebuild -version` 仍失败，提示 active developer directory 为 `/Library/Developer/CommandLineTools`；`xcrun swiftc -version` 为 Apple Swift 5.4。
 - Share Extension 的真实分享面板、App Group 容器和签名能力需要在完整 Xcode + Apple Developer Team 环境里实机或模拟器验证。
 - 尝试用旧版 `xcrun swiftc` 对纯 Foundation 文件做轻量 typecheck，但当前 Command Line Tools 运行缓慢且不适合作为本项目编译结论，已中止进程。
 

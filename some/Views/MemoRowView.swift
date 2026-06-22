@@ -17,6 +17,18 @@ struct MemoRowView: View {
                     }
 
                     AttachmentPreviewList(attachments: attachments, compact: true, allowsSharing: false)
+
+                    if let snippet = store.searchSnippet(for: memo) {
+                        Label(snippet, systemImage: "magnifyingglass")
+                            .font(.caption)
+                            .lineLimit(2)
+                            .foregroundStyle(Color.secondaryText)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 7)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.greenTint)
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 

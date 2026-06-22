@@ -39,16 +39,27 @@ final class MemoStore: ObservableObject {
     @Published var homeMode: MemoHomeMode = .timeline
     @Published private(set) var reviewMemo: Memo?
     @Published private(set) var revisionsByMemoID: [UUID: [MemoRevision]] = [:]
+    @Published private(set) var recentSearches: [String] = []
+    @Published private(set) var savedSearches: [String] = []
 
     private let fileURL: URL
     private let backupFileURL: URL
     private let database: SQLiteMemoDatabase?
     private let storageError: Error?
+    private let defaults: UserDefaults
+
+    private static let recentSearchesKey = "some.search.recent"
+    private static let savedSearchesKey = "some.search.saved"
+    private static let maxRecentSearches = 8
+    private static let maxSavedSearches = 16
 
     init(
         filename: String = "some-memos.json",
-        storageRequirement: SharedMemoStorage.Requirement = .sharedContainerPreferred
+        storageRequirement: SharedMemoStorage.Requirement = .sharedContainerPreferred,
+        defaults: UserDefaults = .standard
     ) {
+        self.defaults = defaults
+
         do {
             let storageURLs = try SharedMemoStorage.urls(
                 filename: filename,
@@ -66,6 +77,7 @@ final class MemoStore: ObservableObject {
             self.storageError = error
         }
 
+        loadSearchCollections()
         load()
     }
 
@@ -316,6 +328,68 @@ final class MemoStore: ObservableObject {
 
     func clearTagFilter() {
         selectedTag = nil
+    }
+
+    var canSaveCurrentSearch: Bool {
+        let query = normalizedSearch(searchText)
+        return !query.isEmpty && !containsSearch(query, in: savedSearches)
+    }
+
+    func recordCurrentSearch() {
+        recordSearch(searchText)
+    }
+
+    func applySearch(_ query: String) {
+        searchText = normalizedSearch(query)
+        recordCurrentSearch()
+    }
+
+    func saveCurrentSearch() {
+        let query = normalizedSearch(searchText)
+        guard !query.isEmpty else { return }
+
+        savedSearches.removeAll { searchesMatch($0, query) }
+        savedSearches.insert(query, at: 0)
+        trimSearches(&savedSearches, limit: Self.maxSavedSearches)
+        persistSavedSearches()
+        recordSearch(query)
+    }
+
+    func removeSavedSearch(_ query: String) {
+        savedSearches.removeAll { searchesMatch($0, query) }
+        persistSavedSearches()
+    }
+
+    func clearRecentSearches() {
+        recentSearches = []
+        persistRecentSearches()
+    }
+
+    func clearSearch() {
+        searchText = ""
+    }
+
+    func searchSnippet(for memo: Memo, contextLength: Int = 28) -> String? {
+        let query = MemoSearchQueryParser.parse(searchText)
+        guard query.hasTextTerms else { return nil }
+
+        let displayText = SharedAttachmentStore
+            .displayTextWithoutAttachmentReferences(memo.text)
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !displayText.isEmpty else { return nil }
+
+        let terms = query.textTerms.sorted { $0.count > $1.count }
+        for term in terms {
+            if let range = displayText.range(
+                of: term,
+                options: [.caseInsensitive, .diacriticInsensitive]
+            ) {
+                return excerpt(in: displayText, around: range, contextLength: contextLength)
+            }
+        }
+
+        return excerptPrefix(displayText, maxLength: contextLength * 2 + 16)
     }
 
     func pickRandomReviewMemo() {
@@ -742,6 +816,99 @@ final class MemoStore: ObservableObject {
         }
 
         return memo.isArchived == isArchived
+    }
+
+    private func loadSearchCollections() {
+        recentSearches = sanitizedSearches(
+            defaults.stringArray(forKey: Self.recentSearchesKey) ?? [],
+            limit: Self.maxRecentSearches
+        )
+        savedSearches = sanitizedSearches(
+            defaults.stringArray(forKey: Self.savedSearchesKey) ?? [],
+            limit: Self.maxSavedSearches
+        )
+    }
+
+    private func recordSearch(_ rawQuery: String) {
+        let query = normalizedSearch(rawQuery)
+        guard !query.isEmpty else { return }
+
+        recentSearches.removeAll { searchesMatch($0, query) }
+        recentSearches.insert(query, at: 0)
+        trimSearches(&recentSearches, limit: Self.maxRecentSearches)
+        persistRecentSearches()
+    }
+
+    private func persistRecentSearches() {
+        defaults.set(recentSearches, forKey: Self.recentSearchesKey)
+    }
+
+    private func persistSavedSearches() {
+        defaults.set(savedSearches, forKey: Self.savedSearchesKey)
+    }
+
+    private func sanitizedSearches(_ searches: [String], limit: Int) -> [String] {
+        var result: [String] = []
+
+        for rawSearch in searches {
+            let search = normalizedSearch(rawSearch)
+            guard !search.isEmpty, !containsSearch(search, in: result) else { continue }
+            result.append(search)
+        }
+
+        trimSearches(&result, limit: limit)
+        return result
+    }
+
+    private func normalizedSearch(_ query: String) -> String {
+        query
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+
+    private func containsSearch(_ query: String, in searches: [String]) -> Bool {
+        searches.contains { searchesMatch($0, query) }
+    }
+
+    private func searchesMatch(_ lhs: String, _ rhs: String) -> Bool {
+        lhs.compare(rhs, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
+    }
+
+    private func trimSearches(_ searches: inout [String], limit: Int) {
+        if searches.count > limit {
+            searches.removeSubrange(limit..<searches.count)
+        }
+    }
+
+    private func excerpt(
+        in text: String,
+        around range: Range<String.Index>,
+        contextLength: Int
+    ) -> String {
+        let lowerBound = text.index(
+            range.lowerBound,
+            offsetBy: -contextLength,
+            limitedBy: text.startIndex
+        ) ?? text.startIndex
+        let upperBound = text.index(
+            range.upperBound,
+            offsetBy: contextLength,
+            limitedBy: text.endIndex
+        ) ?? text.endIndex
+
+        let prefix = lowerBound == text.startIndex ? "" : "..."
+        let suffix = upperBound == text.endIndex ? "" : "..."
+        return "\(prefix)\(text[lowerBound..<upperBound])\(suffix)"
+    }
+
+    private func excerptPrefix(_ text: String, maxLength: Int) -> String {
+        guard text.count > maxLength else {
+            return text
+        }
+
+        let endIndex = text.index(text.startIndex, offsetBy: maxLength)
+        return "\(text[text.startIndex..<endIndex])..."
     }
 
     private func load() {

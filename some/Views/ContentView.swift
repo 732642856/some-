@@ -13,6 +13,7 @@ struct ContentView: View {
                     LazyVStack(alignment: .leading, spacing: 16) {
                         HeaderView()
                         HomeModePicker()
+                        SearchQuickActionsView()
 
                         switch store.homeMode {
                         case .timeline:
@@ -38,6 +39,9 @@ struct ContentView: View {
             .navigationTitle("some")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $store.searchText, prompt: "搜索内容、#标签或 is:pinned")
+            .onSubmit(of: .search) {
+                store.recordCurrentSearch()
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -55,6 +59,135 @@ struct ContentView: View {
             }
             .sheet(isPresented: $isShowingSettings) {
                 SettingsView()
+            }
+        }
+    }
+}
+
+private struct SearchQuickActionsView: View {
+    @EnvironmentObject private var store: MemoStore
+
+    var body: some View {
+        if isVisible {
+            VStack(alignment: .leading, spacing: 12) {
+                if !normalizedQuery.isEmpty {
+                    HStack(spacing: 8) {
+                        Label("\(store.filteredMemos.count)", systemImage: "magnifyingglass")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(Color.secondaryText)
+
+                        Spacer()
+
+                        Button {
+                            store.saveCurrentSearch()
+                        } label: {
+                            Image(systemName: "bookmark")
+                                .frame(width: 34, height: 32)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(store.canSaveCurrentSearch ? Color.accentGreen : Color.disabled)
+                        .disabled(!store.canSaveCurrentSearch)
+                        .accessibilityLabel("保存搜索")
+
+                        Button {
+                            store.clearSearch()
+                        } label: {
+                            Image(systemName: "xmark")
+                                .frame(width: 34, height: 32)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Color.secondaryText)
+                        .accessibilityLabel("清除搜索")
+                    }
+                }
+
+                if !store.savedSearches.isEmpty {
+                    SearchChipRow(
+                        title: "已保存",
+                        systemImage: "bookmark.fill",
+                        searches: store.savedSearches,
+                        removable: true
+                    )
+                }
+
+                if !store.recentSearches.isEmpty {
+                    SearchChipRow(
+                        title: "最近",
+                        systemImage: "clock.arrow.circlepath",
+                        searches: store.recentSearches,
+                        removable: false
+                    )
+                }
+            }
+            .padding(12)
+            .background(Color.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(Color.border, lineWidth: 1)
+            )
+        }
+    }
+
+    private var normalizedQuery: String {
+        store.searchText
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+
+    private var isVisible: Bool {
+        !normalizedQuery.isEmpty || !store.savedSearches.isEmpty || !store.recentSearches.isEmpty
+    }
+}
+
+private struct SearchChipRow: View {
+    @EnvironmentObject private var store: MemoStore
+
+    let title: String
+    let systemImage: String
+    let searches: [String]
+    let removable: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(title, systemImage: systemImage)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+
+            FlowLayout(spacing: 8) {
+                ForEach(searches, id: \.self) { query in
+                    HStack(spacing: 4) {
+                        Button {
+                            store.applySearch(query)
+                        } label: {
+                            Text(query)
+                                .font(.footnote.weight(.semibold))
+                                .lineLimit(1)
+                                .foregroundStyle(Color.primaryText)
+                                .padding(.leading, 10)
+                                .padding(.trailing, removable ? 2 : 10)
+                                .frame(height: 32)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(query)
+
+                        if removable {
+                            Button {
+                                store.removeSavedSearch(query)
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(Color.tertiaryText)
+                                    .frame(width: 26, height: 32)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("移除保存搜索")
+                        }
+                    }
+                    .background(Color.subtleSurface)
+                    .clipShape(Capsule())
+                }
             }
         }
     }

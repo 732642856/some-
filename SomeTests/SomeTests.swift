@@ -449,6 +449,64 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(store.filteredMemos.isEmpty)
     }
 
+    func testRecentSearchesPersistAndDeduplicate() {
+        let defaults = UserDefaults(suiteName: "test-\(UUID().uuidString)")!
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json", defaults: defaults)
+
+        store.searchText = "  #产品   is:pinned  "
+        store.recordCurrentSearch()
+        store.searchText = "#产品 is:pinned"
+        store.recordCurrentSearch()
+
+        XCTAssertEqual(store.recentSearches, ["#产品 is:pinned"])
+
+        let reloaded = MemoStore(filename: "test-\(UUID().uuidString).json", defaults: defaults)
+        XCTAssertEqual(reloaded.recentSearches, ["#产品 is:pinned"])
+    }
+
+    func testRecentSearchesKeepMostRecentEightQueries() {
+        let defaults = UserDefaults(suiteName: "test-\(UUID().uuidString)")!
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json", defaults: defaults)
+
+        for index in 0..<10 {
+            store.searchText = "query-\(index)"
+            store.recordCurrentSearch()
+        }
+
+        XCTAssertEqual(store.recentSearches.count, 8)
+        XCTAssertEqual(store.recentSearches.first, "query-9")
+        XCTAssertEqual(store.recentSearches.last, "query-2")
+    }
+
+    func testSavedSearchesPersistAndCanBeApplied() {
+        let defaults = UserDefaults(suiteName: "test-\(UUID().uuidString)")!
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json", defaults: defaults)
+
+        store.searchText = "  #项目   is:active  复盘 "
+        XCTAssertTrue(store.canSaveCurrentSearch)
+        store.saveCurrentSearch()
+
+        XCTAssertEqual(store.savedSearches, ["#项目 is:active 复盘"])
+        XCTAssertFalse(store.canSaveCurrentSearch)
+
+        store.clearSearch()
+        store.applySearch("#项目 is:active 复盘")
+        XCTAssertEqual(store.searchText, "#项目 is:active 复盘")
+
+        let reloaded = MemoStore(filename: "test-\(UUID().uuidString).json", defaults: defaults)
+        XCTAssertEqual(reloaded.savedSearches, ["#项目 is:active 复盘"])
+    }
+
+    func testSearchSnippetUsesMatchingTermContext() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let memo = Memo(text: "前面有一段比较长的上下文，然后出现关键命中词，再继续写一些解释。")
+
+        store.searchText = "关键命中词"
+
+        let snippet = store.searchSnippet(for: memo, contextLength: 4)
+        XCTAssertEqual(snippet, "...然后出现关键命中词，再继续...")
+    }
+
     func testMemoUpdateRejectsEmptyTextAndKeepsExistingMemo() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "保留原文 #编辑")

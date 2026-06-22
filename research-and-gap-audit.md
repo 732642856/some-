@@ -1,6 +1,6 @@
 # 地毯式探索与功能差距审计
 
-日期：2026-06-20
+日期：2026-06-20，更新：2026-06-22
 
 ## 本地碎片盘点
 
@@ -18,6 +18,14 @@
 - `2026-06-18/new-chat-4/work/agent-tools/taste-skill`：审美/品味技能材料，可用于后续 UI 评审，不是功能代码
 
 未发现此前已存在的 flomo/iOS 备忘 App 工程碎片。
+
+2026-06-22 复查：
+
+- 当前主仓库：`/Users/wuyongnaren/Documents/some随记`，Git 工作区在开工前干净，分支为 `master`，远端为 `https://github.com/732642856/some-.git`。
+- 旧 Codex 工作区：`/Users/wuyongnaren/Documents/Codex/2026-06-20/some-flomo-app-app-store-1`、`/Users/wuyongnaren/Documents/Codex/2026-06-21/some-flomo-app-app-store-1`。二者主要是早期工程快照，当前主仓库已包含其后续功能补齐内容。
+- 已克隆开源参考仍在 `/Users/wuyongnaren/Documents/Codex/2026-06-20/wo/work/open-source/MoeMemos` 与 `/Users/wuyongnaren/Documents/Codex/2026-06-20/wo/work/open-source/memos`。
+- 额外用 `/Users/wuyongnaren` 有限深度搜索 `some.xcodeproj`、`SomeTests.swift`、`SomeShareExtension`、`research-and-gap-audit.md`，未发现除当前主仓库以外的新工程碎片。
+- Xcode 工程引用已覆盖当前新增过的核心文件；本轮未新增 Swift 文件，只修改已有 target 内文件。
 
 ## 官方 flomo 功能对标
 
@@ -113,6 +121,8 @@
 - Markdown 任务项：识别 `- [ ]` / `- [x]`，详情页可直接勾选并写回 SQLite
 - App Intents / Shortcuts：快捷指令可保存新随记，复用本地 SQLite 存储
 - Share Extension 附件 v1：支持图片/文件分享，本地 App Group 附件目录保存，列表/详情展示附件卡片
+- 历史版本：编辑前保存旧正文，详情页可查看并恢复，完整备份会包含历史版本及其附件
+- 搜索二期：提交搜索会记录最近搜索，可保存常用组合筛选，首页显示搜索结果数量，卡片显示命中摘录
 
 ## AI 对标补充
 
@@ -131,9 +141,9 @@ P0：
 P1：
 
 - Share Extension 二期：主动网页标题抓取、保存后自动返回来源 App 的体验验证
-- 搜索二期：命中高亮、最近搜索、保存筛选条件
+- 搜索三期：命中高亮、按日期/附件/任务状态筛选、保存筛选重命名
 - Markdown 二期：完整块级渲染、代码块、引用批注、附件卡片
-- 历史版本
+- 历史版本二期：差异对比、版本备注、按版本复制
 
 P2：
 
