@@ -1870,9 +1870,11 @@ final class SomeTests: XCTestCase {
             outputAttachmentPath: "edited.png",
             filter: .fresh,
             cropPreset: .square,
+            cropAdjustment: ImageEditRecipe.CropAdjustment(x: 0.42, y: 0.58, scale: 1.4),
             border: ImageEditRecipe.Border(colorHex: "#FFFFFF", width: 18),
             textOverlays: [ImageEditRecipe.TextOverlay(text: "晚餐")],
-            stickerOverlays: [ImageEditRecipe.StickerOverlay(text: "good")]
+            stickerOverlays: [ImageEditRecipe.StickerOverlay(text: "good")],
+            cleanupPatches: [ImageEditRecipe.CleanupPatch(x: 0.3, y: 0.35, radius: 0.07)]
         )
 
         let line = try XCTUnwrap(recipe.encodedLine())
@@ -1882,8 +1884,12 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(decoded.outputAttachmentPath, "edited.png")
         XCTAssertEqual(decoded.filter, .fresh)
         XCTAssertEqual(decoded.cropPreset, .square)
+        XCTAssertEqual(decoded.cropAdjustment.scale, 1.4, accuracy: 0.001)
         XCTAssertEqual(decoded.textOverlays.first?.text, "晚餐")
         XCTAssertEqual(decoded.stickerOverlays.first?.text, "good")
+        XCTAssertEqual(decoded.cleanupPatches.count, 1)
+        XCTAssertTrue(decoded.summary.contains("自由裁剪"))
+        XCTAssertTrue(decoded.summary.contains("清理1"))
     }
 
     func testAddImageEditCreatesRenderedAttachmentAssetAndSearchResult() throws {
@@ -1900,9 +1906,11 @@ final class SomeTests: XCTestCase {
             sourceAttachmentPath: sourceAttachment.relativePath,
             filter: .vivid,
             cropPreset: .square,
+            cropAdjustment: ImageEditRecipe.CropAdjustment(x: 0.4, y: 0.45, scale: 1.3),
             border: ImageEditRecipe.Border(colorHex: "#F8DCE8", width: 6),
             textOverlays: [ImageEditRecipe.TextOverlay(text: "晚餐", fontSize: 18)],
-            stickerOverlays: [ImageEditRecipe.StickerOverlay(text: "OK", fontSize: 18)]
+            stickerOverlays: [ImageEditRecipe.StickerOverlay(text: "OK", fontSize: 18)],
+            cleanupPatches: [ImageEditRecipe.CleanupPatch(x: 0.3, y: 0.3, radius: 0.06)]
         )
 
         guard let memo = store.addImageEdit(
@@ -1919,6 +1927,8 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(memo.text.contains("图片编辑：晚餐照片"))
         XCTAssertTrue(memo.text.contains("滤镜：鲜明"))
         XCTAssertTrue(memo.text.contains("裁剪：1:1"))
+        XCTAssertTrue(memo.text.contains("裁剪微调："))
+        XCTAssertTrue(memo.text.contains("授权清理：1处"))
         XCTAssertNotNil(ImageEditRecipe.recipe(in: memo.text)?.outputAttachmentPath)
         XCTAssertEqual(attachments.count, 2)
         XCTAssertTrue(attachments.contains { $0.relativePath == sourceAttachment.relativePath })
@@ -1932,6 +1942,60 @@ final class SomeTests: XCTestCase {
 
         store.searchText = "has:image-edit"
         XCTAssertEqual(store.filteredMemos.map(\.id), [memo.id])
+    }
+
+    func testImageEditRecipeDecodesLegacyRecipeWithoutNewFields() throws {
+        let json = """
+        {"version":1,"sourceAttachmentPath":"source.jpg","filter":"fresh","cropPreset":"square","border":{"colorHex":"#FFFFFF","width":0},"textOverlays":[],"stickerOverlays":[]}
+        """
+        let encoded = try XCTUnwrap(json.data(using: .utf8)?.base64EncodedString())
+        let recipe = try XCTUnwrap(ImageEditRecipe.recipe(in: "图片编辑：旧图\n\(ImageEditRecipe.marker)\(encoded)"))
+
+        XCTAssertEqual(recipe.cropAdjustment, ImageEditRecipe.CropAdjustment())
+        XCTAssertEqual(recipe.cleanupPatches, [])
+    }
+
+    func testImageEditRendererAppliesFreeCropAdjustment() throws {
+        let source = testImage(size: CGSize(width: 120, height: 80))
+        let recipe = ImageEditRecipe(
+            sourceAttachmentPath: "source.png",
+            filter: .original,
+            cropPreset: .square,
+            cropAdjustment: ImageEditRecipe.CropAdjustment(x: 0.7, y: 0.5, scale: 2)
+        )
+
+        let rendered = try XCTUnwrap(ImageEditRenderer.renderedImage(sourceImage: source, recipe: recipe))
+
+        XCTAssertEqual(rendered.width, 40)
+        XCTAssertEqual(rendered.height, 40)
+        XCTAssertTrue(ImageEditRenderer.outputFilename(
+            source: SharedAttachment(
+                id: "source.png",
+                filename: "source.png",
+                relativePath: "source.png",
+                typeIdentifier: UTType.png.identifier,
+                byteCount: 0
+            ),
+            recipe: recipe
+        ).contains("freecrop"))
+    }
+
+    func testImageEditRendererAppliesAuthorizedCleanupPatch() throws {
+        let source = testImage(size: CGSize(width: 80, height: 80))
+        let recipe = ImageEditRecipe(
+            sourceAttachmentPath: "source.png",
+            filter: .original,
+            cropPreset: .original,
+            cleanupPatches: [
+                ImageEditRecipe.CleanupPatch(x: 0.5, y: 0.5, radius: 0.12, softness: 0.8)
+            ]
+        )
+
+        let rendered = try XCTUnwrap(ImageEditRenderer.renderedImage(sourceImage: source, recipe: recipe))
+
+        XCTAssertEqual(rendered.width, 80)
+        XCTAssertEqual(rendered.height, 80)
+        XCTAssertTrue(recipe.summary.contains("清理1"))
     }
 
     func testAddWebClipCreatesMemoAndWebClipAsset() {

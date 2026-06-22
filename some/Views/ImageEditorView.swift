@@ -11,11 +11,21 @@ struct ImageEditorView: View {
     @State private var title: String
     @State private var filter: ImageEditRecipe.Filter = .fresh
     @State private var cropPreset: ImageEditRecipe.CropPreset = .original
+    @State private var cropX: Double = 0.5
+    @State private var cropY: Double = 0.5
+    @State private var cropScale: Double = 1
     @State private var borderWidth: Double = 18
     @State private var borderColorHex = "#FFFFFF"
+    @State private var cleanupX: Double = 0.5
+    @State private var cleanupY: Double = 0.5
+    @State private var cleanupRadius: Double = 0.08
+    @State private var cleanupPatches: [ImageEditRecipe.CleanupPatch] = []
+    @State private var cleanupAuthorized = false
     @State private var caption = ""
     @State private var sticker = ""
     @State private var note = ""
+    @State private var editMode: ImageEditorMode = .crop
+    @State private var sourceImage: UIImage?
     @State private var previewImage: UIImage?
     @State private var statusText: String?
 
@@ -49,11 +59,18 @@ struct ImageEditorView: View {
                 .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
-        .onAppear(perform: refreshPreview)
+        .onAppear {
+            sourceImage = loadSourceImage()
+            refreshPreview()
+        }
         .onChange(of: filter) { _ in refreshPreview() }
         .onChange(of: cropPreset) { _ in refreshPreview() }
+        .onChange(of: cropX) { _ in refreshPreview() }
+        .onChange(of: cropY) { _ in refreshPreview() }
+        .onChange(of: cropScale) { _ in refreshPreview() }
         .onChange(of: borderWidth) { _ in refreshPreview() }
         .onChange(of: borderColorHex) { _ in refreshPreview() }
+        .onChange(of: cleanupPatches) { _ in refreshPreview() }
         .onChange(of: caption) { _ in refreshPreview() }
         .onChange(of: sticker) { _ in refreshPreview() }
     }
@@ -68,7 +85,25 @@ struct ImageEditorView: View {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(Color.surface)
 
-                if let previewImage = previewImage {
+                if editMode == .crop, let image = sourceImage ?? previewImage {
+                    ImageCropSelectionCanvas(
+                        image: image,
+                        cropPreset: cropPreset,
+                        cropX: $cropX,
+                        cropY: $cropY,
+                        cropScale: $cropScale
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                } else if editMode == .cleanup, let image = previewImage {
+                    ImageCleanupSelectionCanvas(
+                        image: image,
+                        cleanupX: $cleanupX,
+                        cleanupY: $cleanupY,
+                        cleanupRadius: cleanupRadius,
+                        patches: cleanupPatches
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                } else if let previewImage = previewImage {
                     Image(uiImage: previewImage)
                         .resizable()
                         .scaledToFit()
@@ -85,6 +120,13 @@ struct ImageEditorView: View {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .stroke(Color.border, lineWidth: 1)
             )
+
+            Picker("模式", selection: $editMode) {
+                ForEach(ImageEditorMode.allCases, id: \.self) { mode in
+                    Text(mode.title).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
         }
     }
 
@@ -109,6 +151,9 @@ struct ImageEditorView: View {
                 }
             }
             .pickerStyle(.segmented)
+
+            cropControls
+            cleanupControls
 
             VStack(alignment: .leading, spacing: 8) {
                 Label("边框", systemImage: "square")
@@ -172,14 +217,125 @@ struct ImageEditorView: View {
             sourceAttachmentPath: attachment.relativePath,
             filter: filter,
             cropPreset: cropPreset,
+            cropAdjustment: ImageEditRecipe.CropAdjustment(x: cropX, y: cropY, scale: cropScale),
             border: ImageEditRecipe.Border(colorHex: borderColorHex, width: borderWidth),
             textOverlays: caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? [] : [
                 ImageEditRecipe.TextOverlay(text: caption.trimmingCharacters(in: .whitespacesAndNewlines))
             ],
             stickerOverlays: sticker.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? [] : [
                 ImageEditRecipe.StickerOverlay(text: sticker.trimmingCharacters(in: .whitespacesAndNewlines))
-            ]
+            ],
+            cleanupPatches: cleanupPatches
         )
+    }
+
+    private var cropControls: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Label("裁剪微调", systemImage: "crop")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.secondaryText)
+                Spacer()
+                Button("重置") {
+                    cropX = 0.5
+                    cropY = 0.5
+                    cropScale = 1
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.accentGreen)
+            }
+
+            Slider(value: $cropScale, in: 1...3, step: 0.05) {
+                Text("缩放")
+            }
+            .tint(Color.accentGreen)
+
+            HStack(spacing: 8) {
+                Slider(value: $cropX, in: 0...1, step: 0.01) {
+                    Text("左右")
+                }
+                Slider(value: $cropY, in: 0...1, step: 0.01) {
+                    Text("上下")
+                }
+            }
+            .tint(Color.accentGreen)
+        }
+        .padding(10)
+        .background(Color.subtleSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private var cleanupControls: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Label("授权清理", systemImage: "bandage")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.secondaryText)
+                Spacer()
+                Text("\(cleanupPatches.count)处")
+                    .font(.caption)
+                    .foregroundStyle(Color.tertiaryText)
+            }
+
+            Toggle("已获授权", isOn: $cleanupAuthorized)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+                .tint(Color.accentGreen)
+
+            HStack(spacing: 8) {
+                Slider(value: $cleanupX, in: 0...1, step: 0.01) {
+                    Text("左右")
+                }
+                Slider(value: $cleanupY, in: 0...1, step: 0.01) {
+                    Text("上下")
+                }
+            }
+            .tint(Color.accentGreen)
+
+            Slider(value: $cleanupRadius, in: 0.03...0.18, step: 0.01) {
+                Text("范围")
+            }
+            .tint(Color.accentGreen)
+
+            HStack(spacing: 8) {
+                Button {
+                    guard cleanupAuthorized else {
+                        statusText = "需确认图片授权"
+                        return
+                    }
+                    guard cleanupPatches.count < 6 else {
+                        statusText = "最多添加 6 处清理点"
+                        return
+                    }
+                    cleanupPatches.append(
+                        ImageEditRecipe.CleanupPatch(
+                            x: cleanupX,
+                            y: cleanupY,
+                            radius: cleanupRadius
+                        )
+                    )
+                } label: {
+                    Label("添加", systemImage: "plus.circle")
+                        .font(.caption.weight(.semibold))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.accentGreen)
+                .disabled(!cleanupAuthorized)
+
+                Button {
+                    cleanupPatches.removeAll()
+                } label: {
+                    Label("清空", systemImage: "xmark.circle")
+                        .font(.caption.weight(.semibold))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.secondaryText)
+                .disabled(cleanupPatches.isEmpty)
+            }
+        }
+        .padding(10)
+        .background(Color.subtleSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private var borderSwatches: [String] {
@@ -187,7 +343,7 @@ struct ImageEditorView: View {
     }
 
     private func refreshPreview() {
-        guard let sourceImage = sourceImage(),
+        guard let sourceImage = sourceImage ?? loadSourceImage(),
               let cgImage = ImageEditRenderer.renderedImage(sourceImage: sourceImage, recipe: recipe) else {
             previewImage = nil
             return
@@ -211,7 +367,7 @@ struct ImageEditorView: View {
         dismiss()
     }
 
-    private func sourceImage() -> UIImage? {
+    private func loadSourceImage() -> UIImage? {
         guard let url = SharedAttachmentStore.url(for: attachment) else {
             return nil
         }
@@ -230,4 +386,252 @@ struct ImageEditorView: View {
             blue: Double(value & 0xFF) / 255.0
         )
     }
+}
+
+private enum ImageEditorMode: String, CaseIterable, Hashable {
+    case crop
+    case cleanup
+    case decorate
+
+    var title: String {
+        switch self {
+        case .crop: return "裁剪"
+        case .cleanup: return "清理"
+        case .decorate: return "修饰"
+        }
+    }
+}
+
+private struct ImageCropSelectionCanvas: View {
+    let image: UIImage
+    let cropPreset: ImageEditRecipe.CropPreset
+    @Binding var cropX: Double
+    @Binding var cropY: Double
+    @Binding var cropScale: Double
+
+    @State private var dragStartX: Double?
+    @State private var dragStartY: Double?
+    @State private var scaleStart: Double?
+
+    var body: some View {
+        GeometryReader { proxy in
+            let imageRect = aspectFitRect(
+                imageSize: image.size,
+                containerSize: proxy.size
+            )
+            let cropRect = cropSelectionRect(in: imageRect)
+
+            ZStack {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+
+                cropDimOverlay(imageRect: imageRect, cropRect: cropRect)
+
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .stroke(Color.white, lineWidth: 2)
+                    .frame(width: cropRect.width, height: cropRect.height)
+                    .position(x: cropRect.midX, y: cropRect.midY)
+                    .shadow(color: Color.black.opacity(0.24), radius: 5, x: 0, y: 2)
+
+                cropGrid(in: cropRect)
+            }
+            .contentShape(Rectangle())
+            .gesture(dragGesture(imageRect: imageRect))
+            .simultaneousGesture(magnificationGesture())
+        }
+    }
+
+    private func cropDimOverlay(imageRect: CGRect, cropRect: CGRect) -> some View {
+        ZStack {
+            Rectangle()
+                .fill(Color.black.opacity(0.34))
+                .frame(width: imageRect.width, height: cropRect.minY - imageRect.minY)
+                .position(x: imageRect.midX, y: (imageRect.minY + cropRect.minY) / 2)
+
+            Rectangle()
+                .fill(Color.black.opacity(0.34))
+                .frame(width: imageRect.width, height: imageRect.maxY - cropRect.maxY)
+                .position(x: imageRect.midX, y: (cropRect.maxY + imageRect.maxY) / 2)
+
+            Rectangle()
+                .fill(Color.black.opacity(0.34))
+                .frame(width: cropRect.minX - imageRect.minX, height: cropRect.height)
+                .position(x: (imageRect.minX + cropRect.minX) / 2, y: cropRect.midY)
+
+            Rectangle()
+                .fill(Color.black.opacity(0.34))
+                .frame(width: imageRect.maxX - cropRect.maxX, height: cropRect.height)
+                .position(x: (cropRect.maxX + imageRect.maxX) / 2, y: cropRect.midY)
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func cropGrid(in rect: CGRect) -> some View {
+        Path { path in
+            for index in 1..<3 {
+                let x = rect.minX + rect.width * CGFloat(index) / 3
+                path.move(to: CGPoint(x: x, y: rect.minY))
+                path.addLine(to: CGPoint(x: x, y: rect.maxY))
+
+                let y = rect.minY + rect.height * CGFloat(index) / 3
+                path.move(to: CGPoint(x: rect.minX, y: y))
+                path.addLine(to: CGPoint(x: rect.maxX, y: y))
+            }
+        }
+        .stroke(Color.white.opacity(0.48), lineWidth: 1)
+        .allowsHitTesting(false)
+    }
+
+    private func dragGesture(imageRect: CGRect) -> some Gesture {
+        DragGesture()
+            .onChanged { value in
+                if dragStartX == nil {
+                    dragStartX = cropX
+                    dragStartY = cropY
+                }
+
+                let width = max(imageRect.width, 1)
+                let height = max(imageRect.height, 1)
+                cropX = clamped((dragStartX ?? cropX) + Double(value.translation.width / width))
+                cropY = clamped((dragStartY ?? cropY) + Double(value.translation.height / height))
+            }
+            .onEnded { _ in
+                dragStartX = nil
+                dragStartY = nil
+            }
+    }
+
+    private func magnificationGesture() -> some Gesture {
+        MagnificationGesture()
+            .onChanged { value in
+                if scaleStart == nil {
+                    scaleStart = cropScale
+                }
+                cropScale = min(max((scaleStart ?? cropScale) * Double(value), 1), 3)
+            }
+            .onEnded { _ in
+                scaleStart = nil
+            }
+    }
+
+    private func cropSelectionRect(in imageRect: CGRect) -> CGRect {
+        guard imageRect.width > 0, imageRect.height > 0 else {
+            return .zero
+        }
+
+        let currentRatio = Double(imageRect.width / imageRect.height)
+        let aspectRatio = cropPreset.aspectRatio ?? currentRatio
+        let baseWidth: CGFloat
+        let baseHeight: CGFloat
+
+        if currentRatio > aspectRatio {
+            baseHeight = imageRect.height
+            baseWidth = imageRect.height * CGFloat(aspectRatio)
+        } else {
+            baseWidth = imageRect.width
+            baseHeight = imageRect.width / CGFloat(aspectRatio)
+        }
+
+        let scale = CGFloat(min(max(cropScale, 1), 3))
+        let width = max(32, min(imageRect.width, baseWidth / scale))
+        let height = max(32, min(imageRect.height, baseHeight / scale))
+        let centerX = imageRect.minX + CGFloat(clamped(cropX)) * imageRect.width
+        let centerY = imageRect.minY + CGFloat(clamped(cropY)) * imageRect.height
+        let originX = min(max(centerX - width / 2, imageRect.minX), imageRect.maxX - width)
+        let originY = min(max(centerY - height / 2, imageRect.minY), imageRect.maxY - height)
+
+        return CGRect(x: originX, y: originY, width: width, height: height)
+    }
+}
+
+private struct ImageCleanupSelectionCanvas: View {
+    let image: UIImage
+    @Binding var cleanupX: Double
+    @Binding var cleanupY: Double
+    let cleanupRadius: Double
+    let patches: [ImageEditRecipe.CleanupPatch]
+
+    var body: some View {
+        GeometryReader { proxy in
+            let imageRect = aspectFitRect(imageSize: image.size, containerSize: proxy.size)
+
+            ZStack {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+
+                ForEach(patches) { patch in
+                    cleanupMarker(
+                        x: patch.x,
+                        y: patch.y,
+                        radius: patch.radius,
+                        imageRect: imageRect,
+                        color: Color.accentGreen.opacity(0.52)
+                    )
+                }
+
+                cleanupMarker(
+                    x: cleanupX,
+                    y: cleanupY,
+                    radius: cleanupRadius,
+                    imageRect: imageRect,
+                    color: Color.white.opacity(0.7)
+                )
+            }
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        cleanupX = clamped(Double((value.location.x - imageRect.minX) / max(imageRect.width, 1)))
+                        cleanupY = clamped(Double((value.location.y - imageRect.minY) / max(imageRect.height, 1)))
+                    }
+            )
+        }
+    }
+
+    private func cleanupMarker(
+        x: Double,
+        y: Double,
+        radius: Double,
+        imageRect: CGRect,
+        color: Color
+    ) -> some View {
+        let diameter = max(20, min(imageRect.width, imageRect.height) * CGFloat(radius) * 2)
+        return Circle()
+            .stroke(color, lineWidth: 2)
+            .background(Circle().fill(color.opacity(0.16)))
+            .frame(width: diameter, height: diameter)
+            .position(
+                x: imageRect.minX + CGFloat(clamped(x)) * imageRect.width,
+                y: imageRect.minY + CGFloat(clamped(y)) * imageRect.height
+            )
+            .shadow(color: Color.black.opacity(0.24), radius: 5, x: 0, y: 2)
+            .allowsHitTesting(false)
+    }
+}
+
+private func aspectFitRect(imageSize: CGSize, containerSize: CGSize) -> CGRect {
+    guard imageSize.width > 0,
+          imageSize.height > 0,
+          containerSize.width > 0,
+          containerSize.height > 0 else {
+        return .zero
+    }
+
+    let scale = min(containerSize.width / imageSize.width, containerSize.height / imageSize.height)
+    let width = imageSize.width * scale
+    let height = imageSize.height * scale
+    return CGRect(
+        x: (containerSize.width - width) / 2,
+        y: (containerSize.height - height) / 2,
+        width: width,
+        height: height
+    )
+}
+
+private func clamped(_ value: Double) -> Double {
+    min(max(value, 0), 1)
 }

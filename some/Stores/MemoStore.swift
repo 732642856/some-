@@ -242,6 +242,7 @@ final class MemoStore: ObservableObject {
         return addMemo(text: clipText)
     }
 
+    #if !SOME_SHARE_EXTENSION
     @discardableResult
     func addImageEdit(
         title: String,
@@ -279,6 +280,12 @@ final class MemoStore: ObservableObject {
         appendField("原图", value: sourceAttachment.displayName, to: &lines)
         appendField("滤镜", value: renderedRecipe.filter.title, to: &lines)
         appendField("裁剪", value: renderedRecipe.cropPreset.title, to: &lines)
+        if renderedRecipe.cropAdjustment.isAdjusted {
+            appendField("裁剪微调", value: "中心\(Int(renderedRecipe.cropAdjustment.x * 100))/\(Int(renderedRecipe.cropAdjustment.y * 100)) 缩放\(String(format: "%.1f", renderedRecipe.cropAdjustment.scale))x", to: &lines)
+        }
+        if !renderedRecipe.cleanupPatches.isEmpty {
+            appendField("授权清理", value: "\(renderedRecipe.cleanupPatches.count)处", to: &lines)
+        }
         if renderedRecipe.border.width > 0 {
             appendField("边框", value: renderedRecipe.border.colorHex, to: &lines)
         }
@@ -296,6 +303,7 @@ final class MemoStore: ObservableObject {
 
         return memo
     }
+    #endif
 
     @discardableResult
     func addScrapbookPage(

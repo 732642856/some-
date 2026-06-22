@@ -62,11 +62,25 @@ jobs:
             {
               echo "### xcodebuild build failed"
               echo
+              echo "#### Build errors"
+              echo
+              echo '```text'
+              grep -nE '(^|: )(fatal )?error:|SwiftCompile|SwiftDriver Compilation|CompileSwift' "$LOG_PATH" | tail -n 120 || true
+              echo '```'
+              echo
               echo '```text'
               tail -n 200 "$LOG_PATH"
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
             echo "::error file=.github/workflows/ios-ci.yml,line=45::xcodebuild build failed with status ${BUILD_STATUS}; see the step summary for the last 200 log lines."
+            ERROR_ANNOTATION="$(
+              grep -nE '(^|: )(fatal )?error:' "$LOG_PATH" \
+                | tail -n 20 \
+                | perl -0pe 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/::/%3A%3A/g'
+            )"
+            if [ -n "$ERROR_ANNOTATION" ]; then
+              echo "::error file=.github/workflows/ios-ci.yml,line=45::xcodebuild error lines:%0A${ERROR_ANNOTATION}"
+            fi
             TAIL_ANNOTATION="$(
               tail -n 80 "$LOG_PATH" \
                 | perl -0pe 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/::/%3A%3A/g'

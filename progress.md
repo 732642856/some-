@@ -57,6 +57,17 @@
 - 发现并收拢阶段 10 文件碎片：`some/Utilities/ImageEditRenderer.swift` 与 `some/Views/ImageEditorView.swift` 已存在于磁盘但未被 Git 跟踪；本轮已确认二者纳入 Xcode app target 并加入 Git 索引。
 - 静态验证通过：`git diff --check`、`plutil -lint`、`xmllint --noout`、旧 Swift parser 覆盖 `ImageEditRenderer.swift`、`ImageEditorView.swift`、`Memo.swift`、`MemoStore.swift`、`MemoSearchQuery.swift`、`ContentView.swift` 和 `SomeTests.swift`。
 
+## 2026-06-23T00:30:00Z
+
+- 进入阶段 12：图片自由裁剪与授权清理增强。
+- 复查 Git 状态、规划文件、全量文件清单、图片编辑 `ImageEditRecipe`、`ImageEditRenderer`、`ImageEditorView`、`MemoStore.addImageEdit` 和相关测试；开工前工作区干净且远端同步。
+- GitHub API 复查 `Mantis`、`TOCropViewController`，二者均为 MIT 且适合后续完整裁剪器候选；对象移除/修复类 SwiftUI MIT 搜索返回 0。当前环境缺完整 Xcode/iOS SDK，暂不引入 SPM/ObjC 依赖。
+- 扩展 `ImageEditRecipe`，新增向后兼容的 `CropAdjustment` 与 `CleanupPatch`，旧图片编辑 JSON 缺少新字段时仍可解码。
+- 更新 `ImageEditRenderer`，预设比例裁剪支持中心点和缩放微调，新增基于模糊贴片的授权图片瑕疵清理渲染。
+- 更新 `ImageEditorView`，新增裁剪微调控制和最多 6 处授权清理点，保存摘要记录裁剪微调与授权清理数量。
+- 补充新字段编解码、旧 JSON 兼容、渲染保存和素材搜索测试。
+- 调整 Share Extension 构建策略：扩展 target 使用 `SOME_SHARE_EXTENSION` 编译旗标，`MemoStore.addImageEdit` 仅在主 App 编译，避免分享扩展继续依赖图片渲染器。
+
 ## 2026-06-23T00:00:00Z
 
 - 接续用户“下一步”要求，开工前复查 Git 状态、项目文件清单、任务计划和进度日志；确认本地工作树干净且处于 `master...origin/master`。

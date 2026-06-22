@@ -17,14 +17,22 @@ enum ImageEditRenderer {
             return nil
         }
 
-        let cropped = crop(CGImage: normalized, preset: recipe.cropPreset) ?? normalized
-        let filtered = applyFilter(to: cropped, filter: recipe.filter) ?? cropped
+        let cropped = crop(CGImage: normalized, preset: recipe.cropPreset, adjustment: recipe.cropAdjustment) ?? normalized
+        let cleaned = applyCleanupPatches(to: cropped, patches: recipe.cleanupPatches) ?? cropped
+        let filtered = applyFilter(to: cleaned, filter: recipe.filter) ?? cleaned
         return drawDecorations(on: filtered, recipe: recipe)
     }
 
     static func outputFilename(source: SharedAttachment, recipe: ImageEditRecipe) -> String {
         let baseName = (source.filename as NSString).deletingPathExtension
-        let suffix = [recipe.filter.rawValue, recipe.cropPreset.rawValue]
+        var suffixParts = [recipe.filter.rawValue, recipe.cropPreset.rawValue]
+        if recipe.cropAdjustment.isAdjusted {
+            suffixParts.append("freecrop")
+        }
+        if !recipe.cleanupPatches.isEmpty {
+            suffixParts.append("cleanup")
+        }
+        let suffix = suffixParts
             .filter { !$0.isEmpty && $0 != "original" }
             .joined(separator: "-")
         let decoratedSuffix = suffix.isEmpty ? "edited" : "edited-\(suffix)"
@@ -44,32 +52,123 @@ enum ImageEditRenderer {
         }
     }
 
-    private static func crop(CGImage image: CGImage, preset: ImageEditRecipe.CropPreset) -> CGImage? {
-        guard let aspectRatio = preset.aspectRatio else {
+    private static func crop(
+        CGImage image: CGImage,
+        preset: ImageEditRecipe.CropPreset,
+        adjustment: ImageEditRecipe.CropAdjustment
+    ) -> CGImage? {
+        guard preset.aspectRatio != nil || adjustment.isAdjusted else {
             return image
         }
 
         let width = Double(image.width)
         let height = Double(image.height)
+        let aspectRatio = preset.aspectRatio ?? (width / height)
         let currentRatio = width / height
-        let cropWidth: Double
-        let cropHeight: Double
+        let baseCropWidth: Double
+        let baseCropHeight: Double
 
         if currentRatio > aspectRatio {
-            cropHeight = height
-            cropWidth = height * aspectRatio
+            baseCropHeight = height
+            baseCropWidth = height * aspectRatio
         } else {
-            cropWidth = width
-            cropHeight = width / aspectRatio
+            baseCropWidth = width
+            baseCropHeight = width / aspectRatio
         }
 
+        let scale = min(max(adjustment.scale, 1), 3)
+        let cropWidth = max(1, min(width, baseCropWidth / scale))
+        let cropHeight = max(1, min(height, baseCropHeight / scale))
+        let desiredCenterX = clamped(adjustment.x, lower: 0, upper: 1) * width
+        let desiredCenterY = clamped(adjustment.y, lower: 0, upper: 1) * height
+        let originX = min(max(desiredCenterX - cropWidth / 2, 0), max(0, width - cropWidth))
+        let originY = min(max(desiredCenterY - cropHeight / 2, 0), max(0, height - cropHeight))
+
         let rect = CGRect(
-            x: (width - cropWidth) / 2,
-            y: (height - cropHeight) / 2,
+            x: originX,
+            y: originY,
             width: cropWidth,
             height: cropHeight
         ).integral
         return image.cropping(to: rect)
+    }
+
+    private static func applyCleanupPatches(
+        to image: CGImage,
+        patches: [ImageEditRecipe.CleanupPatch]
+    ) -> CGImage? {
+        guard !patches.isEmpty else {
+            return image
+        }
+
+        let size = CGSize(width: image.width, height: image.height)
+        let rect = CGRect(origin: .zero, size: size)
+        let maxPatchRadius = patches
+            .map { max(8, normalized($0.radius) * min(size.width, size.height)) }
+            .max() ?? 18
+        guard let blurred = blurredImage(from: image, radius: maxPatchRadius * 0.28) else {
+            return image
+        }
+
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
+        let rendered = renderer.image { _ in
+            UIImage(cgImage: image).draw(in: rect)
+            let blurredImage = UIImage(cgImage: blurred)
+
+            for patch in patches {
+                drawCleanupPatch(
+                    patch,
+                    blurredImage: blurredImage,
+                    imageRect: rect,
+                    canvasSize: size
+                )
+            }
+        }
+        return rendered.cgImage
+    }
+
+    private static func blurredImage(from image: CGImage, radius: CGFloat) -> CGImage? {
+        let input = CIImage(cgImage: image)
+        let blur = CIFilter.gaussianBlur()
+        blur.inputImage = input.clampedToExtent()
+        blur.radius = Float(max(2, min(radius, 80)))
+        guard let output = blur.outputImage?.cropped(to: input.extent) else {
+            return nil
+        }
+        return context.createCGImage(output, from: input.extent)
+    }
+
+    private static func drawCleanupPatch(
+        _ patch: ImageEditRecipe.CleanupPatch,
+        blurredImage: UIImage,
+        imageRect: CGRect,
+        canvasSize: CGSize
+    ) {
+        let radius = max(8, normalized(patch.radius) * min(canvasSize.width, canvasSize.height))
+        let center = CGPoint(
+            x: normalized(patch.x) * canvasSize.width,
+            y: normalized(patch.y) * canvasSize.height
+        )
+        let patchRect = CGRect(
+            x: center.x - radius,
+            y: center.y - radius,
+            width: radius * 2,
+            height: radius * 2
+        )
+        let softness = max(0.2, normalized(patch.softness))
+
+        for index in 0..<8 {
+            let progress = CGFloat(index + 1) / 8
+            let inset = radius * (1 - progress)
+            let alpha = min(0.2, 0.04 + 0.035 * progress) * softness
+            let ellipse = UIBezierPath(ovalIn: patchRect.insetBy(dx: inset, dy: inset))
+            UIGraphicsGetCurrentContext()?.saveGState()
+            ellipse.addClip()
+            blurredImage.draw(in: imageRect, blendMode: .normal, alpha: alpha)
+            UIGraphicsGetCurrentContext()?.restoreGState()
+        }
     }
 
     private static func applyFilter(to image: CGImage, filter: ImageEditRecipe.Filter) -> CGImage? {
@@ -193,6 +292,10 @@ enum ImageEditRenderer {
 
     private static func normalized(_ value: Double) -> CGFloat {
         CGFloat(min(max(value, 0), 1))
+    }
+
+    private static func clamped(_ value: Double, lower: Double, upper: Double) -> Double {
+        min(max(value, lower), upper)
     }
 
     private static func color(hex: String, fallback: UIColor) -> UIColor {

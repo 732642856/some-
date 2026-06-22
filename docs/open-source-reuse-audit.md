@@ -79,6 +79,7 @@
 - `bevy/photo-editor`、`jogendra/phimpme-iOS`、`sprint84/PhotoCropEditor` 等 MIT 项目可做历史参考，但部分维护较旧；除非具体文件仍适配当前 iOS/Swift，否则不优先复制。
 - 系统能力：PhotosUI / PHPicker、AVFoundation、Core Image、Vision、VisionKit 应优先使用。滤镜、边框、裁剪、基础拼贴可先靠系统框架实现；抠图/背景移除优先评估 Vision 前景分割能力。
 - 2026-06-22 图片编辑 MVP 决策：阶段 10 开工前重新检查 Git 状态、全量文件清单、`imageEdit` 素材预留、附件存储和素材库边界，并通过 GitHub API 复查 `Mantis`、`TOCropViewController`、`SwiftUI Core Image photo editor MIT`。Mantis 与 TOCropViewController 均为 MIT 且适合后续自由裁剪；本轮为了控制工程风险，不引入 SPM/Objective-C 依赖，先用 Core Image + UIKit 绘制实现预设比例裁剪、滤镜、边框、文字和贴纸，输出为本地 PNG 附件。
+- 2026-06-23 图片编辑增强决策：阶段 12 开工前再次复查 `Mantis`（MIT、Swift、活跃）和 `TOCropViewController`（MIT、成熟 ObjC），并检索 `SwiftUI image inpainting object removal MIT`，对象移除方向返回 0 个可直接复用候选。当前环境缺完整 Xcode/iOS SDK，不适合引入新 SPM 或 ObjC 桥接；本轮继续在现有 Core Image/UIKit 管线中增加裁剪中心/缩放微调和授权图片瑕疵清理贴片，后续完整手势裁剪器再接入 Mantis 优先评估。
 
 水印/清理边界：本项目可以做用户拥有或获授权图片的瑕疵修复、对象清理、背景处理和排版，不把移除第三方版权标识、平台水印或规避授权限制作为产品目标。
 

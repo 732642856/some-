@@ -345,9 +345,11 @@ struct ImageEditRecipe: Codable, Equatable {
     var outputAttachmentPath: String?
     var filter: Filter
     var cropPreset: CropPreset
+    var cropAdjustment: CropAdjustment
     var border: Border
     var textOverlays: [TextOverlay]
     var stickerOverlays: [StickerOverlay]
+    var cleanupPatches: [CleanupPatch]
 
     init(
         version: Int = 1,
@@ -355,22 +357,29 @@ struct ImageEditRecipe: Codable, Equatable {
         outputAttachmentPath: String? = nil,
         filter: Filter = .original,
         cropPreset: CropPreset = .original,
+        cropAdjustment: CropAdjustment = CropAdjustment(),
         border: Border = Border(),
         textOverlays: [TextOverlay] = [],
-        stickerOverlays: [StickerOverlay] = []
+        stickerOverlays: [StickerOverlay] = [],
+        cleanupPatches: [CleanupPatch] = []
     ) {
         self.version = version
         self.sourceAttachmentPath = sourceAttachmentPath
         self.outputAttachmentPath = outputAttachmentPath
         self.filter = filter
         self.cropPreset = cropPreset
+        self.cropAdjustment = cropAdjustment
         self.border = border
         self.textOverlays = textOverlays
         self.stickerOverlays = stickerOverlays
+        self.cleanupPatches = cleanupPatches
     }
 
     var summary: String {
         var parts = [filter.title, cropPreset.title]
+        if cropAdjustment.isAdjusted {
+            parts.append("自由裁剪")
+        }
         if border.width > 0 {
             parts.append("边框")
         }
@@ -380,7 +389,37 @@ struct ImageEditRecipe: Codable, Equatable {
         if !stickerOverlays.isEmpty {
             parts.append("贴纸\(stickerOverlays.count)")
         }
+        if !cleanupPatches.isEmpty {
+            parts.append("清理\(cleanupPatches.count)")
+        }
         return parts.joined(separator: " · ")
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case version
+        case sourceAttachmentPath
+        case outputAttachmentPath
+        case filter
+        case cropPreset
+        case cropAdjustment
+        case border
+        case textOverlays
+        case stickerOverlays
+        case cleanupPatches
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        version = try container.decodeIfPresent(Int.self, forKey: .version) ?? 1
+        sourceAttachmentPath = try container.decode(String.self, forKey: .sourceAttachmentPath)
+        outputAttachmentPath = try container.decodeIfPresent(String.self, forKey: .outputAttachmentPath)
+        filter = try container.decodeIfPresent(Filter.self, forKey: .filter) ?? .original
+        cropPreset = try container.decodeIfPresent(CropPreset.self, forKey: .cropPreset) ?? .original
+        cropAdjustment = try container.decodeIfPresent(CropAdjustment.self, forKey: .cropAdjustment) ?? CropAdjustment()
+        border = try container.decodeIfPresent(Border.self, forKey: .border) ?? Border()
+        textOverlays = try container.decodeIfPresent([TextOverlay].self, forKey: .textOverlays) ?? []
+        stickerOverlays = try container.decodeIfPresent([StickerOverlay].self, forKey: .stickerOverlays) ?? []
+        cleanupPatches = try container.decodeIfPresent([CleanupPatch].self, forKey: .cleanupPatches) ?? []
     }
 
     func encodedLine() -> String? {
@@ -459,6 +498,22 @@ struct ImageEditRecipe: Codable, Equatable {
         }
     }
 
+    struct CropAdjustment: Codable, Equatable {
+        var x: Double
+        var y: Double
+        var scale: Double
+
+        init(x: Double = 0.5, y: Double = 0.5, scale: Double = 1) {
+            self.x = x
+            self.y = y
+            self.scale = scale
+        }
+
+        var isAdjusted: Bool {
+            abs(x - 0.5) > 0.01 || abs(y - 0.5) > 0.01 || abs(scale - 1) > 0.01
+        }
+    }
+
     struct TextOverlay: Codable, Equatable, Identifiable {
         var id: UUID
         var text: String
@@ -503,6 +558,28 @@ struct ImageEditRecipe: Codable, Equatable {
             self.x = x
             self.y = y
             self.fontSize = fontSize
+        }
+    }
+
+    struct CleanupPatch: Codable, Equatable, Identifiable {
+        var id: UUID
+        var x: Double
+        var y: Double
+        var radius: Double
+        var softness: Double
+
+        init(
+            id: UUID = UUID(),
+            x: Double = 0.5,
+            y: Double = 0.5,
+            radius: Double = 0.08,
+            softness: Double = 0.7
+        ) {
+            self.id = id
+            self.x = x
+            self.y = y
+            self.radius = radius
+            self.softness = softness
         }
     }
 }
