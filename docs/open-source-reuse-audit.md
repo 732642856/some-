@@ -78,6 +78,7 @@
 - `SilenceLove/HXPhotoPicker`：<https://github.com/SilenceLove/HXPhotoPicker>，MIT，Swift，图片/视频选择、预览、编辑能力很全；适合评估“相册选择 + 图片/视频编辑”大模块，但体量较大，不应盲目全量接入。
 - `bevy/photo-editor`、`jogendra/phimpme-iOS`、`sprint84/PhotoCropEditor` 等 MIT 项目可做历史参考，但部分维护较旧；除非具体文件仍适配当前 iOS/Swift，否则不优先复制。
 - 系统能力：PhotosUI / PHPicker、AVFoundation、Core Image、Vision、VisionKit 应优先使用。滤镜、边框、裁剪、基础拼贴可先靠系统框架实现；抠图/背景移除优先评估 Vision 前景分割能力。
+- 2026-06-22 图片编辑 MVP 决策：阶段 10 开工前重新检查 Git 状态、全量文件清单、`imageEdit` 素材预留、附件存储和素材库边界，并通过 GitHub API 复查 `Mantis`、`TOCropViewController`、`SwiftUI Core Image photo editor MIT`。Mantis 与 TOCropViewController 均为 MIT 且适合后续自由裁剪；本轮为了控制工程风险，不引入 SPM/Objective-C 依赖，先用 Core Image + UIKit 绘制实现预设比例裁剪、滤镜、边框、文字和贴纸，输出为本地 PNG 附件。
 
 水印/清理边界：本项目可以做用户拥有或获授权图片的瑕疵修复、对象清理、背景处理和排版，不把移除第三方版权标识、平台水印或规避授权限制作为产品目标。
 

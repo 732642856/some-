@@ -78,6 +78,8 @@
 		7AB000010000000000000001 /* AudioTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AB001010000000000000001 /* AudioTranscriber.swift */; };
 		7AC000010000000000000001 /* VideoThumbnailGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AC001010000000000000001 /* VideoThumbnailGenerator.swift */; };
 		7AD000010000000000000001 /* ScrapbookEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AD001010000000000000001 /* ScrapbookEditorView.swift */; };
+		7AE000010000000000000001 /* ImageEditRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE001010000000000000001 /* ImageEditRenderer.swift */; };
+		7AE000010000000000000002 /* ImageEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE001010000000000000002 /* ImageEditorView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -172,6 +174,8 @@
 		7AB001010000000000000001 /* AudioTranscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioTranscriber.swift; sourceTree = "<group>"; };
 		7AC001010000000000000001 /* VideoThumbnailGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoThumbnailGenerator.swift; sourceTree = "<group>"; };
 		7AD001010000000000000001 /* ScrapbookEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrapbookEditorView.swift; sourceTree = "<group>"; };
+		7AE001010000000000000001 /* ImageEditRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageEditRenderer.swift; sourceTree = "<group>"; };
+		7AE001010000000000000002 /* ImageEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageEditorView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -274,6 +278,7 @@
 				7A3001010000000000000002 /* MarkdownMemoTextView.swift */,
 				7A5001010000000000000002 /* AttachmentPreviewList.swift */,
 				7AD001010000000000000001 /* ScrapbookEditorView.swift */,
+				7AE001010000000000000002 /* ImageEditorView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -294,6 +299,7 @@
 				7AA001010000000000000001 /* ImageTextRecognizer.swift */,
 				7AB001010000000000000001 /* AudioTranscriber.swift */,
 				7AC001010000000000000001 /* VideoThumbnailGenerator.swift */,
+				7AE001010000000000000001 /* ImageEditRenderer.swift */,
 				7A6001010000000000000001 /* MemoBackupPackage.swift */,
 			);
 			path = Utilities;
@@ -543,6 +549,8 @@
 				7AB000010000000000000001 /* AudioTranscriber.swift in Sources */,
 				7AC000010000000000000001 /* VideoThumbnailGenerator.swift in Sources */,
 				7AD000010000000000000001 /* ScrapbookEditorView.swift in Sources */,
+				7AE000010000000000000001 /* ImageEditRenderer.swift in Sources */,
+				7AE000010000000000000002 /* ImageEditorView.swift in Sources */,
 				7A6000010000000000000001 /* MemoBackupPackage.swift in Sources */,
 				7A5000010000000000000003 /* AttachmentPreviewList.swift in Sources */,
 			);

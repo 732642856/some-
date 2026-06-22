@@ -131,6 +131,9 @@
 - 2026-06-22：已新增手帐画布编辑 v1，详情页读取 `ScrapbookPageLayout` 后可拖拽、缩放、旋转图片/文字/贴纸/边框/形状图层，并通过 `ScrapbookPageLayout.replacingLayout` 保存回原 memo 的可迁移 JSON。
 - 2026-06-22：阶段 9 开工前已复查 Git 状态、未跟踪文件、文件清单、手帐模型/视图/测试边界；GitHub API 检索 SwiftUI/Swift 拖拽缩放旋转贴纸和拼贴编辑器未找到可直接复制的成熟 MIT SwiftUI 模块，本轮未新增第三方依赖。
 - 2026-06-22：已补充手帐图层 JSON 替换与缺失时追加的单元测试；本轮 `git diff --check`、`plutil -lint` 通过，旧版 `xcrun swiftc -parse` 已覆盖 `Memo.swift`、`SharedAttachmentStore.swift`、`MemoSearchQuery.swift`、`MemoTaskParser.swift`、`MemoReferenceParser.swift`、`LinkExtractor.swift` 和 `SomeTests.swift`。
+- 2026-06-22：已新增图片编辑 v1，素材库图片附件可进入编辑器，支持预设比例裁剪、Core Image 滤镜、边框、文字和贴纸；保存会生成新的本地 PNG 附件，并写入带 `ImageEditRecipe` 的“图片编辑”记录。
+- 2026-06-22：图片编辑阶段开工前已复查 Git 状态、全量文件清单、图片/附件/素材索引边界；GitHub API 确认 `Mantis` 与 `TOCropViewController` 为 MIT 且适合作为后续自由裁剪候选，本轮未新增第三方依赖。
+- 2026-06-22：已补充图片编辑配方编解码、渲染保存、`imageEdit` 素材索引和 `has:image-edit` 搜索筛选测试；本轮 `git diff --check`、`plutil -lint`、`xmllint --noout` 通过，旧版 `xcrun swiftc -parse` 已覆盖新增图片编辑模型、渲染器、编辑视图和测试文件。
 
 ## 未能在当前环境完成
 
@@ -145,6 +148,7 @@
 - 2026-06-22：视频缩略图需要在完整 Xcode 16 + 模拟器/真机环境验证真实 `.mov` / `.mp4` 文件取帧、旋转方向和长列表滚动表现；当前环境只能做静态校验和失败路径测试。
 - 2026-06-22：手帐画布拖拽、双指缩放和旋转需要完整 Xcode 16 + 模拟器/真机环境做真实手势验证；当前环境已完成模型替换测试、plist/scheme 校验和旧 Swift parser 对可解析文件的检查。
 - 2026-06-22：手帐画布编辑需要完整 Xcode 16 + 模拟器/真机验证多指缩放/旋转、拖拽边界、滚动页面内手势冲突和真实图片图层显示；当前环境只能验证模型替换逻辑和静态语法。
+- 2026-06-22：图片编辑需要完整 Xcode 16 + 模拟器/真机验证真实照片色彩、保存耗时、素材库 sheet 交互、长边大图内存占用和系统分享/备份链路；当前环境已完成渲染核心静态解析和小图单元测试。
 - Share Extension 的真实分享面板、App Group 容器和签名能力需要在完整 Xcode + Apple Developer Team 环境里实机或模拟器验证。
 - 旧版 `xcrun swiftc -parse` 只能做语法层检查，不能替代 Xcode 16 的完整 typecheck、XCTest 或 Share Extension 真机验证。
 

@@ -1,5 +1,7 @@
 import Foundation
 import SwiftUI
+import UIKit
+import UniformTypeIdentifiers
 
 enum MemoHomeMode: String, CaseIterable, Identifiable {
     case timeline
@@ -238,6 +240,61 @@ final class MemoStore: ObservableObject {
         )
 
         return addMemo(text: clipText)
+    }
+
+    @discardableResult
+    func addImageEdit(
+        title: String,
+        sourceAttachment: SharedAttachment,
+        recipe: ImageEditRecipe,
+        note: String? = nil
+    ) -> Memo? {
+        let cleanedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanedTitle.isEmpty,
+              sourceAttachment.isImage,
+              let sourceURL = SharedAttachmentStore.url(for: sourceAttachment),
+              let sourceImage = UIImage(contentsOfFile: sourceURL.path) else {
+            return nil
+        }
+
+        var renderedRecipe = recipe
+        renderedRecipe.sourceAttachmentPath = sourceAttachment.relativePath
+        guard let data = ImageEditRenderer.render(sourceImage: sourceImage, recipe: renderedRecipe) else {
+            return nil
+        }
+
+        let outputAttachment: SharedAttachment
+        do {
+            outputAttachment = try SharedAttachmentStore.save(
+                data: data,
+                suggestedFilename: ImageEditRenderer.outputFilename(source: sourceAttachment, recipe: renderedRecipe),
+                typeIdentifier: UTType.png.identifier
+            )
+        } catch {
+            return nil
+        }
+
+        renderedRecipe.outputAttachmentPath = outputAttachment.relativePath
+        var lines = ["图片编辑：\(cleanedTitle)"]
+        appendField("原图", value: sourceAttachment.displayName, to: &lines)
+        appendField("滤镜", value: renderedRecipe.filter.title, to: &lines)
+        appendField("裁剪", value: renderedRecipe.cropPreset.title, to: &lines)
+        if renderedRecipe.border.width > 0 {
+            appendField("边框", value: renderedRecipe.border.colorHex, to: &lines)
+        }
+        appendField("文字", values: renderedRecipe.textOverlays.map(\.text), to: &lines)
+        appendField("贴纸", values: renderedRecipe.stickerOverlays.map(\.text), to: &lines)
+        appendField("备注", value: note, to: &lines)
+        if let encodedLine = renderedRecipe.encodedLine() {
+            lines.append(encodedLine)
+        }
+
+        guard let memo = addStructuredMemo(lines: lines, attachments: [outputAttachment, sourceAttachment]) else {
+            SharedAttachmentStore.delete(outputAttachment)
+            return nil
+        }
+
+        return memo
     }
 
     @discardableResult
@@ -1062,6 +1119,8 @@ final class MemoStore: ObservableObject {
             return !backlinkMemos(to: memo).isEmpty
         case .webClip:
             return !LinkExtractor.webClips(in: memo.text).isEmpty
+        case .imageEdit:
+            return assets(for: memo).contains { $0.kind == .imageEdit }
         case .screenshot:
             return assets(for: memo).contains { $0.kind == .screenshot }
         case .audio:

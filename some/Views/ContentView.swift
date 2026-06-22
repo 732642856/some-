@@ -257,7 +257,7 @@ private struct ScrapbookView: View {
 
     private var imageAttachmentAssets: [MemoAsset] {
         store.assets.filter { asset in
-            guard asset.kind == .attachment,
+            guard (asset.kind == .attachment || asset.kind == .imageEdit),
                   let type = asset.typeIdentifier.flatMap(UTType.init) else {
                 return false
             }
@@ -1002,7 +1002,7 @@ private struct WardrobeView: View {
 
     private var imageAttachmentAssets: [MemoAsset] {
         store.assets.filter { asset in
-            guard asset.kind == .attachment,
+            guard (asset.kind == .attachment || asset.kind == .imageEdit),
                   let type = asset.typeIdentifier.flatMap(UTType.init) else {
                 return false
             }
@@ -1436,6 +1436,7 @@ private struct AssetLibraryView: View {
 
 private struct AssetNavigationRow: View {
     @Environment(\.openURL) private var openURL
+    @State private var editingImageAttachment: SharedAttachment?
 
     let asset: MemoAsset
     let memo: Memo
@@ -1450,12 +1451,42 @@ private struct AssetNavigationRow: View {
                 AssetRowView(asset: asset, memo: memo)
             }
             .buttonStyle(.plain)
+        } else if let attachment = imageAttachment {
+            Button {
+                editingImageAttachment = attachment
+            } label: {
+                AssetRowView(asset: asset, memo: memo)
+            }
+            .buttonStyle(.plain)
+            .sheet(item: $editingImageAttachment) { attachment in
+                NavigationStack {
+                    ImageEditorView(attachment: attachment)
+                }
+            }
         } else {
             NavigationLink(value: memo.id) {
                 AssetRowView(asset: asset, memo: memo)
             }
             .buttonStyle(.plain)
         }
+    }
+
+    private var imageAttachment: SharedAttachment? {
+        guard asset.kind == .attachment || asset.kind == .screenshot || asset.kind == .imageEdit,
+              let typeIdentifier = asset.typeIdentifier,
+              UTType(typeIdentifier)?.conforms(to: .image) == true,
+              let uri = asset.uri,
+              let relativePath = AttachmentReferenceResolver.relativePath(in: uri) else {
+            return nil
+        }
+
+        return SharedAttachment(
+            id: relativePath,
+            filename: asset.title,
+            relativePath: relativePath,
+            typeIdentifier: typeIdentifier,
+            byteCount: asset.byteCount ?? 0
+        )
     }
 }
 

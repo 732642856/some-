@@ -32,3 +32,18 @@
 - GitHub API 检索 SwiftUI/Swift 拖拽缩放旋转贴纸/拼贴编辑器，未找到可直接复制的成熟 MIT SwiftUI 模块；决定复用现有结构化 JSON 自建编辑器。
 - 新增详情页手帐画布编辑 v1：读取图层 JSON，支持拖拽、缩放、旋转并保存回原 memo。
 - 补充 `ScrapbookPageLayout.replacingLayout` 和替换/追加 JSON 单元测试。
+
+## 2026-06-22T16:05:00Z
+
+- 进入阶段 10：图片编辑 MVP。
+- 复查 Git 状态、未跟踪文件、规划文件、全量文件清单、附件/素材模型、素材库 UI、手帐/衣橱图片绑定入口和相关测试；当前工作区开工前干净。
+- 确认 `MemoAssetKind.imageEdit` 已预留，但没有结构化正文解析、保存路径、UI 入口或搜索筛选。
+- GitHub API 检索 `SwiftUI photo editor crop filter sticker MIT`、`iOS photo editor Swift CoreImage MIT`、`SwiftUI image editor CoreImage MIT` 均返回 0 个可直接复制的完整 SwiftUI 图片编辑器候选。
+- 复查 `guoyingtao/Mantis` 和 `TimOliver/TOCropViewController`：二者均为 MIT 且仍活跃，适合后续 Xcode 16/SPM 环境做裁剪依赖评估；本轮不直接复制源码。
+- `SilenceLove/HXPhotoPicker` 仓库 API 请求超过一分钟未返回，按失败记录为网络/接口超时；本轮不把它作为直接依赖。
+- 本轮决策：先复用 Apple Core Image / UIKit 渲染实现滤镜、边框、文字贴纸和导出为新附件，接入现有 memo、附件、备份、搜索和素材索引；裁剪/高级编辑后续再评估 Mantis 或 TOCropViewController。
+- 新增 `ImageEditRecipe` 和 `ImageEditRenderer`，支持预设比例中心裁剪、Core Image 滤镜、边框、文字和贴纸渲染。
+- 新增 `ImageEditorView`，素材库图片附件可打开编辑器，保存后生成新的本地 PNG 附件和结构化“图片编辑”记录。
+- 新增 `imageEdit` 素材解析、`has:image-edit` 搜索筛选和相关单元测试。
+- 发现并收拢阶段 10 文件碎片：`some/Utilities/ImageEditRenderer.swift` 与 `some/Views/ImageEditorView.swift` 已存在于磁盘但未被 Git 跟踪；本轮已确认二者纳入 Xcode app target 并加入 Git 索引。
+- 静态验证通过：`git diff --check`、`plutil -lint`、`xmllint --noout`、旧 Swift parser 覆盖 `ImageEditRenderer.swift`、`ImageEditorView.swift`、`Memo.swift`、`MemoStore.swift`、`MemoSearchQuery.swift`、`ContentView.swift` 和 `SomeTests.swift`。

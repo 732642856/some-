@@ -1,4 +1,5 @@
 import UniformTypeIdentifiers
+import UIKit
 import XCTest
 @testable import Some
 
@@ -422,12 +423,12 @@ final class SomeTests: XCTestCase {
     }
 
     func testSearchQueryParserExtractsContentFilters() {
-        let query = MemoSearchQueryParser.parse("has:link has:web has:ocr has:attachment has:reference has:scrapbook has:worklog has:audio has:video has:wardrobe has:outfit no:task without:backlink 复盘")
+        let query = MemoSearchQueryParser.parse("has:link has:web has:ocr has:image-edit has:attachment has:reference has:scrapbook has:worklog has:audio has:video has:wardrobe has:outfit no:task without:backlink 复盘")
 
         XCTAssertEqual(query.textTerms, ["复盘"])
         XCTAssertEqual(
             query.requiredContentFilters,
-            [.attachment, .audio, .link, .outfit, .reference, .scrapbook, .screenshot, .video, .wardrobe, .webClip, .workLog]
+            [.attachment, .audio, .imageEdit, .link, .outfit, .reference, .scrapbook, .screenshot, .video, .wardrobe, .webClip, .workLog]
         )
         XCTAssertEqual(
             query.excludedContentFilters,
@@ -1822,6 +1823,76 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(store.assets(for: memo).contains { $0.kind == .screenshot })
     }
 
+    func testImageEditRecipeEncodesAndDecodes() throws {
+        let recipe = ImageEditRecipe(
+            sourceAttachmentPath: "source.jpg",
+            outputAttachmentPath: "edited.png",
+            filter: .fresh,
+            cropPreset: .square,
+            border: ImageEditRecipe.Border(colorHex: "#FFFFFF", width: 18),
+            textOverlays: [ImageEditRecipe.TextOverlay(text: "晚餐")],
+            stickerOverlays: [ImageEditRecipe.StickerOverlay(text: "good")]
+        )
+
+        let line = try XCTUnwrap(recipe.encodedLine())
+        let decoded = try XCTUnwrap(ImageEditRecipe.recipe(in: "图片编辑：晚餐\n\(line)"))
+
+        XCTAssertEqual(decoded.sourceAttachmentPath, "source.jpg")
+        XCTAssertEqual(decoded.outputAttachmentPath, "edited.png")
+        XCTAssertEqual(decoded.filter, .fresh)
+        XCTAssertEqual(decoded.cropPreset, .square)
+        XCTAssertEqual(decoded.textOverlays.first?.text, "晚餐")
+        XCTAssertEqual(decoded.stickerOverlays.first?.text, "good")
+    }
+
+    func testAddImageEditCreatesRenderedAttachmentAssetAndSearchResult() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let sourceData = try XCTUnwrap(testImage(size: CGSize(width: 80, height: 60)).pngData())
+        let sourceAttachment = try SharedAttachmentStore.save(
+            data: sourceData,
+            suggestedFilename: "meal-\(UUID().uuidString).png",
+            typeIdentifier: UTType.png.identifier
+        )
+        defer { SharedAttachmentStore.delete(sourceAttachment) }
+
+        let recipe = ImageEditRecipe(
+            sourceAttachmentPath: sourceAttachment.relativePath,
+            filter: .vivid,
+            cropPreset: .square,
+            border: ImageEditRecipe.Border(colorHex: "#F8DCE8", width: 6),
+            textOverlays: [ImageEditRecipe.TextOverlay(text: "晚餐", fontSize: 18)],
+            stickerOverlays: [ImageEditRecipe.StickerOverlay(text: "OK", fontSize: 18)]
+        )
+
+        guard let memo = store.addImageEdit(
+            title: "晚餐照片",
+            sourceAttachment: sourceAttachment,
+            recipe: recipe,
+            note: "加边框"
+        ) else {
+            return XCTFail("Expected image edit memo")
+        }
+        let attachments = SharedAttachmentStore.attachments(in: memo.text)
+        defer { attachments.forEach(SharedAttachmentStore.delete) }
+
+        XCTAssertTrue(memo.text.contains("图片编辑：晚餐照片"))
+        XCTAssertTrue(memo.text.contains("滤镜：鲜明"))
+        XCTAssertTrue(memo.text.contains("裁剪：1:1"))
+        XCTAssertNotNil(ImageEditRecipe.recipe(in: memo.text)?.outputAttachmentPath)
+        XCTAssertEqual(attachments.count, 2)
+        XCTAssertTrue(attachments.contains { $0.relativePath == sourceAttachment.relativePath })
+        XCTAssertTrue(attachments.contains { $0.relativePath != sourceAttachment.relativePath && $0.isImage })
+
+        let asset = store.assets(for: memo).first { $0.kind == .imageEdit }
+        XCTAssertEqual(asset?.title, "晚餐照片")
+        XCTAssertTrue(asset?.summary?.contains("鲜明") == true)
+        XCTAssertTrue(asset?.summary?.contains("文字1") == true)
+        XCTAssertNotNil(asset?.uri)
+
+        store.searchText = "has:image-edit"
+        XCTAssertEqual(store.filteredMemos.map(\.id), [memo.id])
+    }
+
     func testAddWebClipCreatesMemoAndWebClipAsset() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         let url = URL(string: "https://example.com/article")!
@@ -1864,5 +1935,15 @@ final class SomeTests: XCTestCase {
         components.month = month
         components.day = day
         return components.date ?? Date(timeIntervalSince1970: 0)
+    }
+
+    private func testImage(size: CGSize) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { context in
+            UIColor(red: 0.72, green: 0.84, blue: 0.93, alpha: 1).setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+            UIColor(red: 0.98, green: 0.78, blue: 0.86, alpha: 1).setFill()
+            context.fill(CGRect(x: size.width * 0.18, y: size.height * 0.2, width: size.width * 0.64, height: size.height * 0.6))
+        }
     }
 }

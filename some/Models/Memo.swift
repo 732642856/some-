@@ -337,6 +337,176 @@ struct ScrapbookLayer: Identifiable, Codable, Equatable {
     }
 }
 
+struct ImageEditRecipe: Codable, Equatable {
+    static let marker = "图片编辑JSON："
+
+    var version: Int
+    var sourceAttachmentPath: String
+    var outputAttachmentPath: String?
+    var filter: Filter
+    var cropPreset: CropPreset
+    var border: Border
+    var textOverlays: [TextOverlay]
+    var stickerOverlays: [StickerOverlay]
+
+    init(
+        version: Int = 1,
+        sourceAttachmentPath: String,
+        outputAttachmentPath: String? = nil,
+        filter: Filter = .original,
+        cropPreset: CropPreset = .original,
+        border: Border = Border(),
+        textOverlays: [TextOverlay] = [],
+        stickerOverlays: [StickerOverlay] = []
+    ) {
+        self.version = version
+        self.sourceAttachmentPath = sourceAttachmentPath
+        self.outputAttachmentPath = outputAttachmentPath
+        self.filter = filter
+        self.cropPreset = cropPreset
+        self.border = border
+        self.textOverlays = textOverlays
+        self.stickerOverlays = stickerOverlays
+    }
+
+    var summary: String {
+        var parts = [filter.title, cropPreset.title]
+        if border.width > 0 {
+            parts.append("边框")
+        }
+        if !textOverlays.isEmpty {
+            parts.append("文字\(textOverlays.count)")
+        }
+        if !stickerOverlays.isEmpty {
+            parts.append("贴纸\(stickerOverlays.count)")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    func encodedLine() -> String? {
+        guard let data = try? JSONEncoder.memoEncoder.encode(self) else {
+            return nil
+        }
+        return "\(Self.marker)\(data.base64EncodedString())"
+    }
+
+    static func recipe(in text: String) -> ImageEditRecipe? {
+        guard let encoded = text
+            .components(separatedBy: .newlines)
+            .map({ $0.trimmingCharacters(in: .whitespacesAndNewlines) })
+            .first(where: { $0.hasPrefix(marker) })?
+            .dropFirst(marker.count),
+              let data = Data(base64Encoded: String(encoded)) else {
+            return nil
+        }
+
+        return try? JSONDecoder.memoDecoder.decode(ImageEditRecipe.self, from: data)
+    }
+
+    enum Filter: String, Codable, CaseIterable, Equatable {
+        case original
+        case fresh
+        case warm
+        case mono
+        case vivid
+
+        var title: String {
+            switch self {
+            case .original: return "原图"
+            case .fresh: return "清新"
+            case .warm: return "暖调"
+            case .mono: return "黑白"
+            case .vivid: return "鲜明"
+            }
+        }
+    }
+
+    enum CropPreset: String, Codable, CaseIterable, Equatable {
+        case original
+        case square
+        case portrait4x5
+        case story9x16
+        case landscape16x9
+
+        var title: String {
+            switch self {
+            case .original: return "原比例"
+            case .square: return "1:1"
+            case .portrait4x5: return "4:5"
+            case .story9x16: return "9:16"
+            case .landscape16x9: return "16:9"
+            }
+        }
+
+        var aspectRatio: Double? {
+            switch self {
+            case .original: return nil
+            case .square: return 1
+            case .portrait4x5: return 4.0 / 5.0
+            case .story9x16: return 9.0 / 16.0
+            case .landscape16x9: return 16.0 / 9.0
+            }
+        }
+    }
+
+    struct Border: Codable, Equatable {
+        var colorHex: String
+        var width: Double
+
+        init(colorHex: String = "#FFFFFF", width: Double = 0) {
+            self.colorHex = colorHex
+            self.width = width
+        }
+    }
+
+    struct TextOverlay: Codable, Equatable, Identifiable {
+        var id: UUID
+        var text: String
+        var x: Double
+        var y: Double
+        var fontSize: Double
+        var colorHex: String
+
+        init(
+            id: UUID = UUID(),
+            text: String,
+            x: Double = 0.5,
+            y: Double = 0.82,
+            fontSize: Double = 42,
+            colorHex: String = "#46525A"
+        ) {
+            self.id = id
+            self.text = text
+            self.x = x
+            self.y = y
+            self.fontSize = fontSize
+            self.colorHex = colorHex
+        }
+    }
+
+    struct StickerOverlay: Codable, Equatable, Identifiable {
+        var id: UUID
+        var text: String
+        var x: Double
+        var y: Double
+        var fontSize: Double
+
+        init(
+            id: UUID = UUID(),
+            text: String,
+            x: Double = 0.18,
+            y: Double = 0.18,
+            fontSize: Double = 52
+        ) {
+            self.id = id
+            self.text = text
+            self.x = x
+            self.y = y
+            self.fontSize = fontSize
+        }
+    }
+}
+
 enum MemoAssetKind: String, Codable, CaseIterable, Hashable {
     case text
     case link
@@ -573,6 +743,20 @@ extension MemoAsset {
             )
         }
 
+        if let imageEdit = imageEditAsset(in: visibleText) {
+            let outputAttachment = SharedAttachmentStore.attachments(in: memo.text)
+                .first { imageEdit.outputAttachmentPath == $0.relativePath }
+            append(
+                kind: .imageEdit,
+                title: imageEdit.title,
+                summary: imageEdit.summary,
+                uri: outputAttachment.map { "\(SharedAttachmentStore.referenceScheme)://\(SharedAttachmentStore.encodedReferencePath($0.relativePath))" },
+                typeIdentifier: outputAttachment?.typeIdentifier ?? UTType.image.identifier,
+                byteCount: outputAttachment?.byteCount,
+                stableKey: "image-edit:\(imageEdit.title):\(imageEdit.summary ?? "")"
+            )
+        }
+
         for attachment in SharedAttachmentStore.attachments(in: memo.text) {
             append(
                 kind: assetKind(for: attachment),
@@ -683,6 +867,21 @@ extension MemoAsset {
         structuredAsset(in: text, prefixes: ["工作日志：", "工作日志:", "工作记录：", "工作记录:", "日报：", "日报:", "周报：", "周报:", "项目日志：", "项目日志:"])
     }
 
+    private static func imageEditAsset(in text: String) -> (title: String, summary: String?, outputAttachmentPath: String?)? {
+        guard let asset = structuredAsset(in: text, prefixes: ["图片编辑：", "图片编辑:", "图片作品：", "图片作品:", "照片编辑：", "照片编辑:"]) else {
+            return nil
+        }
+
+        guard let recipe = ImageEditRecipe.recipe(in: text) else {
+            return (asset.title, asset.summary, nil)
+        }
+
+        let summary = [asset.summary, recipe.summary]
+            .compactMap { $0 }
+            .joined(separator: " · ")
+        return (asset.title, limitedSummary(summary, maxLength: 500), recipe.outputAttachmentPath)
+    }
+
     private static func structuredAsset(in text: String, prefixes: [String]) -> (title: String, summary: String?)? {
         let lines = text
             .components(separatedBy: .newlines)
@@ -700,6 +899,7 @@ extension MemoAsset {
             .filter { line in
                 !line.isEmpty
                     && !line.hasPrefix(ScrapbookPageLayout.marker)
+                    && !line.hasPrefix(ImageEditRecipe.marker)
                     && SharedAttachmentStore.attachments(in: line).isEmpty
             }
             .joined(separator: " · ")
