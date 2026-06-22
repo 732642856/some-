@@ -638,7 +638,7 @@ struct QuickCaptureView: View {
         statusText = "正在摘录网页..."
 
         Task {
-            let clip = await WebClipExtractor.clip(from: url)
+            let clip = await RemoteWebClipFetcher.clip(from: url)
             await MainActor.run {
                 let saved = store.addWebClip(
                     url: clip.url,
@@ -837,51 +837,17 @@ private final class QuickAudioRecorder: NSObject, ObservableObject, AVAudioRecor
     }
 }
 
-private struct ExtractedWebClip {
-    let url: URL
-    let title: String?
-    let summary: String?
-    let highlights: [String]
-}
-
-private enum WebClipExtractor {
+private enum RemoteWebClipFetcher {
     static func clip(from url: URL) async -> ExtractedWebClip {
         do {
             let html = try await fetchHTML(from: url)
-            let paragraphs = paragraphHighlights(in: html)
-            let title = firstNonEmpty(
-                metaContent(named: "og:title", in: html),
-                metaContent(named: "twitter:title", in: html),
-                titleTag(in: html),
-                LinkExtractor.displayText(for: url)
-            )
-            let summary = firstNonEmpty(
-                metaContent(named: "description", in: html),
-                metaContent(named: "og:description", in: html),
-                metaContent(named: "twitter:description", in: html),
-                paragraphs.first
-            )
-            let highlights = paragraphs
-                .filter { $0 != summary }
-                .prefix(4)
-                .map { $0 }
-            return ExtractedWebClip(url: url, title: title, summary: summary, highlights: Array(highlights))
+            return WebClipExtractor.clip(from: url, html: html)
         } catch {
             if let metadataTitle = try? await metadataTitle(for: url) {
-                return ExtractedWebClip(
-                    url: url,
-                    title: firstNonEmpty(metadataTitle, LinkExtractor.displayText(for: url)),
-                    summary: nil,
-                    highlights: []
-                )
+                return WebClipExtractor.fallbackClip(for: url, title: metadataTitle)
             }
 
-            return ExtractedWebClip(
-                url: url,
-                title: LinkExtractor.displayText(for: url),
-                summary: nil,
-                highlights: []
-            )
+            return WebClipExtractor.fallbackClip(for: url)
         }
     }
 
@@ -916,82 +882,5 @@ private enum WebClipExtractor {
                 }
             }
         }
-    }
-
-    private static func titleTag(in html: String) -> String? {
-        firstMatch(pattern: #"<title[^>]*>(.*?)</title>"#, in: html)
-    }
-
-    private static func metaContent(named name: String, in html: String) -> String? {
-        let escapedName = NSRegularExpression.escapedPattern(for: name)
-        let patterns = [
-            #"<meta[^>]*(?:name|property)\s*=\s*["']\#(escapedName)["'][^>]*content\s*=\s*["']([^"']*)["'][^>]*>"#,
-            #"<meta[^>]*content\s*=\s*["']([^"']*)["'][^>]*(?:name|property)\s*=\s*["']\#(escapedName)["'][^>]*>"#
-        ]
-
-        for pattern in patterns {
-            if let value = firstMatch(pattern: pattern, in: html) {
-                return value
-            }
-        }
-
-        return nil
-    }
-
-    private static func paragraphHighlights(in html: String) -> [String] {
-        matches(pattern: #"<p[^>]*>(.*?)</p>"#, in: html)
-            .map(cleanHTML)
-            .filter { $0.count >= 24 }
-            .reduce(into: [String]()) { result, paragraph in
-                guard !result.contains(paragraph), result.count < 5 else { return }
-                result.append(paragraph)
-            }
-    }
-
-    private static func firstMatch(pattern: String, in text: String) -> String? {
-        matches(pattern: pattern, in: text).first.map(cleanHTML)
-    }
-
-    private static func matches(pattern: String, in text: String) -> [String] {
-        guard let regex = try? NSRegularExpression(
-            pattern: pattern,
-            options: [.caseInsensitive, .dotMatchesLineSeparators]
-        ) else {
-            return []
-        }
-
-        let nsText = text as NSString
-        let range = NSRange(location: 0, length: nsText.length)
-        return regex.matches(in: text, options: [], range: range).compactMap { result in
-            guard result.numberOfRanges >= 2 else { return nil }
-            return nsText.substring(with: result.range(at: 1))
-        }
-    }
-
-    private static func cleanHTML(_ rawText: String) -> String {
-        let withoutTags = rawText.replacingOccurrences(
-            of: #"<[^>]+>"#,
-            with: " ",
-            options: .regularExpression
-        )
-        return decodeEntities(withoutTags)
-            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private static func decodeEntities(_ text: String) -> String {
-        text
-            .replacingOccurrences(of: "&nbsp;", with: " ")
-            .replacingOccurrences(of: "&amp;", with: "&")
-            .replacingOccurrences(of: "&lt;", with: "<")
-            .replacingOccurrences(of: "&gt;", with: ">")
-            .replacingOccurrences(of: "&quot;", with: "\"")
-            .replacingOccurrences(of: "&#39;", with: "'")
-    }
-
-    private static func firstNonEmpty(_ values: String?...) -> String? {
-        values
-            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .first { !$0.isEmpty }
     }
 }

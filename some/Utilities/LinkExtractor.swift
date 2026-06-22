@@ -74,6 +74,8 @@ enum LinkExtractor {
 
     static func webClipText(title: String, url: URL, summary: String?, highlights: [String]) -> String {
         var lines = ["[\(webClipMarker): \(cleanLine(title, fallback: displayText(for: url)))](\(url.absoluteString))"]
+        let source = displayText(for: url)
+        lines.append("来源：\(source)")
 
         if let summary = summary.map({ cleanLine($0, fallback: "") }), !summary.isEmpty {
             lines.append("摘要：\(summary)")
@@ -82,6 +84,13 @@ enum LinkExtractor {
         let cleanedHighlights = highlights
             .map { cleanLine($0, fallback: "") }
             .filter { !$0.isEmpty }
+        let cardParts = [
+            summary?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? "摘要" : nil,
+            cleanedHighlights.isEmpty ? nil : "重点\(min(cleanedHighlights.count, 5))条"
+        ].compactMap { $0 }
+        if !cardParts.isEmpty {
+            lines.append("摘录卡：\(cardParts.joined(separator: " · "))")
+        }
         if !cleanedHighlights.isEmpty {
             lines.append("重点：")
             lines.append(contentsOf: cleanedHighlights.prefix(5).map { "- \($0)" })

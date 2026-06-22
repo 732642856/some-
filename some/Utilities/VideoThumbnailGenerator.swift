@@ -9,6 +9,10 @@ enum VideoThumbnailGenerator {
         usesDiskCache: Bool = true,
         fileManager: FileManager = .default
     ) -> UIImage? {
+        guard fileManager.fileExists(atPath: url.path) else {
+            return nil
+        }
+
         if usesDiskCache,
            let cachedImage = cachedImage(
             for: url,

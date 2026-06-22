@@ -79,7 +79,9 @@ enum MediaMetadataExtractor {
     ) -> MediaMetadata? {
         let resourceValues = try? url.resourceValues(forKeys: [.contentTypeKey, .fileSizeKey])
         let type = typeIdentifier.flatMap(UTType.init) ?? resourceValues?.contentType
-        let byteCount = resourceValues?.fileSize ?? fallbackByteCount
+        let byteCount = resourceValues?.fileSize
+            ?? fileByteCount(for: url, fileManager: fileManager)
+            ?? fallbackByteCount
 
         var metadata = MediaMetadata(
             duration: nil,
@@ -121,5 +123,13 @@ enum MediaMetadataExtractor {
         }
 
         return (width.intValue, height.intValue)
+    }
+
+    private static func fileByteCount(for url: URL, fileManager: FileManager) -> Int? {
+        guard let size = try? fileManager.attributesOfItem(atPath: url.path)[.size] as? NSNumber else {
+            return nil
+        }
+
+        return size.intValue
     }
 }

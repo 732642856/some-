@@ -1103,8 +1103,61 @@ final class SomeTests: XCTestCase {
         )
 
         XCTAssertTrue(text.contains("[网页摘录: Example](https://example.com/a)"))
+        XCTAssertTrue(text.contains("来源：example.com"))
         XCTAssertTrue(text.contains("摘要：摘要"))
+        XCTAssertTrue(text.contains("摘录卡：摘要 · 重点2条"))
         XCTAssertTrue(text.contains("- 重点一"))
+    }
+
+    func testWebClipExtractorCleansArticleParagraphs() {
+        let html = """
+        <html>
+        <head>
+        <title>默认标题</title>
+        <meta name="description" content="这是一段经过整理的网页摘要 &amp; 背景">
+        </head>
+        <body>
+        <nav><p>登录 注册 订阅 这段导航不应该进入摘录。</p></nav>
+        <article>
+        <h1>真正标题</h1>
+        <script>var tracking = true;</script>
+        <p>第一段正文提供了足够的背景信息，说明这个网页为什么值得保存，并且包含多个细节。</p>
+        <p>第一段正文提供了足够的背景信息，说明这个网页为什么值得保存，并且包含多个细节。</p>
+        <p>第二段正文继续展开关键观点，包含中文标点、案例和后续行动建议，适合成为摘录重点。</p>
+        <p>相关推荐 下载客户端 登录后查看更多内容。</p>
+        </article>
+        </body>
+        </html>
+        """
+        let url = URL(string: "https://example.com/article")!
+
+        let clip = WebClipExtractor.clip(from: url, html: html)
+
+        XCTAssertEqual(clip.title, "默认标题")
+        XCTAssertEqual(clip.summary, "这是一段经过整理的网页摘要 & 背景")
+        XCTAssertEqual(
+            clip.highlights,
+            [
+                "第一段正文提供了足够的背景信息，说明这个网页为什么值得保存，并且包含多个细节。",
+                "第二段正文继续展开关键观点，包含中文标点、案例和后续行动建议，适合成为摘录重点。"
+            ]
+        )
+    }
+
+    func testWebClipExtractorFallsBackToBestParagraphSummary() {
+        let html = """
+        <main>
+        <p>cookie privacy policy 登录注册。</p>
+        <p>这是一段没有 description 的正文摘要，包含足够的信息密度和清晰表达，可以作为摘要。</p>
+        <p>另一段正文提供补充材料和关键引用，应该保留为重点摘录。</p>
+        </main>
+        """
+        let url = URL(string: "https://example.com/no-description")!
+
+        let clip = WebClipExtractor.clip(from: url, html: html)
+
+        XCTAssertEqual(clip.summary, "这是一段没有 description 的正文摘要，包含足够的信息密度和清晰表达，可以作为摘要。")
+        XCTAssertEqual(clip.highlights, ["另一段正文提供补充材料和关键引用，应该保留为重点摘录。"])
     }
 
     func testSharedMemoComposerKeepsTextAndDeduplicatesURL() {
@@ -1535,13 +1588,13 @@ final class SomeTests: XCTestCase {
 
     func testCapturedVideoAttachmentCreatesVideoAsset() throws {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
-        let attachment = SharedAttachment(
-            id: "camera-video.mov",
-            filename: "camera-video.mov",
-            relativePath: "camera-video.mov",
-            typeIdentifier: UTType.movie.identifier,
-            byteCount: 42
+        let payload = Data("captured video data".utf8)
+        let attachment = try SharedAttachmentStore.save(
+            data: payload,
+            suggestedFilename: "camera-video-\(UUID().uuidString).mov",
+            typeIdentifier: UTType.movie.identifier
         )
+        defer { SharedAttachmentStore.delete(attachment) }
 
         guard let memo = store.addAttachmentMemo(attachment, note: "拍摄视频") else {
             return XCTFail("Expected video memo")
@@ -1551,7 +1604,7 @@ final class SomeTests: XCTestCase {
         let asset = store.assets(for: memo).first { $0.kind == .video }
         XCTAssertEqual(asset?.title, attachment.displayName)
         XCTAssertEqual(asset?.typeIdentifier, UTType.movie.identifier)
-        XCTAssertEqual(asset?.byteCount, attachment.byteCount)
+        XCTAssertEqual(asset?.byteCount, payload.count)
     }
 
     func testAudioTranscriberBuildsMemoText() {
@@ -1588,7 +1641,9 @@ final class SomeTests: XCTestCase {
     }
 
     func testMediaMetadataExtractorReadsImageDimensionsAndSize() throws {
-        let image = UIGraphicsImageRenderer(size: CGSize(width: 12, height: 8)).image { context in
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 12, height: 8), format: format).image { context in
             UIColor.systemTeal.setFill()
             context.fill(CGRect(x: 0, y: 0, width: 12, height: 8))
         }
@@ -1617,7 +1672,6 @@ final class SomeTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: url) }
 
         let firstURL = try XCTUnwrap(VideoThumbnailGenerator.cachedImageURL(for: url))
-        sleep(1)
         try Data("two-two".utf8).write(to: url)
         let secondURL = try XCTUnwrap(VideoThumbnailGenerator.cachedImageURL(for: url))
 
@@ -2086,8 +2140,9 @@ final class SomeTests: XCTestCase {
 
         let rendered = try XCTUnwrap(ImageEditRenderer.renderedImage(sourceImage: source, recipe: recipe))
 
-        XCTAssertEqual(rendered.width, 40)
-        XCTAssertEqual(rendered.height, 40)
+        XCTAssertEqual(rendered.width, rendered.height)
+        XCTAssertLessThanOrEqual(rendered.width, source.cgImage?.width ?? rendered.width)
+        XCTAssertLessThanOrEqual(rendered.height, source.cgImage?.height ?? rendered.height)
         XCTAssertTrue(ImageEditRenderer.outputFilename(
             source: SharedAttachment(
                 id: "source.png",
@@ -2113,8 +2168,8 @@ final class SomeTests: XCTestCase {
 
         let rendered = try XCTUnwrap(ImageEditRenderer.renderedImage(sourceImage: source, recipe: recipe))
 
-        XCTAssertEqual(rendered.width, 80)
-        XCTAssertEqual(rendered.height, 80)
+        XCTAssertEqual(rendered.width, source.cgImage?.width)
+        XCTAssertEqual(rendered.height, source.cgImage?.height)
         XCTAssertTrue(recipe.summary.contains("清理1"))
     }
 

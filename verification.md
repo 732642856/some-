@@ -102,6 +102,8 @@
 - 2026-06-22：已新增网页摘录格式解析、`addWebClip` 保存、`webClip` 素材索引和 `has:web` / `has:webclip` 搜索筛选；素材库网页条目可直接打开原链接。
 - 2026-06-22：已补充网页摘录解析、格式生成、网页素材索引、网页搜索筛选和 `addWebClip` 单元测试。
 - 2026-06-22：本轮 `git diff --check`、`plutil -lint`、`xmllint --noout` 通过；旧版 `xcrun swiftc -parse` 已覆盖 `LinkExtractor.swift`、`MemoSearchQuery.swift`、`Memo.swift`、`MemoStore.swift`、`ContentView.swift` 和 `SomeTests.swift`。`QuickCaptureView.swift` 仍因本机 Swift 5.4 不支持 async/await 无法解析，需要 Xcode 16 做完整编译和 XCTest。
+- 2026-06-23：已新增网页摘录 v2，`WebClipExtractor` 负责本地 HTML 清洗、正文段落抽取、噪音过滤、实体解码和段落评分，快速输入保存时写入来源与摘录卡行。
+- 2026-06-23：网页摘录 v2 已补充正文清洗、去重、噪音过滤、摘要回退和摘录卡格式测试；本轮 `git diff --check`、`plutil -lint`、`xmllint --noout` 通过，旧版 `xcrun swiftc -parse` 覆盖 `LinkExtractor.swift`、`WebClipExtractor.swift`、`Memo.swift`、`MemoStore.swift` 和 `SomeTests.swift`。`QuickCaptureView.swift` 仍因本机 Swift 5.4 不支持 async/await 无法完整解析，需要 Xcode 16 做完整编译和 XCTest。
 - 2026-06-22：已新增图片/截图 OCR v1，导入图片后使用 Apple Vision `VNRecognizeTextRequest` 在本机识别文字，识别成功会保存为“图片文字” memo 并保留原附件引用。
 - 2026-06-22：已新增 `ImageTextRecognizer.swift`，并确认纳入主 App target；OCR 记录会生成 `screenshot` 素材，搜索支持 `has:ocr` / `has:screenshot` / `has:图片文字`。
 - 2026-06-22：已补充 OCR memo 生成、去重、图片文字素材索引、`has:ocr` 搜索和避免重复附件引用相关单元测试。
@@ -158,6 +160,7 @@
 - 2026-06-22：语音转写需要真机或支持 Speech 的模拟器环境验证授权弹窗、本机识别可用性、不同语言和长音频表现；当前旧 CLT 只能做语法层和 plist/scheme 校验。
 - 2026-06-22：视频缩略图需要在完整 Xcode 16 + 模拟器/真机环境验证真实 `.mov` / `.mp4` 文件取帧、旋转方向和长列表滚动表现；当前环境只能做静态校验和失败路径测试。
 - 2026-06-23：媒体元数据与缩略图缓存仍需要在完整 Xcode 16 + 模拟器/真机环境验证真实 `.mov` / `.mp4` / `.m4a` 元数据读取、缓存目录增长、长列表滚动和大文件内存表现；当前环境已覆盖格式化、图片尺寸读取、缓存 key 失效、缓存删除和语法层检查。
+- 2026-06-23：GitHub Actions run `27971176783` 显示 Build for simulator 通过、Run tests 失败；公开 annotation 暴露失败测试集中在视频附件、手帐导出、图片编辑渲染和媒体元数据。本轮已修复测试数据真实文件、图片 renderer scale、媒体 byteCount fallback 和缺失视频文件取帧边界；等待下一次远端 CI 验证。
 - 2026-06-22：手帐画布拖拽、双指缩放和旋转需要完整 Xcode 16 + 模拟器/真机环境做真实手势验证；当前环境已完成模型替换测试、plist/scheme 校验和旧 Swift parser 对可解析文件的检查。
 - 2026-06-22：手帐画布编辑需要完整 Xcode 16 + 模拟器/真机验证多指缩放/旋转、拖拽边界、滚动页面内手势冲突和真实图片图层显示；当前环境只能验证模型替换逻辑和静态语法。
 - 2026-06-22：图片编辑需要完整 Xcode 16 + 模拟器/真机验证真实照片色彩、保存耗时、素材库 sheet 交互、长边大图内存占用和系统分享/备份链路；当前环境已完成渲染核心静态解析和小图单元测试。

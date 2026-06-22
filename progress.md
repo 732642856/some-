@@ -103,3 +103,16 @@
 - 开工前复查 Git 状态、网页摘录保存格式、`LinkExtractor`、`QuickCaptureView` 抓取链路、`webClip` 素材索引和现有测试。
 - GitHub API 复查 `scinfu/SwiftSoup` 与 `exyte/ReadabilityKit`；SwiftSoup 为 MIT 且活跃，ReadabilityKit 为 MIT 但已归档。
 - 检索 `Swift readability html article extractor MIT` 与 `SwiftSoup readability article extractor` 未找到更适合直接复制的 Swift 项目；当前环境也无法可靠做 Xcode 16/SPM 验证。本轮先扩展本地 HTML 清洗和摘录卡格式，不新增依赖。
+- 新增 `WebClipExtractor`，把 HTML 清洗、正文段落抽取、噪音过滤、实体解码和段落评分从 `QuickCaptureView` 中拆到可测试工具层。
+- `LinkExtractor.webClipText` 新增来源与摘录卡行；旧网页摘录解析仍按原 marker/摘要/重点兼容。
+- 补充正文清洗、去重、噪音过滤、摘要回退和摘录卡格式单元测试。
+
+## 2026-06-23T11:15:00+08:00
+
+- 接续用户要求持续主动推进，开工前复查 Git 状态、全量文件清单、规划文件、阶段 14/15 相关源码和最新 GitHub Actions 状态。
+- GitHub Actions run `27971176783` 构建通过但测试失败；公开 annotation 显示失败集中在视频附件素材、手帐导出附件引用、图片编辑渲染和媒体元数据测试。
+- GitHub job logs 下载需要仓库管理员权限返回 403；已改用 check-run annotations 和本地代码审计定位。
+- 补充检索 `SwiftUI notes app attachments tags MIT iOS`、`AVAssetImageGenerator thumbnail cache Swift MIT`，均未找到可直接复制候选；继续小范围修本项目实现。
+- 修复视频缩略图缺失文件边界：`VideoThumbnailGenerator.image` 在进入 AVFoundation 前先确认文件存在，避免不存在 URL 触发不稳定取帧。
+- 修复媒体元数据 byteCount 兜底：`MediaMetadataExtractor` 在 `resourceValues.fileSize` 为空时使用 `FileManager.attributesOfItem`。
+- 修复 CI 脆弱测试：视频素材测试改用真实 `SharedAttachmentStore.save` 文件；图片元数据测试固定 renderer scale=1；图片编辑渲染断言改为不依赖模拟器默认 scale；缩略图缓存 key 测试移除不必要的 `sleep(1)`。
