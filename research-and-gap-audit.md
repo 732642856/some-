@@ -25,7 +25,7 @@
 - 旧输出碎片：`/Users/wuyongnaren/Documents/Codex/2026-06-20/wo/outputs/some`。这是本轮新增发现的早期输出目录，不是 Git 仓库；与当前主仓库比对后，未发现当前主仓库缺失的更新功能文件。
 - 已克隆开源参考仍在 `/Users/wuyongnaren/Documents/Codex/2026-06-20/wo/work/open-source/MoeMemos` 与 `/Users/wuyongnaren/Documents/Codex/2026-06-20/wo/work/open-source/memos`。
 - 额外用 `/Users/wuyongnaren` 有限深度搜索 `some.xcodeproj`、`SomeTests.swift`、`SomeShareExtension`、`research-and-gap-audit.md`，未发现除当前主仓库以外的新工程碎片。
-- Xcode 工程引用已覆盖当前新增过的核心文件；本轮未新增 Swift 文件，只修改已有 target 内文件。
+- Xcode 工程引用已覆盖当前新增过的核心文件；网页摘录阶段只修改已有 target 内文件，图片 OCR 阶段新增 `some/Utilities/ImageTextRecognizer.swift` 并已加入主 App target。
 
 结论：此前确实遗漏了 `2026-06-20/wo/outputs/some` 这个旧输出目录的文档记录；本轮已经纳入碎片清单。实际代码比对显示，当前主仓库是几个旧 some 目录的功能超集，未发现需要从旧目录补回的独有新功能。
 
@@ -45,7 +45,7 @@
 - 测试：`SomeTests/SomeTests.swift`
 - 发布/说明文档：`README.md`、`AppStore/`、`docs/`、`verification.md`
 
-当前明显缺口：没有独立素材表、媒体资产表、网页摘录表、手帐页面/图层模型、图片编辑管线、音视频采集管线、衣橱单品/搭配模型。这些缺口已提升为下一轮优先级。
+当前明显缺口：已有 `MemoAsset` 索引表作为素材入口，但还没有独立媒体资产表、网页摘录实体表、手帐页面/图层模型、图片编辑管线、音视频采集管线、衣橱单品/搭配模型。这些缺口已提升为下一轮优先级。
 
 ## 开工前强制审计流程
 
@@ -188,6 +188,8 @@ flomo 对标结论：
 - 卡片引用 v1：详情页可添加内部 `some-memo://UUID` 引用，并展示正向引用与反向引用；引用保存在正文中，随导出、备份和历史版本迁移
 - 网页摘录 MVP：快速输入识别到链接后可一键摘录网页，使用 `URLSession` 抓取 HTML 标题、description 和段落候选，失败时回退 `LinkPresentation` 标题或 URL；保存为正文内 `[网页摘录: 标题](URL)`、摘要和重点，并进入 `webClip` 素材索引
 - 网页素材搜索：新增 `has:web` / `has:webclip` / `has:网页摘录` 等筛选，素材库可按“网页”筛选并直接打开原链接
+- 图片/截图 OCR MVP：图片导入后使用 Apple Vision `VNRecognizeTextRequest` 在本机异步识别文字，识别成功会生成“图片文字”记录并保留原附件引用
+- 图片文字素材搜索：OCR 记录会进入 `screenshot` 素材索引，并支持 `has:ocr` / `has:screenshot` / `has:图片文字` 等筛选
 
 ## AI 对标补充
 
@@ -207,8 +209,8 @@ P0：
 
 P1：
 
-- 多模态采集 MVP：相册图片/视频导入和文件导入已完成 v1；相机拍照、录音、视频拍摄、截图 OCR、批量元数据和缩略图缓存仍待补
-- 网页摘录 MVP：链接标题/description/段落候选提取、摘要和重点保存已完成 v1；截图 OCR、正文清洗质量、引用片段选择和批量网页导入仍待补
+- 多模态采集 MVP：相册图片/视频导入、文件导入和图片 OCR 已完成 v1；相机拍照、录音、视频拍摄、批量元数据和缩略图缓存仍待补
+- 网页摘录 MVP：链接标题/description/段落候选提取、摘要和重点保存已完成 v1；正文清洗质量、引用片段选择、批量网页导入、扫描校正和区域 OCR 仍待补
 - 电子手帐 MVP：页面模型、素材拖拽、图片/文字/贴纸/边框/背景、字体与装饰编辑、导出图片/PDF
 - 工作日志 MVP：勾选记录生成日报/周报/项目日志，支持进展、问题、下一步和汇总
 - 图片编辑 MVP：裁剪、滤镜、边框、文字、贴纸、基础拼贴；抠图/背景移除作为下一阶段

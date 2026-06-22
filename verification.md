@@ -102,12 +102,17 @@
 - 2026-06-22：已新增网页摘录格式解析、`addWebClip` 保存、`webClip` 素材索引和 `has:web` / `has:webclip` 搜索筛选；素材库网页条目可直接打开原链接。
 - 2026-06-22：已补充网页摘录解析、格式生成、网页素材索引、网页搜索筛选和 `addWebClip` 单元测试。
 - 2026-06-22：本轮 `git diff --check`、`plutil -lint`、`xmllint --noout` 通过；旧版 `xcrun swiftc -parse` 已覆盖 `LinkExtractor.swift`、`MemoSearchQuery.swift`、`Memo.swift`、`MemoStore.swift`、`ContentView.swift` 和 `SomeTests.swift`。`QuickCaptureView.swift` 仍因本机 Swift 5.4 不支持 async/await 无法解析，需要 Xcode 16 做完整编译和 XCTest。
+- 2026-06-22：已新增图片/截图 OCR v1，导入图片后使用 Apple Vision `VNRecognizeTextRequest` 在本机识别文字，识别成功会保存为“图片文字” memo 并保留原附件引用。
+- 2026-06-22：已新增 `ImageTextRecognizer.swift`，并确认纳入主 App target；OCR 记录会生成 `screenshot` 素材，搜索支持 `has:ocr` / `has:screenshot` / `has:图片文字`。
+- 2026-06-22：已补充 OCR memo 生成、去重、图片文字素材索引、`has:ocr` 搜索和避免重复附件引用相关单元测试。
+- 2026-06-22：本轮 `git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme` 通过；旧版 `xcrun swiftc -parse` 已覆盖 `LinkExtractor.swift`、`MemoSearchQuery.swift`、`Memo.swift`、`MemoStore.swift` 和 `SomeTests.swift`。
 
 ## 未能在当前环境完成
 
 - 当前机器的 `xcode-select` 指向 Command Line Tools，且 `/Applications/Xcode.app` 是 Xcode 13.2.1；当前 iOS 16+ 工程需要 Xcode 16 或更新版本才能可靠编译、测试、模拟器运行、Archive、签名或上传 App Store Connect。
 - 当前 Command Line Tools 的 Swift 编译器为旧版 Swift 5.4，无法 typecheck Swift concurrency 代码；本轮只完成了 plist、scheme、target 引用和源码静态扫描。
 - 2026-06-22 复查：`xcodebuild -version` 仍失败，提示 active developer directory 为 `/Library/Developer/CommandLineTools`；`xcrun swiftc -version` 为 Apple Swift 5.4。
+- 2026-06-22：`xcrun swiftc -parse some/Utilities/ImageTextRecognizer.swift` 与 `xcrun swiftc -parse some/Views/QuickCaptureView.swift` 均因 Swift 5.4 不支持当前代码中的 async/await 报错；需要 Xcode 16 或更新版本做完整编译、typecheck 和 XCTest。
 - Share Extension 的真实分享面板、App Group 容器和签名能力需要在完整 Xcode + Apple Developer Team 环境里实机或模拟器验证。
 - 旧版 `xcrun swiftc -parse` 只能做语法层检查，不能替代 Xcode 16 的完整 typecheck、XCTest 或 Share Extension 真机验证。
 
