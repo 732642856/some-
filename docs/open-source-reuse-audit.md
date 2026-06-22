@@ -80,6 +80,7 @@
 - 系统能力：PhotosUI / PHPicker、AVFoundation、Core Image、Vision、VisionKit 应优先使用。滤镜、边框、裁剪、基础拼贴可先靠系统框架实现；抠图/背景移除优先评估 Vision 前景分割能力。
 - 2026-06-22 图片编辑 MVP 决策：阶段 10 开工前重新检查 Git 状态、全量文件清单、`imageEdit` 素材预留、附件存储和素材库边界，并通过 GitHub API 复查 `Mantis`、`TOCropViewController`、`SwiftUI Core Image photo editor MIT`。Mantis 与 TOCropViewController 均为 MIT 且适合后续自由裁剪；本轮为了控制工程风险，不引入 SPM/Objective-C 依赖，先用 Core Image + UIKit 绘制实现预设比例裁剪、滤镜、边框、文字和贴纸，输出为本地 PNG 附件。
 - 2026-06-23 图片编辑增强决策：阶段 12 开工前再次复查 `Mantis`（MIT、Swift、活跃）和 `TOCropViewController`（MIT、成熟 ObjC），并检索 `SwiftUI image inpainting object removal MIT`，对象移除方向返回 0 个可直接复用候选。当前环境缺完整 Xcode/iOS SDK，不适合引入新 SPM 或 ObjC 桥接；本轮继续在现有 Core Image/UIKit 管线中增加裁剪中心/缩放微调和授权图片瑕疵清理贴片，后续完整手势裁剪器再接入 Mantis 优先评估。
+- 2026-06-23 图片背景/抠图底座决策：阶段 19 开工前复查 `ImageEditRecipe`、`ImageEditRenderer`、`ImageEditorView`、`MemoStore.addImageEdit` 和相关测试，并检索 `Swift Vision person segmentation background removal GitHub MIT`、`VNGeneratePersonSegmentationRequest Swift background removal GitHub`、`VNGenerateForegroundInstanceMaskRequest SwiftUI` 等关键词。未找到可直接复制进当前 iOS 16 SwiftUI 工程的成熟 MIT 模块；部分通用对象移除项目偏扩散模型或桌面管线，不适合本地轻量 App。本轮先扩展项目内 Core Image/UIKit 管线，增加背景柔化和纯色画布，作为后续 Vision 前景分割/衣橱抠图的输出底座。
 
 水印/清理边界：本项目可以做用户拥有或获授权图片的瑕疵修复、对象清理、背景处理和排版，不把移除第三方版权标识、平台水印或规避授权限制作为产品目标。
 
@@ -160,7 +161,7 @@ P0 验证：
 P1 优先复用：
 
 - 多模态采集：PhotosUI / PHPicker、AVFoundation、Share Extension、Files importer。
-- 图片裁剪/编辑：优先评估 `Mantis`、`TOCropViewController`、`HXPhotoPicker` 与系统 Core Image / Vision。
+- 图片裁剪/编辑：优先评估 `Mantis`、`TOCropViewController`、`HXPhotoPicker` 与系统 Core Image / Vision；背景画布已内置，人物/物体前景分割后续优先接 Apple Vision。
 - 网页和截图摘录：网页摘录 v2 与图片 OCR v1 已用系统能力落地，并已有网页/OCR 统一摘录片段候选；后续完整 DOM/CSS selector、阅读模式质量和批量离线网页导入优先评估 SwiftSoup，批量/交互式 OCR 再评估 OpenFind / SwiftOCRKit 的可复用部分。
 - 电子手帐：先建本地页面/图层模型，画布交互每个子能力单独检索，不复制无许可证素材。
 - 电子衣橱：先建 Swift 数据模型和本地存储；Android/Web 衣橱项目只做产品参考。

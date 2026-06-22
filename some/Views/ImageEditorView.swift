@@ -16,6 +16,11 @@ struct ImageEditorView: View {
     @State private var cropScale: Double = 1
     @State private var borderWidth: Double = 18
     @State private var borderColorHex = "#FFFFFF"
+    @State private var backgroundMode: ImageEditRecipe.Background.Mode = .original
+    @State private var backgroundColorHex = "#F8DCE8"
+    @State private var backgroundBlurRadius: Double = 22
+    @State private var backgroundInset: Double = 0.06
+    @State private var backgroundCornerRadius: Double = 28
     @State private var cleanupX: Double = 0.5
     @State private var cleanupY: Double = 0.5
     @State private var cleanupRadius: Double = 0.08
@@ -70,6 +75,11 @@ struct ImageEditorView: View {
         .onChange(of: cropScale) { _ in refreshPreview() }
         .onChange(of: borderWidth) { _ in refreshPreview() }
         .onChange(of: borderColorHex) { _ in refreshPreview() }
+        .onChange(of: backgroundMode) { _ in refreshPreview() }
+        .onChange(of: backgroundColorHex) { _ in refreshPreview() }
+        .onChange(of: backgroundBlurRadius) { _ in refreshPreview() }
+        .onChange(of: backgroundInset) { _ in refreshPreview() }
+        .onChange(of: backgroundCornerRadius) { _ in refreshPreview() }
         .onChange(of: cleanupPatches) { _ in refreshPreview() }
         .onChange(of: caption) { _ in refreshPreview() }
         .onChange(of: sticker) { _ in refreshPreview() }
@@ -153,6 +163,7 @@ struct ImageEditorView: View {
             .pickerStyle(.segmented)
 
             cropControls
+            backgroundControls
             cleanupControls
 
             VStack(alignment: .leading, spacing: 8) {
@@ -219,6 +230,13 @@ struct ImageEditorView: View {
             cropPreset: cropPreset,
             cropAdjustment: ImageEditRecipe.CropAdjustment(x: cropX, y: cropY, scale: cropScale),
             border: ImageEditRecipe.Border(colorHex: borderColorHex, width: borderWidth),
+            background: ImageEditRecipe.Background(
+                mode: backgroundMode,
+                colorHex: backgroundColorHex,
+                blurRadius: backgroundBlurRadius,
+                cornerRadius: backgroundCornerRadius,
+                inset: backgroundInset
+            ),
             textOverlays: caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? [] : [
                 ImageEditRecipe.TextOverlay(text: caption.trimmingCharacters(in: .whitespacesAndNewlines))
             ],
@@ -338,8 +356,67 @@ struct ImageEditorView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
+    private var backgroundControls: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("背景", systemImage: "rectangle.on.rectangle")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+
+            Picker("背景", selection: $backgroundMode) {
+                ForEach(ImageEditRecipe.Background.Mode.allCases, id: \.self) { mode in
+                    Text(mode.title).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            if backgroundMode != .original {
+                HStack(spacing: 8) {
+                    ForEach(backgroundSwatches, id: \.self) { hex in
+                        Button {
+                            backgroundColorHex = hex
+                        } label: {
+                            Circle()
+                                .fill(color(hex: hex) ?? Color.white)
+                                .frame(width: 30, height: 30)
+                                .overlay(
+                                    Circle()
+                                        .stroke(backgroundColorHex == hex ? Color.accentGreen : Color.border, lineWidth: 2)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(hex)
+                    }
+                }
+
+                if backgroundMode == .softBlur {
+                    Slider(value: $backgroundBlurRadius, in: 4...60, step: 2) {
+                        Text("柔化")
+                    }
+                    .tint(Color.accentGreen)
+                }
+
+                Slider(value: $backgroundInset, in: 0...0.18, step: 0.01) {
+                    Text("留白")
+                }
+                .tint(Color.accentGreen)
+
+                Slider(value: $backgroundCornerRadius, in: 0...72, step: 2) {
+                    Text("圆角")
+                }
+                .tint(Color.accentGreen)
+            }
+        }
+        .padding(10)
+        .background(Color.subtleSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
     private var borderSwatches: [String] {
         ["#FFFFFF", "#F8DCE8", "#DDEBF7", "#E8F3EE", "#1D222B"]
+    }
+
+    private var backgroundSwatches: [String] {
+        ["#F8DCE8", "#DDEBF7", "#E8F3EE", "#FDF8FA", "#1D222B"]
     }
 
     private func refreshPreview() {

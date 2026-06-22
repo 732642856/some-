@@ -347,6 +347,7 @@ struct ImageEditRecipe: Codable, Equatable {
     var cropPreset: CropPreset
     var cropAdjustment: CropAdjustment
     var border: Border
+    var background: Background
     var textOverlays: [TextOverlay]
     var stickerOverlays: [StickerOverlay]
     var cleanupPatches: [CleanupPatch]
@@ -359,6 +360,7 @@ struct ImageEditRecipe: Codable, Equatable {
         cropPreset: CropPreset = .original,
         cropAdjustment: CropAdjustment = CropAdjustment(),
         border: Border = Border(),
+        background: Background = Background(),
         textOverlays: [TextOverlay] = [],
         stickerOverlays: [StickerOverlay] = [],
         cleanupPatches: [CleanupPatch] = []
@@ -370,6 +372,7 @@ struct ImageEditRecipe: Codable, Equatable {
         self.cropPreset = cropPreset
         self.cropAdjustment = cropAdjustment
         self.border = border
+        self.background = background
         self.textOverlays = textOverlays
         self.stickerOverlays = stickerOverlays
         self.cleanupPatches = cleanupPatches
@@ -382,6 +385,9 @@ struct ImageEditRecipe: Codable, Equatable {
         }
         if border.width > 0 {
             parts.append("边框")
+        }
+        if background.mode != .original {
+            parts.append(background.mode.title)
         }
         if !textOverlays.isEmpty {
             parts.append("文字\(textOverlays.count)")
@@ -403,6 +409,7 @@ struct ImageEditRecipe: Codable, Equatable {
         case cropPreset
         case cropAdjustment
         case border
+        case background
         case textOverlays
         case stickerOverlays
         case cleanupPatches
@@ -417,6 +424,7 @@ struct ImageEditRecipe: Codable, Equatable {
         cropPreset = try container.decodeIfPresent(CropPreset.self, forKey: .cropPreset) ?? .original
         cropAdjustment = try container.decodeIfPresent(CropAdjustment.self, forKey: .cropAdjustment) ?? CropAdjustment()
         border = try container.decodeIfPresent(Border.self, forKey: .border) ?? Border()
+        background = try container.decodeIfPresent(Background.self, forKey: .background) ?? Background()
         textOverlays = try container.decodeIfPresent([TextOverlay].self, forKey: .textOverlays) ?? []
         stickerOverlays = try container.decodeIfPresent([StickerOverlay].self, forKey: .stickerOverlays) ?? []
         cleanupPatches = try container.decodeIfPresent([CleanupPatch].self, forKey: .cleanupPatches) ?? []
@@ -495,6 +503,42 @@ struct ImageEditRecipe: Codable, Equatable {
         init(colorHex: String = "#FFFFFF", width: Double = 0) {
             self.colorHex = colorHex
             self.width = width
+        }
+    }
+
+    struct Background: Codable, Equatable {
+        var mode: Mode
+        var colorHex: String
+        var blurRadius: Double
+        var cornerRadius: Double
+        var inset: Double
+
+        init(
+            mode: Mode = .original,
+            colorHex: String = "#F8DCE8",
+            blurRadius: Double = 22,
+            cornerRadius: Double = 28,
+            inset: Double = 0.06
+        ) {
+            self.mode = mode
+            self.colorHex = colorHex
+            self.blurRadius = blurRadius
+            self.cornerRadius = cornerRadius
+            self.inset = inset
+        }
+
+        enum Mode: String, Codable, CaseIterable, Equatable {
+            case original
+            case softBlur
+            case solid
+
+            var title: String {
+                switch self {
+                case .original: return "原背景"
+                case .softBlur: return "柔化背景"
+                case .solid: return "纯色背景"
+                }
+            }
         }
     }
 

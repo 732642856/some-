@@ -18,7 +18,8 @@ enum ImageEditRenderer {
         }
 
         let cropped = crop(CGImage: normalized, preset: recipe.cropPreset, adjustment: recipe.cropAdjustment) ?? normalized
-        let cleaned = applyCleanupPatches(to: cropped, patches: recipe.cleanupPatches) ?? cropped
+        let backgroundProcessed = applyBackground(recipe.background, to: cropped) ?? cropped
+        let cleaned = applyCleanupPatches(to: backgroundProcessed, patches: recipe.cleanupPatches) ?? backgroundProcessed
         let filtered = applyFilter(to: cleaned, filter: recipe.filter) ?? cleaned
         return drawDecorations(on: filtered, recipe: recipe)
     }
@@ -31,6 +32,9 @@ enum ImageEditRenderer {
         }
         if !recipe.cleanupPatches.isEmpty {
             suffixParts.append("cleanup")
+        }
+        if recipe.background.mode != .original {
+            suffixParts.append("background")
         }
         let suffix = suffixParts
             .filter { !$0.isEmpty && $0 != "original" }
@@ -91,6 +95,78 @@ enum ImageEditRenderer {
             height: cropHeight
         ).integral
         return image.cropping(to: rect)
+    }
+
+    private static func applyBackground(
+        _ background: ImageEditRecipe.Background,
+        to image: CGImage
+    ) -> CGImage? {
+        guard background.mode != .original else {
+            return image
+        }
+
+        let size = CGSize(width: image.width, height: image.height)
+        let rect = CGRect(origin: .zero, size: size)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
+        let rendered = renderer.image { _ in
+            switch background.mode {
+            case .original:
+                UIImage(cgImage: image).draw(in: rect)
+            case .solid:
+                color(hex: background.colorHex, fallback: .white).setFill()
+                UIRectFill(rect)
+                drawInsetImage(image, background: background, in: rect)
+            case .softBlur:
+                let radius = CGFloat(max(4, min(background.blurRadius, 80)))
+                if let blurred = blurredImage(from: image, radius: radius) {
+                    UIImage(cgImage: blurred).draw(in: rect)
+                } else {
+                    UIImage(cgImage: image).draw(in: rect)
+                }
+                drawInsetImage(image, background: background, in: rect)
+            }
+        }
+        return rendered.cgImage
+    }
+
+    private static func drawInsetImage(
+        _ image: CGImage,
+        background: ImageEditRecipe.Background,
+        in rect: CGRect
+    ) {
+        let inset = max(0, min(background.inset, 0.28)) * min(rect.width, rect.height)
+        let insetRect = rect.insetBy(dx: inset, dy: inset)
+        let imageRect = aspectFitRect(
+            imageSize: CGSize(width: image.width, height: image.height),
+            containerRect: insetRect
+        )
+        let cornerRadius = max(0, CGFloat(background.cornerRadius))
+        let path = UIBezierPath(roundedRect: imageRect, cornerRadius: cornerRadius)
+        UIGraphicsGetCurrentContext()?.saveGState()
+        path.addClip()
+        UIImage(cgImage: image).draw(in: imageRect)
+        UIGraphicsGetCurrentContext()?.restoreGState()
+    }
+
+    private static func aspectFitRect(imageSize: CGSize, containerRect: CGRect) -> CGRect {
+        guard imageSize.width > 0,
+              imageSize.height > 0,
+              containerRect.width > 0,
+              containerRect.height > 0 else {
+            return containerRect
+        }
+
+        let scale = min(containerRect.width / imageSize.width, containerRect.height / imageSize.height)
+        let width = imageSize.width * scale
+        let height = imageSize.height * scale
+        return CGRect(
+            x: containerRect.midX - width / 2,
+            y: containerRect.midY - height / 2,
+            width: width,
+            height: height
+        )
     }
 
     private static func applyCleanupPatches(

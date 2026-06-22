@@ -145,3 +145,14 @@
 - 衣橱页已补穿着记录表单、单品价格字段、穿着统计 badge、最近穿着和成本/次展示，并把穿着记录纳入衣橱素材列表。
 - 本轮新增测试覆盖：穿着记录 memo/素材生成、`has:wear-log` 查询、穿着次数/成本/次/最近穿着洞察，以及网页/OCR 片段保存时 OCR 不混入网页 highlights。
 - 已提交并推送 `9eb65bf Add wear logs and preserve selected clip sources`；推送后 GitHub 公共 API 返回 rate limit，暂时无法读取新 CI run 详情，下一步继续低频查询远端状态。
+
+## 2026-06-23T13:20:00+08:00
+
+- 进入阶段 19：图片背景画布与轻量抠图底座。
+- 开工前复查 Git 状态、任务计划、图片编辑模型/渲染器/UI、`MemoStore.addImageEdit` 和相关测试；确认阶段 18 已通过 `9eb65bf` 落地，随后文档提交 `8af1423` 推送到远端。
+- GitHub 公共 API 仍返回 rate limit，阶段 17 远端 CI 暂不能读取最新 run 详情；本轮不空等，先推进本地 P1 缺口。
+- 检索 Vision 背景移除、前景分割和 SwiftUI background remover 候选，未找到可直接复制进当前 iOS 16 SwiftUI 工程的成熟 MIT 模块；决定继续复用本项目 Core Image/UIKit 图片渲染管线。
+- 已扩展 `ImageEditRecipe`，新增向后兼容的背景模式：原背景、柔化背景、纯色背景，并记录背景色、柔化半径、留白和圆角。
+- 已更新 `ImageEditRenderer`，在裁剪后、滤镜前应用背景画布，支持柔化背景和纯色画布输出，并把背景处理写入输出文件名。
+- 已更新 `ImageEditorView`，新增背景控制区、模式切换、色板、柔化强度、留白和圆角控制。
+- 已更新 `MemoStore.addImageEdit` 和测试，保存正文会记录背景处理，测试覆盖背景配方编解码、旧 JSON 兼容、背景画布渲染和文件名。

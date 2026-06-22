@@ -286,6 +286,9 @@ final class MemoStore: ObservableObject {
         if !renderedRecipe.cleanupPatches.isEmpty {
             appendField("授权清理", value: "\(renderedRecipe.cleanupPatches.count)处", to: &lines)
         }
+        if renderedRecipe.background.mode != .original {
+            appendField("背景", value: renderedRecipe.background.mode.title, to: &lines)
+        }
         if renderedRecipe.border.width > 0 {
             appendField("边框", value: renderedRecipe.border.colorHex, to: &lines)
         }
