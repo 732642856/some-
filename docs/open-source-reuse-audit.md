@@ -137,6 +137,8 @@
 
 2026-06-22 手帐/贴纸画布补充检索：继续通过 GitHub API 搜索 `SwiftUI sticker drag resize rotate MIT`、`SwiftUI collage editor MIT`、`StickerView iOS Swift`、`DraggableResizableView SwiftUI`、`SwiftUI canvas layers editor`。可参考候选包括 `irons163/IRSticker-swift`、`artemnovichkov/StickerViewExample`、`native-mobile-app-developers/SwiftStickerView` 等 MIT 项目，但核心多为 UIKit 贴纸视图或背景移除示例，不是当前 SwiftUI 首页/素材索引可直接复制的完整手帐画布。本轮仅记录其拖拽、缩放、旋转和背景移除方向，未复制第三方源码；当前先自建可迁移 `ScrapbookPageLayout` / `ScrapbookLayer` JSON 底座，下一步做真正画布时再针对具体类文件做许可证头、依赖体量和 iOS 版本验证。
 
+2026-06-22 手帐画布 v1 实现决策：阶段 9 继续前补检索 `SwiftUI draggable resizable rotatable view MIT`、`SwiftUI sticker drag resize rotate MIT`、`iOS sticker view drag resize rotate Swift MIT`、`SwiftUI collage editor drag resize rotate`，GitHub API 均未返回可直接复制的成熟 SwiftUI/MIT 模块。本轮未复制 UIKit 贴纸项目源码，改为复用 some 已有 `ScrapbookPageLayout` / `ScrapbookLayer`，在详情页自建 SwiftUI 画布，实现图层拖拽、缩放、旋转和保存回正文 JSON。
+
 ## some 当前缺口与复用优先级
 
 P0 验证：

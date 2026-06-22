@@ -130,6 +130,27 @@ struct ScrapbookPageLayout: Codable, Equatable {
         return try? JSONDecoder.memoDecoder.decode(ScrapbookPageLayout.self, from: data)
     }
 
+    static func replacingLayout(in text: String, with layout: ScrapbookPageLayout) -> String? {
+        guard let encodedLine = layout.encodedLine() else {
+            return nil
+        }
+
+        var didReplace = false
+        var lines = text.components(separatedBy: .newlines).map { line -> String in
+            if line.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix(marker) {
+                didReplace = true
+                return encodedLine
+            }
+            return line
+        }
+
+        if !didReplace {
+            lines.append(encodedLine)
+        }
+
+        return lines.joined(separator: "\n")
+    }
+
     static func defaultLayout(
         title: String,
         template: String,

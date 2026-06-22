@@ -1534,13 +1534,13 @@ final class SomeTests: XCTestCase {
 
     func testCapturedVideoAttachmentCreatesVideoAsset() throws {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
-        let payload = Data("captured video data".utf8)
-        let attachment = try SharedAttachmentStore.save(
-            data: payload,
-            suggestedFilename: "camera-video-\(UUID().uuidString).mov",
-            typeIdentifier: UTType.movie.identifier
+        let attachment = SharedAttachment(
+            id: "camera-video.mov",
+            filename: "camera-video.mov",
+            relativePath: "camera-video.mov",
+            typeIdentifier: UTType.movie.identifier,
+            byteCount: 42
         )
-        defer { SharedAttachmentStore.delete(attachment) }
 
         guard let memo = store.addAttachmentMemo(attachment, note: "拍摄视频") else {
             return XCTFail("Expected video memo")
@@ -1550,7 +1550,7 @@ final class SomeTests: XCTestCase {
         let asset = store.assets(for: memo).first { $0.kind == .video }
         XCTAssertEqual(asset?.title, attachment.displayName)
         XCTAssertEqual(asset?.typeIdentifier, UTType.movie.identifier)
-        XCTAssertEqual(asset?.byteCount, payload.count)
+        XCTAssertEqual(asset?.byteCount, attachment.byteCount)
     }
 
     func testAudioTranscriberBuildsMemoText() {
@@ -1733,6 +1733,73 @@ final class SomeTests: XCTestCase {
         XCTAssertFalse(asset?.summary?.contains(ScrapbookPageLayout.marker) == true)
         XCTAssertEqual(asset?.uri, "some-attachment://\(attachment.relativePath)")
         XCTAssertEqual(asset?.typeIdentifier, UTType.png.identifier)
+    }
+
+    func testScrapbookLayoutReplacementUpdatesEncodedLine() throws {
+        let originalLayout = ScrapbookPageLayout(
+            backgroundColorHex: "#FDF8FA",
+            layers: [
+                ScrapbookLayer(kind: .text, title: "标题", text: "旧标题", x: 100, y: 100, width: 300, height: 80)
+            ]
+        )
+        let originalText = """
+        手帐页面：六月手帐
+        模板：日记
+        \(try XCTUnwrap(originalLayout.encodedLine()))
+        """
+
+        var updatedLayout = originalLayout
+        updatedLayout.layers[0].x = 220
+        updatedLayout.layers[0].scale = 1.4
+        updatedLayout.layers[0].rotation = 12
+
+        let updatedText = try XCTUnwrap(ScrapbookPageLayout.replacingLayout(in: originalText, with: updatedLayout))
+        let decoded = try XCTUnwrap(ScrapbookPageLayout.layout(in: updatedText))
+
+        XCTAssertEqual(decoded.layers[0].x, 220)
+        XCTAssertEqual(decoded.layers[0].scale, 1.4)
+        XCTAssertEqual(decoded.layers[0].rotation, 12)
+        XCTAssertEqual(updatedText.components(separatedBy: ScrapbookPageLayout.marker).count, 2)
+    }
+
+    func testScrapbookLayoutReplacementAppendsWhenMissing() throws {
+        let layout = ScrapbookPageLayout(
+            layers: [
+                ScrapbookLayer(kind: .sticker, title: "贴纸", text: "今日", x: 100, y: 120, width: 160, height: 60)
+            ]
+        )
+        let updatedText = try XCTUnwrap(ScrapbookPageLayout.replacingLayout(in: "手帐页面：旧手帐\n模板：日记", with: layout))
+
+        XCTAssertTrue(updatedText.contains(ScrapbookPageLayout.marker))
+        XCTAssertEqual(ScrapbookPageLayout.layout(in: updatedText)?.layers.first?.title, "贴纸")
+    }
+
+    func testUpdateScrapbookLayoutPersistsThroughStore() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        guard let memo = store.addScrapbookPage(
+            title: "可编辑手帐",
+            template: "日记",
+            decorations: ["贴纸"]
+        ) else {
+            return XCTFail("Expected scrapbook memo")
+        }
+
+        var layout = try XCTUnwrap(ScrapbookPageLayout.layout(in: memo.text))
+        layout.layers[0].x = 680
+        layout.layers[0].scale = 1.25
+        layout.layers.append(
+            ScrapbookLayer(kind: .shape, title: "色块", x: 540, y: 860, width: 360, height: 180)
+        )
+
+        XCTAssertTrue(store.updateScrapbookLayout(layout, for: memo))
+        let updatedMemo = try XCTUnwrap(store.memos.first { $0.id == memo.id })
+        let updatedLayout = try XCTUnwrap(ScrapbookPageLayout.layout(in: updatedMemo.text))
+
+        XCTAssertEqual(updatedLayout.layers[0].x, 680)
+        XCTAssertEqual(updatedLayout.layers[0].scale, 1.25)
+        XCTAssertEqual(updatedLayout.layers.last?.kind, .shape)
+        XCTAssertTrue(store.assets(for: updatedMemo).first { $0.kind == .scrapbookPage }?.summary?.contains("图层：1080x1440") == true)
+        XCTAssertEqual(store.revisions(for: updatedMemo).count, 1)
     }
 
     func testAddAttachmentMemoDoesNotDuplicateAttachmentAlreadyInNote() throws {

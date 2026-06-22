@@ -385,6 +385,16 @@ final class MemoStore: ObservableObject {
         }
     }
 
+    @discardableResult
+    func updateScrapbookLayout(_ layout: ScrapbookPageLayout, for memo: Memo) -> Bool {
+        guard let currentMemo = memos.first(where: { $0.id == memo.id }),
+              let updatedText = ScrapbookPageLayout.replacingLayout(in: currentMemo.text, with: layout) else {
+            return false
+        }
+
+        return update(currentMemo, text: updatedText)
+    }
+
     func toggleTask(_ memo: Memo, lineIndex: Int) {
         guard let index = memos.firstIndex(where: { $0.id == memo.id }) else { return }
 

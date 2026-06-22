@@ -246,6 +246,7 @@ private struct ScrapbookView: View {
     @State private var border = ""
     @State private var note = ""
     @State private var selectedImageAssetID: UUID?
+    @State private var editingMemo: Memo?
     @State private var statusText: String?
 
     private let templates = ["清新拼贴", "日记手帐", "工作复盘", "美食相册", "穿搭灵感", "网页摘录"]
@@ -273,6 +274,15 @@ private struct ScrapbookView: View {
 
             pageForm
             scrapbookList
+        }
+        .sheet(item: $editingMemo) { memo in
+            NavigationStack {
+                if let currentMemo = store.memos.first(where: { $0.id == memo.id }) {
+                    ScrapbookEditorView(memo: currentMemo)
+                } else {
+                    EmptyStateView(title: "找不到手帐页")
+                }
+            }
         }
     }
 
@@ -382,7 +392,9 @@ private struct ScrapbookView: View {
             } else {
                 ForEach(assets) { asset in
                     if let memo = store.memos.first(where: { $0.id == asset.memoID }) {
-                        NavigationLink(value: memo.id) {
+                        Button {
+                            editingMemo = memo
+                        } label: {
                             ScrapbookPageRow(asset: asset, memo: memo)
                         }
                         .buttonStyle(.plain)

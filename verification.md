@@ -125,6 +125,12 @@
 - 2026-06-22：工作日志继续前已复查 Git 状态、未跟踪文件、当前文件清单和半成品差异；GitHub API 检索工作日志 SwiftUI/MIT 候选均返回 0，本轮未复制第三方源码。
 - 2026-06-22：已补充工作日志结构化保存、来源引用、`workLog` 素材索引和 `has:worklog` 搜索筛选相关单元测试。
 - 2026-06-22：本轮 `git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme` 通过；旧版 `xcrun swiftc -parse` 已覆盖 `VideoThumbnailGenerator.swift`、`AttachmentPreviewList.swift`、`ContentView.swift`、`Memo.swift`、`MemoStore.swift`、`MemoSearchQuery.swift` 和 `SomeTests.swift`。
+- 2026-06-22：已新增手帐画布编辑 v1，手帐详情页会显示可交互画布，支持选中图层、拖拽位置、双指缩放、旋转，并把更新后的 `ScrapbookPageLayout` JSON 保存回原 memo。
+- 2026-06-22：手帐画布 v1 开工前已复查 Git 状态、全量文件清单和现有手帐源码；GitHub API 检索 SwiftUI/Swift 贴纸、拖拽缩放旋转、拼贴编辑器候选均未找到可直接复制的成熟 SwiftUI/MIT 模块，本轮未复制第三方源码。
+- 2026-06-22：已补充 `ScrapbookPageLayout.replacingLayout` 单元测试，覆盖替换已有图层 JSON 和给旧手帐追加图层 JSON。
+- 2026-06-22：已新增手帐画布编辑 v1，详情页读取 `ScrapbookPageLayout` 后可拖拽、缩放、旋转图片/文字/贴纸/边框/形状图层，并通过 `ScrapbookPageLayout.replacingLayout` 保存回原 memo 的可迁移 JSON。
+- 2026-06-22：阶段 9 开工前已复查 Git 状态、未跟踪文件、文件清单、手帐模型/视图/测试边界；GitHub API 检索 SwiftUI/Swift 拖拽缩放旋转贴纸和拼贴编辑器未找到可直接复制的成熟 MIT SwiftUI 模块，本轮未新增第三方依赖。
+- 2026-06-22：已补充手帐图层 JSON 替换与缺失时追加的单元测试；本轮 `git diff --check`、`plutil -lint` 通过，旧版 `xcrun swiftc -parse` 已覆盖 `Memo.swift`、`SharedAttachmentStore.swift`、`MemoSearchQuery.swift`、`MemoTaskParser.swift`、`MemoReferenceParser.swift`、`LinkExtractor.swift` 和 `SomeTests.swift`。
 
 ## 未能在当前环境完成
 
@@ -137,6 +143,8 @@
 - 2026-06-22：拍视频导入需要真机或可用相机/麦克风的模拟器环境验证；当前机器无法完成真实系统相机录制、权限弹窗和 movie URL 回调验证。
 - 2026-06-22：语音转写需要真机或支持 Speech 的模拟器环境验证授权弹窗、本机识别可用性、不同语言和长音频表现；当前旧 CLT 只能做语法层和 plist/scheme 校验。
 - 2026-06-22：视频缩略图需要在完整 Xcode 16 + 模拟器/真机环境验证真实 `.mov` / `.mp4` 文件取帧、旋转方向和长列表滚动表现；当前环境只能做静态校验和失败路径测试。
+- 2026-06-22：手帐画布拖拽、双指缩放和旋转需要完整 Xcode 16 + 模拟器/真机环境做真实手势验证；当前环境已完成模型替换测试、plist/scheme 校验和旧 Swift parser 对可解析文件的检查。
+- 2026-06-22：手帐画布编辑需要完整 Xcode 16 + 模拟器/真机验证多指缩放/旋转、拖拽边界、滚动页面内手势冲突和真实图片图层显示；当前环境只能验证模型替换逻辑和静态语法。
 - Share Extension 的真实分享面板、App Group 容器和签名能力需要在完整 Xcode + Apple Developer Team 环境里实机或模拟器验证。
 - 旧版 `xcrun swiftc -parse` 只能做语法层检查，不能替代 Xcode 16 的完整 typecheck、XCTest 或 Share Extension 真机验证。
 
