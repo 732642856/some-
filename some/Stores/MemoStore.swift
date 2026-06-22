@@ -278,6 +278,9 @@ final class MemoStore: ObservableObject {
         renderedRecipe.outputAttachmentPath = outputAttachment.relativePath
         var lines = ["图片编辑：\(cleanedTitle)"]
         appendField("原图", value: sourceAttachment.displayName, to: &lines)
+        if renderedRecipe.layoutPreset != .manual {
+            appendField("模板", value: renderedRecipe.layoutPreset.title, to: &lines)
+        }
         appendField("滤镜", value: renderedRecipe.filter.title, to: &lines)
         appendField("裁剪", value: renderedRecipe.cropPreset.title, to: &lines)
         if renderedRecipe.cropAdjustment.isAdjusted {

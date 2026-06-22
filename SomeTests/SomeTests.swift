@@ -2500,6 +2500,7 @@ final class SomeTests: XCTestCase {
             sourceAttachmentPath: "source.jpg",
             outputAttachmentPath: "edited.png",
             filter: .fresh,
+            layoutPreset: .foodCard,
             cropPreset: .square,
             cropAdjustment: ImageEditRecipe.CropAdjustment(x: 0.42, y: 0.58, scale: 1.4),
             border: ImageEditRecipe.Border(colorHex: "#FFFFFF", width: 18),
@@ -2515,6 +2516,7 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(decoded.sourceAttachmentPath, "source.jpg")
         XCTAssertEqual(decoded.outputAttachmentPath, "edited.png")
         XCTAssertEqual(decoded.filter, .fresh)
+        XCTAssertEqual(decoded.layoutPreset, .foodCard)
         XCTAssertEqual(decoded.cropPreset, .square)
         XCTAssertEqual(decoded.cropAdjustment.scale, 1.4, accuracy: 0.001)
         XCTAssertEqual(decoded.background.mode, .softBlur)
@@ -2523,8 +2525,22 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(decoded.stickerOverlays.first?.text, "good")
         XCTAssertEqual(decoded.cleanupPatches.count, 1)
         XCTAssertTrue(decoded.summary.contains("自由裁剪"))
+        XCTAssertTrue(decoded.summary.contains("美食留白"))
         XCTAssertTrue(decoded.summary.contains("柔化背景"))
         XCTAssertTrue(decoded.summary.contains("清理1"))
+    }
+
+    func testImageEditLayoutPresetsProvideExportDefaults() {
+        let preset = ImageEditRecipe.LayoutPreset.foodCard
+
+        XCTAssertEqual(preset.title, "美食留白")
+        XCTAssertEqual(preset.filter, .warm)
+        XCTAssertEqual(preset.cropPreset, .square)
+        XCTAssertEqual(preset.border.width, 22)
+        XCTAssertEqual(preset.background.mode, .solid)
+        XCTAssertEqual(preset.defaultCaption, "好好吃饭")
+        XCTAssertEqual(preset.textOverlay(text: "晚餐").colorHex, "#A06F55")
+        XCTAssertEqual(preset.stickerOverlay(text: "今日").x, 0.18)
     }
 
     func testAddImageEditCreatesRenderedAttachmentAssetAndSearchResult() throws {
@@ -2540,6 +2556,7 @@ final class SomeTests: XCTestCase {
         let recipe = ImageEditRecipe(
             sourceAttachmentPath: sourceAttachment.relativePath,
             filter: .vivid,
+            layoutPreset: .journalSticker,
             cropPreset: .square,
             cropAdjustment: ImageEditRecipe.CropAdjustment(x: 0.4, y: 0.45, scale: 1.3),
             border: ImageEditRecipe.Border(colorHex: "#F8DCE8", width: 6),
@@ -2561,6 +2578,7 @@ final class SomeTests: XCTestCase {
         defer { attachments.forEach { SharedAttachmentStore.delete($0) } }
 
         XCTAssertTrue(memo.text.contains("图片编辑：晚餐照片"))
+        XCTAssertTrue(memo.text.contains("模板：手帐贴纸"))
         XCTAssertTrue(memo.text.contains("滤镜：鲜明"))
         XCTAssertTrue(memo.text.contains("裁剪：1:1"))
         XCTAssertTrue(memo.text.contains("裁剪微调："))
@@ -2570,6 +2588,7 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(attachments.count, 2)
         XCTAssertTrue(attachments.contains { $0.relativePath == sourceAttachment.relativePath })
         XCTAssertTrue(attachments.contains { $0.relativePath != sourceAttachment.relativePath && $0.isImage })
+        XCTAssertTrue(attachments.contains { $0.filename.contains("journalSticker") })
 
         let asset = store.assets(for: memo).first { $0.kind == .imageEdit }
         XCTAssertEqual(asset?.title, "晚餐照片")
@@ -2589,6 +2608,7 @@ final class SomeTests: XCTestCase {
         let recipe = try XCTUnwrap(ImageEditRecipe.recipe(in: "图片编辑：旧图\n\(ImageEditRecipe.marker)\(encoded)"))
 
         XCTAssertEqual(recipe.cropAdjustment, ImageEditRecipe.CropAdjustment())
+        XCTAssertEqual(recipe.layoutPreset, .manual)
         XCTAssertEqual(recipe.background, ImageEditRecipe.Background())
         XCTAssertEqual(recipe.cleanupPatches, [])
     }

@@ -27,6 +27,9 @@ enum ImageEditRenderer {
     static func outputFilename(source: SharedAttachment, recipe: ImageEditRecipe) -> String {
         let baseName = (source.filename as NSString).deletingPathExtension
         var suffixParts = [recipe.filter.rawValue, recipe.cropPreset.rawValue]
+        if recipe.layoutPreset != .manual {
+            suffixParts.append(recipe.layoutPreset.rawValue)
+        }
         if recipe.cropAdjustment.isAdjusted {
             suffixParts.append("freecrop")
         }

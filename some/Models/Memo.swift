@@ -521,6 +521,7 @@ struct ImageEditRecipe: Codable, Equatable {
     var sourceAttachmentPath: String
     var outputAttachmentPath: String?
     var filter: Filter
+    var layoutPreset: LayoutPreset
     var cropPreset: CropPreset
     var cropAdjustment: CropAdjustment
     var border: Border
@@ -534,6 +535,7 @@ struct ImageEditRecipe: Codable, Equatable {
         sourceAttachmentPath: String,
         outputAttachmentPath: String? = nil,
         filter: Filter = .original,
+        layoutPreset: LayoutPreset = .manual,
         cropPreset: CropPreset = .original,
         cropAdjustment: CropAdjustment = CropAdjustment(),
         border: Border = Border(),
@@ -546,6 +548,7 @@ struct ImageEditRecipe: Codable, Equatable {
         self.sourceAttachmentPath = sourceAttachmentPath
         self.outputAttachmentPath = outputAttachmentPath
         self.filter = filter
+        self.layoutPreset = layoutPreset
         self.cropPreset = cropPreset
         self.cropAdjustment = cropAdjustment
         self.border = border
@@ -557,6 +560,9 @@ struct ImageEditRecipe: Codable, Equatable {
 
     var summary: String {
         var parts = [filter.title, cropPreset.title]
+        if layoutPreset != .manual {
+            parts.append(layoutPreset.title)
+        }
         if cropAdjustment.isAdjusted {
             parts.append("自由裁剪")
         }
@@ -583,6 +589,7 @@ struct ImageEditRecipe: Codable, Equatable {
         case sourceAttachmentPath
         case outputAttachmentPath
         case filter
+        case layoutPreset
         case cropPreset
         case cropAdjustment
         case border
@@ -598,6 +605,7 @@ struct ImageEditRecipe: Codable, Equatable {
         sourceAttachmentPath = try container.decode(String.self, forKey: .sourceAttachmentPath)
         outputAttachmentPath = try container.decodeIfPresent(String.self, forKey: .outputAttachmentPath)
         filter = try container.decodeIfPresent(Filter.self, forKey: .filter) ?? .original
+        layoutPreset = try container.decodeIfPresent(LayoutPreset.self, forKey: .layoutPreset) ?? .manual
         cropPreset = try container.decodeIfPresent(CropPreset.self, forKey: .cropPreset) ?? .original
         cropAdjustment = try container.decodeIfPresent(CropAdjustment.self, forKey: .cropAdjustment) ?? CropAdjustment()
         border = try container.decodeIfPresent(Border.self, forKey: .border) ?? Border()
@@ -641,6 +649,124 @@ struct ImageEditRecipe: Codable, Equatable {
             case .warm: return "暖调"
             case .mono: return "黑白"
             case .vivid: return "鲜明"
+            }
+        }
+    }
+
+    enum LayoutPreset: String, Codable, CaseIterable, Equatable {
+        case manual
+        case foodCard
+        case journalSticker
+        case filmFrame
+        case storyCover
+
+        var title: String {
+            switch self {
+            case .manual: return "手动"
+            case .foodCard: return "美食留白"
+            case .journalSticker: return "手帐贴纸"
+            case .filmFrame: return "胶片边框"
+            case .storyCover: return "故事封面"
+            }
+        }
+
+        var filter: Filter {
+            switch self {
+            case .manual: return .fresh
+            case .foodCard: return .warm
+            case .journalSticker: return .fresh
+            case .filmFrame: return .mono
+            case .storyCover: return .vivid
+            }
+        }
+
+        var cropPreset: CropPreset {
+            switch self {
+            case .manual: return .original
+            case .foodCard: return .square
+            case .journalSticker: return .portrait4x5
+            case .filmFrame: return .landscape16x9
+            case .storyCover: return .story9x16
+            }
+        }
+
+        var border: Border {
+            switch self {
+            case .manual:
+                return Border(colorHex: "#FFFFFF", width: 18)
+            case .foodCard:
+                return Border(colorHex: "#FFFFFF", width: 22)
+            case .journalSticker:
+                return Border(colorHex: "#F8DCE8", width: 16)
+            case .filmFrame:
+                return Border(colorHex: "#1D222B", width: 28)
+            case .storyCover:
+                return Border(colorHex: "#FFFFFF", width: 12)
+            }
+        }
+
+        var background: Background {
+            switch self {
+            case .manual:
+                return Background()
+            case .foodCard:
+                return Background(mode: .solid, colorHex: "#FFF7F0", blurRadius: 18, cornerRadius: 34, inset: 0.10)
+            case .journalSticker:
+                return Background(mode: .softBlur, colorHex: "#F8DCE8", blurRadius: 24, cornerRadius: 30, inset: 0.08)
+            case .filmFrame:
+                return Background(mode: .original, colorHex: "#1D222B", blurRadius: 18, cornerRadius: 12, inset: 0)
+            case .storyCover:
+                return Background(mode: .solid, colorHex: "#DDEBF7", blurRadius: 20, cornerRadius: 28, inset: 0.06)
+            }
+        }
+
+        var defaultCaption: String? {
+            switch self {
+            case .manual: return nil
+            case .foodCard: return "好好吃饭"
+            case .journalSticker: return "今日片段"
+            case .filmFrame: return nil
+            case .storyCover: return "Some day"
+            }
+        }
+
+        var defaultSticker: String? {
+            switch self {
+            case .manual: return nil
+            case .foodCard: return "今日"
+            case .journalSticker: return "灵感"
+            case .filmFrame: return "FILM"
+            case .storyCover: return "OOTD"
+            }
+        }
+
+        func textOverlay(text: String) -> TextOverlay {
+            switch self {
+            case .foodCard:
+                return TextOverlay(text: text, x: 0.5, y: 0.84, fontSize: 40, colorHex: "#A06F55")
+            case .journalSticker:
+                return TextOverlay(text: text, x: 0.5, y: 0.82, fontSize: 42, colorHex: "#8B6F83")
+            case .filmFrame:
+                return TextOverlay(text: text, x: 0.5, y: 0.88, fontSize: 34, colorHex: "#FFFFFF")
+            case .storyCover:
+                return TextOverlay(text: text, x: 0.5, y: 0.76, fontSize: 48, colorHex: "#46525A")
+            case .manual:
+                return TextOverlay(text: text)
+            }
+        }
+
+        func stickerOverlay(text: String) -> StickerOverlay {
+            switch self {
+            case .foodCard:
+                return StickerOverlay(text: text, x: 0.18, y: 0.18, fontSize: 44)
+            case .journalSticker:
+                return StickerOverlay(text: text, x: 0.78, y: 0.18, fontSize: 46)
+            case .filmFrame:
+                return StickerOverlay(text: text, x: 0.16, y: 0.14, fontSize: 30)
+            case .storyCover:
+                return StickerOverlay(text: text, x: 0.78, y: 0.16, fontSize: 40)
+            case .manual:
+                return StickerOverlay(text: text)
             }
         }
     }

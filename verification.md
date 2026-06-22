@@ -174,6 +174,7 @@
 - 2026-06-23：GitHub Actions run `27978220498` 复验显示 Build for simulator 通过、Run tests 仍退出 65；公开 annotation 显示 AppIntents metadata processor 在测试构建中处理 `ZIPFoundation` 与 `SomeShareExtension`，并涉及 `ExtractedAppShortcutsMetadata.stringsdata`。本轮继续收紧 CI test 构建，增加 `SWIFT_EMIT_LOC_STRINGS=NO`，避免测试阶段生成 Swift 本地化/App Shortcuts metadata；正式 build 不使用该关闭项。
 - 2026-06-23：手帐 PDF 导出本轮通过 `git diff --check`、`plutil -lint`、`xmllint --noout`、`.github/workflows/ios-ci.yml` YAML 解析，旧 Swift parser 覆盖 `ScrapbookRenderer.swift`、`MemoStore.swift`、`ScrapbookEditorView.swift` 和 `SomeTests.swift`。新增测试覆盖 PDF 数据头、PDF 附件保存、PDF 引用写回和素材索引。
 - 2026-06-23：衣橱天气推荐/自动打包/洗护提醒本轮通过 `git diff --check`、`plutil -lint`、`xmllint --noout`，旧 Swift parser 覆盖 `DateFormatters.swift`、`Memo.swift`、`WardrobeInsightEngine.swift`、`MemoStore.swift`、`ContentView.swift` 和 `SomeTests.swift`。新增测试覆盖天气穿搭、待洗/送洗单品避让、洗护提醒和打包建议。
+- 2026-06-23：图片编辑版式模板/导出预设本轮通过 `git diff --check`，旧 Swift parser 覆盖 `Memo.swift`、`ImageEditRenderer.swift`、`ImageEditorView.swift`、`MemoStore.swift` 和 `SomeTests.swift`。新增测试覆盖 `layoutPreset` 编解码、旧 JSON 兼容、模板默认值、保存正文模板字段和输出文件名。
 - 2026-06-22：手帐画布拖拽、双指缩放和旋转需要完整 Xcode 16 + 模拟器/真机环境做真实手势验证；当前环境已完成模型替换测试、plist/scheme 校验和旧 Swift parser 对可解析文件的检查。
 - 2026-06-22：手帐画布编辑需要完整 Xcode 16 + 模拟器/真机验证多指缩放/旋转、拖拽边界、滚动页面内手势冲突和真实图片图层显示；当前环境只能验证模型替换逻辑和静态语法。
 - 2026-06-22：图片编辑需要完整 Xcode 16 + 模拟器/真机验证真实照片色彩、保存耗时、素材库 sheet 交互、长边大图内存占用和系统分享/备份链路；当前环境已完成渲染核心静态解析和小图单元测试。

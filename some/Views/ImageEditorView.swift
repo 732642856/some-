@@ -9,6 +9,7 @@ struct ImageEditorView: View {
     let attachment: SharedAttachment
 
     @State private var title: String
+    @State private var layoutPreset: ImageEditRecipe.LayoutPreset = .manual
     @State private var filter: ImageEditRecipe.Filter = .fresh
     @State private var cropPreset: ImageEditRecipe.CropPreset = .original
     @State private var cropX: Double = 0.5
@@ -68,6 +69,7 @@ struct ImageEditorView: View {
             sourceImage = loadSourceImage()
             refreshPreview()
         }
+        .onChange(of: layoutPreset) { preset in applyLayoutPreset(preset) }
         .onChange(of: filter) { _ in refreshPreview() }
         .onChange(of: cropPreset) { _ in refreshPreview() }
         .onChange(of: cropX) { _ in refreshPreview() }
@@ -155,6 +157,14 @@ struct ImageEditorView: View {
             }
             .pickerStyle(.segmented)
 
+            Picker("模板", selection: $layoutPreset) {
+                ForEach(ImageEditRecipe.LayoutPreset.allCases, id: \.self) { preset in
+                    Text(preset.title).tag(preset)
+                }
+            }
+            .pickerStyle(.menu)
+            .tint(Color.accentGreen)
+
             Picker("比例", selection: $cropPreset) {
                 ForEach(ImageEditRecipe.CropPreset.allCases, id: \.self) { preset in
                     Text(preset.title).tag(preset)
@@ -227,6 +237,7 @@ struct ImageEditorView: View {
         ImageEditRecipe(
             sourceAttachmentPath: attachment.relativePath,
             filter: filter,
+            layoutPreset: layoutPreset,
             cropPreset: cropPreset,
             cropAdjustment: ImageEditRecipe.CropAdjustment(x: cropX, y: cropY, scale: cropScale),
             border: ImageEditRecipe.Border(colorHex: borderColorHex, width: borderWidth),
@@ -238,13 +249,40 @@ struct ImageEditorView: View {
                 inset: backgroundInset
             ),
             textOverlays: caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? [] : [
-                ImageEditRecipe.TextOverlay(text: caption.trimmingCharacters(in: .whitespacesAndNewlines))
+                layoutPreset.textOverlay(text: caption.trimmingCharacters(in: .whitespacesAndNewlines))
             ],
             stickerOverlays: sticker.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? [] : [
-                ImageEditRecipe.StickerOverlay(text: sticker.trimmingCharacters(in: .whitespacesAndNewlines))
+                layoutPreset.stickerOverlay(text: sticker.trimmingCharacters(in: .whitespacesAndNewlines))
             ],
             cleanupPatches: cleanupPatches
         )
+    }
+
+    private func applyLayoutPreset(_ preset: ImageEditRecipe.LayoutPreset) {
+        guard preset != .manual else {
+            refreshPreview()
+            return
+        }
+
+        filter = preset.filter
+        cropPreset = preset.cropPreset
+        borderColorHex = preset.border.colorHex
+        borderWidth = preset.border.width
+        backgroundMode = preset.background.mode
+        backgroundColorHex = preset.background.colorHex
+        backgroundBlurRadius = preset.background.blurRadius
+        backgroundInset = preset.background.inset
+        backgroundCornerRadius = preset.background.cornerRadius
+        if caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+           let defaultCaption = preset.defaultCaption {
+            caption = defaultCaption
+        }
+        if sticker.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+           let defaultSticker = preset.defaultSticker {
+            sticker = defaultSticker
+        }
+        editMode = .decorate
+        refreshPreview()
     }
 
     private var cropControls: some View {
