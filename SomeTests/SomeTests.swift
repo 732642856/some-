@@ -2268,6 +2268,22 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(Array(data.prefix(4)), [0x89, 0x50, 0x4E, 0x47])
     }
 
+    func testScrapbookRendererExportsPDFData() throws {
+        let layout = ScrapbookPageLayout(
+            canvasWidth: 320,
+            canvasHeight: 420,
+            backgroundColorHex: "#FDF8FA",
+            layers: [
+                ScrapbookLayer(kind: .text, title: "标题", text: "六月手帐", x: 160, y: 120, width: 220, height: 70, fontSize: 28),
+                ScrapbookLayer(kind: .border, title: "花边", x: 160, y: 210, width: 280, height: 360, borderColorHex: "#E7C7D7", borderWidth: 4, cornerRadius: 20)
+            ]
+        )
+
+        let data = ScrapbookRenderer.pdfData(layout: layout)
+
+        XCTAssertEqual(Array(data.prefix(4)), Array("%PDF".utf8))
+    }
+
     func testExportScrapbookLayoutCreatesPNGAttachment() throws {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         let layout = ScrapbookPageLayout(
@@ -2284,6 +2300,25 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(attachment.isImage)
         XCTAssertTrue(attachment.filename.hasSuffix(".png"))
         XCTAssertNotNil(SharedAttachmentStore.url(for: attachment))
+    }
+
+    func testExportScrapbookLayoutCreatesPDFAttachment() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let layout = ScrapbookPageLayout(
+            canvasWidth: 240,
+            canvasHeight: 320,
+            layers: [
+                ScrapbookLayer(kind: .text, title: "标题", text: "PDF", x: 120, y: 120, width: 180, height: 80, fontSize: 28)
+            ]
+        )
+
+        let attachment = try store.exportScrapbookLayout(layout, title: "六月手帐", format: .pdf)
+        defer { SharedAttachmentStore.delete(attachment) }
+
+        XCTAssertEqual(attachment.typeIdentifier, UTType.pdf.identifier)
+        XCTAssertTrue(attachment.filename.hasSuffix(".pdf"))
+        let pdfData = try XCTUnwrap(SharedAttachmentStore.data(for: attachment))
+        XCTAssertEqual(pdfData.prefix(4).map { $0 }, Array("%PDF".utf8))
     }
 
     func testExportScrapbookLayoutReferencesAttachmentInMemo() throws {
@@ -2308,6 +2343,26 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(updatedLayout.layers.last?.text, "已导出")
         XCTAssertEqual(store.assets(for: updatedMemo).contains { asset in
             asset.kind == .attachment && asset.uri?.contains(attachment.relativePath) == true
+        }, true)
+    }
+
+    func testExportScrapbookPDFReferencesAttachmentInMemo() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let memo = try XCTUnwrap(store.addScrapbookPage(
+            title: "六月手帐",
+            template: "日记",
+            note: "PDF"
+        ))
+        let layout = try XCTUnwrap(ScrapbookPageLayout.layout(in: memo.text))
+
+        let attachment = try store.exportScrapbookLayout(layout, title: "六月手帐", for: memo, format: .pdf)
+        defer { SharedAttachmentStore.delete(attachment) }
+        let updatedMemo = try XCTUnwrap(store.memos.first { $0.id == memo.id })
+
+        XCTAssertTrue(updatedMemo.text.contains("导出PDF：\(attachment.displayName)"))
+        XCTAssertTrue(updatedMemo.text.contains(attachment.referenceLine))
+        XCTAssertEqual(store.assets(for: updatedMemo).contains { asset in
+            asset.kind == .attachment && asset.typeIdentifier == UTType.pdf.identifier
         }, true)
     }
 

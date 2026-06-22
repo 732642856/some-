@@ -27,12 +27,13 @@
 - 2026-06-23：阶段 21 开工前复查 Git 状态、计划文件、手帐模型、编辑器、渲染器、列表缩略图和相关测试；本地未发现未跟踪碎片。检索 `SwiftUI scrapbook sticker font border MIT`、`iOS collage editor stickers fonts Swift MIT`、`Swift sticker view font border editor MIT`、`IRSticker Swift MIT`、`SwiftStickerView iOS MIT` 等候选均未找到可直接复制进当前 SwiftUI/素材索引架构的成熟 MIT 模块；此前 UIKit 贴纸项目继续只做交互参考。本轮复用现有 `ScrapbookLayer` 字体、颜色、边框、圆角和阴影字段，新增项目内样式目录与编辑入口。
 - 2026-06-23：GitHub Actions run `27975351182` 的 Build for simulator 通过，但 Run tests 失败。公开 annotation 未显示业务 XCTest 断言失败，最后可见测试均通过，失败线集中在 `appintentsnltrainingprocessor` 的 `Unable to parse extract.actionsdata`。当前判断为 Xcode 16 CI App Intents 元数据训练工具链问题；修复策略是在 CI 的 `xcodebuild test` 构建中排除 AppIntents 源文件并加 `CI_DISABLE_APP_INTENTS` 条件，正式 App build 不关闭快捷指令功能。
 - 2026-06-23：GitHub Actions run `27976760975` 复验后 Run tests 仍失败，公开 annotation 继续显示 AppIntents metadata / NL training processor 参与测试构建，且提示无 AppIntents.framework dependency。新的判断是默认 DerivedData 在正常 build 和 test 之间复用了 AppIntents 派生元数据；修复策略升级为 build/test 使用独立 `-derivedDataPath`，测试阶段额外 `clean test`。
+- 2026-06-23：阶段 22 开工前复查手帐导出链路、`ScrapbookRenderer`、`MemoStore.exportScrapbookLayout`、编辑器入口和测试；`ScrapbookRenderer` 已有 PDF renderer 底座但未接到附件存储和 UI。检索 `SwiftUI PDF export share MIT iOS` 未找到可直接复制的成熟模块；本轮复用 Apple `UIGraphicsPDFRenderer` 与现有附件/备份链路。
 
 ## 当前缺口
 
 - 媒体预览：视频附件已有本地缩略图缓存与媒体元数据摘要 v1；后续需用真实长列表验证滚动性能，并按需要补批量预热/清理策略。
 - 工作日志：已有勾选记录生成结构化日志 v1；后续可增强项目字段、周期范围、导出模板、AI 润色和多选筛选。
-- 电子手帐：已有图层 JSON、预览、详情页拖拽/缩放/旋转、独立编辑器图层新增/复制/删除/层级调整、图片素材追加、画布底色、字体/贴纸/花边预设、颜色/字号/圆角/线宽编辑、PNG 导出和保存回原 memo；后续缺 PDF 分享入口、真实图片排版长页性能和真机手势验证。
+- 电子手帐：已有图层 JSON、预览、详情页拖拽/缩放/旋转、独立编辑器图层新增/复制/删除/层级调整、图片素材追加、画布底色、字体/贴纸/花边预设、颜色/字号/圆角/线宽编辑、PNG/PDF 导出和保存回原 memo；后续缺真实图片排版长页性能、PDF 分享表细化和真机手势验证。
 - 图片编辑：已完成素材库图片编辑入口、预设比例裁剪、可调裁剪中心/缩放、背景柔化/纯色画布、授权图片瑕疵清理贴片、Core Image 滤镜、边框、文字、贴纸、输出 PNG 附件、`imageEdit` 素材索引和 `has:image-edit` 搜索；完整手势裁剪器、人物/物体抠图、对象级修复、模板拼贴和导出预设仍待补。
 - 电子衣橱：已完成衣橱洞察 v3，可从现有素材索引统计分类、颜色、季节、场景、未进入穿搭组合单品、常用单品、穿着次数、最近穿着和成本/次，并记录洗护状态与旅行打包清单；天气推荐、自动打包建议和洗护提醒仍待补。
 - 网页摘录：已有标题/description、正文清洗、段落评分、来源、摘录卡、重点候选、网页/OCR 统一摘录片段和快速输入片段勾选；后续再做批量网页导入、截图/OCR 区域选择和摘录片段独立素材索引。

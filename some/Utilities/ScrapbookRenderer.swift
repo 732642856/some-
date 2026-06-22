@@ -32,8 +32,28 @@ enum ScrapbookRenderer {
         image(for: layout, scale: scale).pngData()
     }
 
-    static func outputFilename(title: String) -> String {
-        "\(sanitizedFilename(title))-scrapbook-\(DateFormatters.filename.string(from: Date())).png"
+    static func pdfData(layout: ScrapbookPageLayout) -> Data {
+        let renderer = UIGraphicsPDFRenderer(bounds: pdfBounds(for: layout))
+        return renderer.pdfData { context in
+            context.beginPage()
+            draw(layout, in: context.cgContext)
+        }
+    }
+
+    static func data(layout: ScrapbookPageLayout, format: ExportFormat) throws -> Data {
+        switch format {
+        case .png:
+            guard let data = pngData(layout: layout) else {
+                throw CocoaError(.fileWriteUnknown)
+            }
+            return data
+        case .pdf:
+            return pdfData(layout: layout)
+        }
+    }
+
+    static func outputFilename(title: String, format: ExportFormat = .png) -> String {
+        "\(sanitizedFilename(title))-scrapbook-\(DateFormatters.filename.string(from: Date())).\(format.fileExtension)"
     }
 
     static func export(layout: ScrapbookPageLayout, title: String, format: ExportFormat) throws -> URL {
@@ -45,40 +65,24 @@ enum ScrapbookRenderer {
             attributes: nil
         )
 
-        let filename: String
-        switch format {
-        case .png:
-            filename = outputFilename(title: title)
-        case .pdf:
-            filename = "\(sanitizedFilename(title))-scrapbook-\(DateFormatters.filename.string(from: Date())).\(format.fileExtension)"
-        }
+        let filename = outputFilename(title: title, format: format)
         let url = directory.appendingPathComponent(filename, isDirectory: false)
-
-        switch format {
-        case .png:
-            guard let data = pngData(layout: layout) else {
-                throw CocoaError(.fileWriteUnknown)
-            }
-            try data.write(to: url, options: [.atomic])
-        case .pdf:
-            try writePDF(layout: layout, to: url)
-        }
+        try data(layout: layout, format: format).write(to: url, options: [.atomic])
 
         return url
     }
 
     private static func writePDF(layout: ScrapbookPageLayout, to url: URL) throws {
-        let bounds = CGRect(
+        try pdfData(layout: layout).write(to: url, options: [.atomic])
+    }
+
+    private static func pdfBounds(for layout: ScrapbookPageLayout) -> CGRect {
+        CGRect(
             x: 0,
             y: 0,
             width: max(1, CGFloat(layout.canvasWidth)),
             height: max(1, CGFloat(layout.canvasHeight))
         )
-        let renderer = UIGraphicsPDFRenderer(bounds: bounds)
-        try renderer.writePDF(to: url) { context in
-            context.beginPage()
-            draw(layout, in: context.cgContext)
-        }
     }
 
     private static func draw(_ layout: ScrapbookPageLayout, in context: CGContext) {

@@ -120,6 +120,9 @@ struct ScrapbookEditorView: View {
                 addLayerButton(systemImage: "square.and.arrow.up", title: "导出") {
                     exportLayout()
                 }
+                addLayerButton(systemImage: "doc.richtext", title: "PDF") {
+                    exportPDF()
+                }
 
                 if let statusText = statusText {
                     Text(statusText)
@@ -635,9 +638,23 @@ struct ScrapbookEditorView: View {
         guard let attachment = try? store.exportScrapbookLayout(
             layout,
             title: MemoReferenceParser.title(for: memo),
-            for: memo
+            for: memo,
+            format: .png
         ) else {
             statusText = "导出失败"
+            return
+        }
+        statusText = "已导出 \(attachment.displayName)"
+    }
+
+    private func exportPDF() {
+        guard let attachment = try? store.exportScrapbookLayout(
+            layout,
+            title: MemoReferenceParser.title(for: memo),
+            for: memo,
+            format: .pdf
+        ) else {
+            statusText = "PDF导出失败"
             return
         }
         statusText = "已导出 \(attachment.displayName)"

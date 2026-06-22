@@ -185,3 +185,11 @@
 - 重新分析 CI 步骤后定位新的高概率原因：正常 Build for simulator 阶段会先生成 App Intents 派生元数据，Run tests 阶段虽然排除 AppIntents 源，但仍可能复用同一默认 DerivedData 中的 `extract.actionsdata`。
 - 已更新 iOS CI：正常模拟器 build 使用 `${RUNNER_TEMP}/DerivedData-build`，继续验证正式 App + 快捷指令编译；测试阶段使用 `${RUNNER_TEMP}/DerivedData-test` 并执行 `clean test`，同时保留 `CI_DISABLE_APP_INTENTS` / `EXCLUDED_SOURCE_FILE_NAMES`，避免复用正式构建的 AppIntents 派生数据。
 - 在等待 run `27977929014` 时继续处理下一个高优先级警告：`QuickAudioRecorder` 是 `@MainActor` 对象，但 `AVAudioRecorderDelegate` 要求非隔离回调；已把 `audioRecorderEncodeErrorDidOccur` 标记为 `nonisolated`，并在回调中切回 `MainActor` 停止录音，提前消除 Swift 6 编译风险。
+
+## 2026-06-23T15:45:00+08:00
+
+- 进入阶段 22：手帐 PDF 分享/导出入口。开工前复查 README、开源审计、当前缺口、手帐 renderer、编辑器导出入口、`MemoStore.exportScrapbookLayout` 和相关测试。
+- 检索 `SwiftUI PDF export share MIT iOS` 未找到可直接复制的成熟项目；本轮继续复用 Apple `UIGraphicsPDFRenderer` 和 some 现有附件存储、备份、素材索引。
+- 已把 `ScrapbookRenderer` 的 PDF 能力整理为 `pdfData` / `data(layout:format:)`，PNG 和 PDF 共用统一文件名与导出数据入口。
+- `MemoStore.exportScrapbookLayout` 支持 `format: .png/.pdf`，PDF 作为 `UTType.pdf` 本地附件保存，并在手帐 memo 中追加“导出PDF”引用，备份和素材库可继续追踪。
+- 手帐编辑器新增 PDF 导出按钮；补充 PDF 数据头、PDF 附件保存、PDF 引用写回和素材索引测试。

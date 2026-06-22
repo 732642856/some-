@@ -537,15 +537,22 @@ final class MemoStore: ObservableObject {
     }
 
     #if !SOME_SHARE_EXTENSION
-    func exportScrapbookLayout(_ layout: ScrapbookPageLayout, title: String) throws -> SharedAttachment {
-        guard let data = ScrapbookRenderer.pngData(layout: layout) else {
+    func exportScrapbookLayout(
+        _ layout: ScrapbookPageLayout,
+        title: String,
+        format: ScrapbookRenderer.ExportFormat = .png
+    ) throws -> SharedAttachment {
+        let data: Data
+        do {
+            data = try ScrapbookRenderer.data(layout: layout, format: format)
+        } catch {
             throw ScrapbookExportError.renderingFailed
         }
 
         return try SharedAttachmentStore.save(
             data: data,
-            suggestedFilename: ScrapbookRenderer.outputFilename(title: title),
-            typeIdentifier: UTType.png.identifier
+            suggestedFilename: ScrapbookRenderer.outputFilename(title: title, format: format),
+            typeIdentifier: format.typeIdentifier
         )
     }
 
@@ -553,9 +560,10 @@ final class MemoStore: ObservableObject {
     func exportScrapbookLayout(
         _ layout: ScrapbookPageLayout,
         title: String,
-        for memo: Memo
+        for memo: Memo,
+        format: ScrapbookRenderer.ExportFormat = .png
     ) throws -> SharedAttachment {
-        let attachment = try exportScrapbookLayout(layout, title: title)
+        let attachment = try exportScrapbookLayout(layout, title: title, format: format)
 
         guard let currentMemo = memos.first(where: { $0.id == memo.id }),
               var updatedText = ScrapbookPageLayout.replacingLayout(in: currentMemo.text, with: layout) else {
@@ -564,7 +572,7 @@ final class MemoStore: ObservableObject {
         }
 
         let separator = updatedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "" : "\n\n"
-        updatedText.append("\(separator)导出图片：\(attachment.displayName)\n\(attachment.referenceLine)")
+        updatedText.append("\(separator)\(format.memoLabel)：\(attachment.displayName)\n\(attachment.referenceLine)")
 
         guard update(currentMemo, text: updatedText) else {
             SharedAttachmentStore.delete(attachment)
@@ -1718,6 +1726,26 @@ private enum ScrapbookExportError: LocalizedError {
             return "手帐页面无法渲染为图片。"
         case .updateFailed:
             return "手帐导出图片已回滚，当前记录无法更新。"
+        }
+    }
+}
+
+private extension ScrapbookRenderer.ExportFormat {
+    var typeIdentifier: String {
+        switch self {
+        case .png:
+            return UTType.png.identifier
+        case .pdf:
+            return UTType.pdf.identifier
+        }
+    }
+
+    var memoLabel: String {
+        switch self {
+        case .png:
+            return "导出图片"
+        case .pdf:
+            return "导出PDF"
         }
     }
 }
