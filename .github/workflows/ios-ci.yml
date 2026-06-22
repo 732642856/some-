@@ -53,10 +53,20 @@ jobs:
             -scheme some \
             -destination "$DESTINATION" \
             CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
             clean build 2>&1 | tee "$LOG_PATH"
           BUILD_STATUS="${PIPESTATUS[0]}"
           set -e
           if [ "$BUILD_STATUS" -ne 0 ]; then
+            {
+              echo "### xcodebuild build failed"
+              echo
+              echo '```text'
+              tail -n 200 "$LOG_PATH"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error file=.github/workflows/ios-ci.yml,line=45::xcodebuild build failed with status ${BUILD_STATUS}; see the step summary for the last 200 log lines."
             tail -n 200 "$LOG_PATH"
             perl -ne '
               sub esc {
@@ -66,15 +76,18 @@ jobs:
                 $value =~ s/\n/%0A/g;
                 return $value;
               }
-              if (/^(.*?):(\d+):(\d+): error: (.*)$/) {
+              if (/^(.*?):(\d+):(\d+): (?:fatal )?error: (.*)$/) {
                 my ($file, $line, $column, $message) = ($1, $2, $3, $4);
                 my $workspace = $ENV{"GITHUB_WORKSPACE"} || "";
                 $file =~ s/^\Q$workspace\E\/// if $workspace ne "";
                 print "::error file=" . esc($file) . ",line=$line,col=$column::" . esc($message) . "\n";
-                $seen = 1;
+                $seen++;
+              } elsif (/^(?:fatal )?error: (.*)$/ && $seen < 20) {
+                print "::error file=.github/workflows/ios-ci.yml,line=45::" . esc($1) . "\n";
+                $seen++;
               }
               END {
-                print "::error::xcodebuild build failed; see the last 200 log lines above.\n" unless $seen;
+                print "::error file=.github/workflows/ios-ci.yml,line=45::xcodebuild build failed; see the last 200 log lines above.\n" unless $seen;
               }
             ' "$LOG_PATH"
             exit "$BUILD_STATUS"
@@ -91,10 +104,20 @@ jobs:
             -scheme some \
             -destination "$DESTINATION" \
             CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
             test 2>&1 | tee "$LOG_PATH"
           TEST_STATUS="${PIPESTATUS[0]}"
           set -e
           if [ "$TEST_STATUS" -ne 0 ]; then
+            {
+              echo "### xcodebuild test failed"
+              echo
+              echo '```text'
+              tail -n 200 "$LOG_PATH"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error file=.github/workflows/ios-ci.yml,line=83::xcodebuild test failed with status ${TEST_STATUS}; see the step summary for the last 200 log lines."
             tail -n 200 "$LOG_PATH"
             perl -ne '
               sub esc {
@@ -104,15 +127,18 @@ jobs:
                 $value =~ s/\n/%0A/g;
                 return $value;
               }
-              if (/^(.*?):(\d+):(\d+): error: (.*)$/) {
+              if (/^(.*?):(\d+):(\d+): (?:fatal )?error: (.*)$/) {
                 my ($file, $line, $column, $message) = ($1, $2, $3, $4);
                 my $workspace = $ENV{"GITHUB_WORKSPACE"} || "";
                 $file =~ s/^\Q$workspace\E\/// if $workspace ne "";
                 print "::error file=" . esc($file) . ",line=$line,col=$column::" . esc($message) . "\n";
-                $seen = 1;
+                $seen++;
+              } elsif (/^(?:fatal )?error: (.*)$/ && $seen < 20) {
+                print "::error file=.github/workflows/ios-ci.yml,line=83::" . esc($1) . "\n";
+                $seen++;
               }
               END {
-                print "::error::xcodebuild test failed; see the last 200 log lines above.\n" unless $seen;
+                print "::error file=.github/workflows/ios-ci.yml,line=83::xcodebuild test failed; see the last 200 log lines above.\n" unless $seen;
               }
             ' "$LOG_PATH"
             exit "$TEST_STATUS"
