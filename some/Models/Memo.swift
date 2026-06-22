@@ -1059,6 +1059,7 @@ enum MemoAssetKind: String, Codable, CaseIterable, Hashable {
     case task
     case reference
     case webClip
+    case clipFragment
     case imageEdit
     case scrapbookPage
     case workLog
@@ -1081,6 +1082,7 @@ extension MemoAssetKind {
         case .task: return "任务"
         case .reference: return "引用"
         case .webClip: return "网页"
+        case .clipFragment: return "摘录"
         case .imageEdit: return "图片"
         case .scrapbookPage: return "手帐"
         case .workLog: return "日志"
@@ -1103,6 +1105,7 @@ extension MemoAssetKind {
         case .task: return "checklist"
         case .reference: return "arrow.triangle.branch"
         case .webClip: return "doc.text.magnifyingglass"
+        case .clipFragment: return "quote.bubble"
         case .imageEdit: return "wand.and.stars"
         case .scrapbookPage: return "rectangle.stack"
         case .workLog: return "doc.text"
@@ -1219,6 +1222,17 @@ extension MemoAsset {
                 uri: webClip.url.absoluteString,
                 typeIdentifier: UTType.url.identifier,
                 stableKey: "webclip:\(webClip.url.absoluteString)"
+            )
+        }
+
+        for clipFragment in ClipFragmentExtractor.assetSummaries(in: visibleText) {
+            append(
+                kind: .clipFragment,
+                title: clipFragment.title,
+                summary: clipFragment.summary.map { limitedSummary($0, maxLength: 500) },
+                uri: clipFragment.uri,
+                typeIdentifier: UTType.text.identifier,
+                stableKey: "clip-fragment:\(clipFragment.title):\(clipFragment.summary ?? "")"
             )
         }
 

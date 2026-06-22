@@ -176,6 +176,7 @@
 - 2026-06-23：衣橱天气推荐/自动打包/洗护提醒本轮通过 `git diff --check`、`plutil -lint`、`xmllint --noout`，旧 Swift parser 覆盖 `DateFormatters.swift`、`Memo.swift`、`WardrobeInsightEngine.swift`、`MemoStore.swift`、`ContentView.swift` 和 `SomeTests.swift`。新增测试覆盖天气穿搭、待洗/送洗单品避让、洗护提醒和打包建议。
 - 2026-06-23：图片编辑版式模板/导出预设本轮通过 `git diff --check`，旧 Swift parser 覆盖 `Memo.swift`、`ImageEditRenderer.swift`、`ImageEditorView.swift`、`MemoStore.swift` 和 `SomeTests.swift`。新增测试覆盖 `layoutPreset` 编解码、旧 JSON 兼容、模板默认值、保存正文模板字段和输出文件名。
 - 2026-06-23：多图拼贴 MVP 本轮通过 `git diff --check`、`plutil -lint`、`xmllint --noout`，旧 Swift parser 覆盖 `Memo.swift`、`ScrapbookRenderer.swift`、`MemoStore.swift`、`ContentView.swift` 和 `SomeTests.swift`，并用 `-D SOME_SHARE_EXTENSION` 覆盖分享扩展路径。新增测试覆盖拼贴布局、PNG 附件生成、原图引用和素材索引。
+- 2026-06-23：远端 GitHub Actions 最新状态查询被审批服务 503 拦截，阶段 17 暂不能继续读取公开 run 详情。本轮先推进摘录片段素材索引：新增 `clipFragment` 素材类型、`has:clip` / `has:摘录片段` 搜索筛选、素材库摘录图标和片段块解析测试。本地 `git diff --check`、`plutil -lint`、`xmllint --noout` 通过；旧 Swift parser 覆盖 `ClipFragmentExtractor.swift`、`LinkExtractor.swift`、`MemoReferenceParser.swift`、`MemoTaskParser.swift`、`SharedAttachmentStore.swift`、`MemoSearchQuery.swift`、`Memo.swift`、`SomeTests.swift`，并用 `-D SOME_SHARE_EXTENSION` 覆盖分享扩展 `MemoStore.swift` 路径。
 - 2026-06-22：手帐画布拖拽、双指缩放和旋转需要完整 Xcode 16 + 模拟器/真机环境做真实手势验证；当前环境已完成模型替换测试、plist/scheme 校验和旧 Swift parser 对可解析文件的检查。
 - 2026-06-22：手帐画布编辑需要完整 Xcode 16 + 模拟器/真机验证多指缩放/旋转、拖拽边界、滚动页面内手势冲突和真实图片图层显示；当前环境只能验证模型替换逻辑和静态语法。
 - 2026-06-22：图片编辑需要完整 Xcode 16 + 模拟器/真机验证真实照片色彩、保存耗时、素材库 sheet 交互、长边大图内存占用和系统分享/备份链路；当前环境已完成渲染核心静态解析和小图单元测试。

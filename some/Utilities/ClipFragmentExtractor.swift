@@ -33,6 +33,12 @@ struct SelectedWebClipContent: Equatable {
     var mergedFragmentsText: String?
 }
 
+struct ClipFragmentAssetSummary: Equatable {
+    var title: String
+    var summary: String?
+    var uri: String?
+}
+
 enum ClipFragmentExtractor {
     static let marker = "摘录片段："
 
@@ -44,6 +50,7 @@ enum ClipFragmentExtractor {
         var fragments: [ClipFragment] = []
         fragments.append(contentsOf: webFragments(in: text))
         fragments.append(contentsOf: ocrFragments(in: text))
+        fragments.append(contentsOf: mergedFragments(in: text))
         return unique(fragments)
     }
 
@@ -94,6 +101,16 @@ enum ClipFragmentExtractor {
         )
     }
 
+    static func assetSummaries(in text: String) -> [ClipFragmentAssetSummary] {
+        mergedFragmentBlocks(in: text).map { block in
+            ClipFragmentAssetSummary(
+                title: block.title,
+                summary: block.fragments.map(\.text).joined(separator: " · "),
+                uri: block.fragments.first(where: { $0.uri?.isEmpty == false })?.uri
+            )
+        }
+    }
+
     private static func webFragments(in text: String) -> [ClipFragment] {
         LinkExtractor.webClips(in: text).flatMap { clip -> [ClipFragment] in
             var fragments: [ClipFragment] = []
@@ -120,6 +137,73 @@ enum ClipFragmentExtractor {
             })
             return fragments
         }
+    }
+
+    private static func mergedFragments(in text: String) -> [ClipFragment] {
+        mergedFragmentBlocks(in: text).flatMap(\.fragments)
+    }
+
+    private static func mergedFragmentBlocks(in text: String) -> [(title: String, fragments: [ClipFragment])] {
+        let lines = text.components(separatedBy: .newlines)
+        let starts = lines.indices.filter { index in
+            lines[index]
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .hasPrefix(marker)
+        }
+
+        return starts.enumerated().compactMap { offset, start in
+            let end = offset + 1 < starts.count ? starts[offset + 1] : lines.endIndex
+            return mergedFragmentBlock(in: Array(lines[start..<end]))
+        }
+    }
+
+    private static func mergedFragmentBlock(in lines: [String]) -> (title: String, fragments: [ClipFragment])? {
+        guard let firstLine = lines.first?.trimmingCharacters(in: .whitespacesAndNewlines),
+              firstLine.hasPrefix(marker) else {
+            return nil
+        }
+
+        let rawTitle = String(firstLine.dropFirst(marker.count))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = rawTitle.isEmpty ? "摘录片段" : rawTitle
+        var fragments: [ClipFragment] = []
+
+        for line in lines.dropFirst() {
+            guard let item = mergedFragmentItem(in: line) else { continue }
+            fragments.append(
+                ClipFragment(
+                    source: item.source,
+                    title: title,
+                    text: item.text,
+                    stableKey: "clip:\(title):\(item.source.rawValue):\(item.index):\(item.text)"
+                )
+            )
+        }
+
+        return fragments.isEmpty ? nil : (title, fragments)
+    }
+
+    private static func mergedFragmentItem(in line: String) -> (source: ClipFragmentSource, index: Int, text: String)? {
+        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        let pattern = #"^-\s*\[(网页|OCR)\]\s*([0-9]+)\.\s*(.+)$"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []),
+              let match = regex.firstMatch(in: trimmed, options: [], range: NSRange(trimmed.startIndex..<trimmed.endIndex, in: trimmed)),
+              match.numberOfRanges >= 4,
+              let sourceRange = Range(match.range(at: 1), in: trimmed),
+              let indexRange = Range(match.range(at: 2), in: trimmed),
+              let textRange = Range(match.range(at: 3), in: trimmed)
+        else {
+            return nil
+        }
+
+        let source: ClipFragmentSource = trimmed[sourceRange] == "网页" ? .web : .ocr
+        let index = Int(trimmed[indexRange]) ?? 0
+        let text = String(trimmed[textRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else {
+            return nil
+        }
+
+        return (source, index, text)
     }
 
     private static func ocrFragments(in text: String) -> [ClipFragment] {
@@ -165,7 +249,7 @@ enum ClipFragmentExtractor {
             line == "识别文字：" || line == "识别文字:" || line == "OCR：" || line == "OCR:"
         }.map { $0 + 1 } ?? 1
 
-        let recognizedLines = ImageTextRecognizer.extractedHighlights(from: text, limit: 12)
+        let recognizedLines = extractedImageTextHighlights(from: text, limit: 12)
         let fallbackLines = lines
             .dropFirst(textStartIndex)
             .filter { line in
@@ -200,6 +284,42 @@ enum ClipFragmentExtractor {
         return "\(SharedAttachmentStore.referenceScheme)://\(SharedAttachmentStore.encodedReferencePath(attachment.relativePath))"
     }
 
+    private static func extractedImageTextHighlights(from text: String, limit: Int) -> [String] {
+        let lines = text.components(separatedBy: .newlines)
+        var isInRecognizedText = false
+        var candidates: [String] = []
+
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.hasPrefix("识别文字：")
+                || trimmed.hasPrefix("识别文字:")
+                || trimmed.hasPrefix("OCR：")
+                || trimmed.hasPrefix("OCR:") {
+                isInRecognizedText = true
+                continue
+            }
+
+            guard isInRecognizedText else {
+                continue
+            }
+
+            if trimmed.isEmpty {
+                if !candidates.isEmpty {
+                    break
+                }
+                continue
+            }
+
+            if trimmed.hasPrefix("[附件:") || trimmed.hasPrefix("some-attachment://") {
+                break
+            }
+
+            candidates.append(trimmed)
+        }
+
+        return Array(uniqueLines(candidates).prefix(limit))
+    }
+
     private static func unique(_ fragments: [ClipFragment]) -> [ClipFragment] {
         var seen = Set<String>()
         return fragments.compactMap { fragment in
@@ -210,6 +330,17 @@ enum ClipFragmentExtractor {
                 return nil
             }
             return fragment
+        }
+    }
+
+    private static func uniqueLines(_ lines: [String]) -> [String] {
+        var seen = Set<String>()
+        return lines.compactMap { line in
+            let normalized = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !normalized.isEmpty, seen.insert(normalized).inserted else {
+                return nil
+            }
+            return normalized
         }
     }
 

@@ -423,12 +423,12 @@ final class SomeTests: XCTestCase {
     }
 
     func testSearchQueryParserExtractsContentFilters() {
-        let query = MemoSearchQueryParser.parse("has:link has:web has:ocr has:image-edit has:attachment has:reference has:scrapbook has:worklog has:audio has:video has:wardrobe has:outfit has:wear-log has:laundry-log has:packing-list no:task without:backlink 复盘")
+        let query = MemoSearchQueryParser.parse("has:link has:web has:clip has:ocr has:image-edit has:attachment has:reference has:scrapbook has:worklog has:audio has:video has:wardrobe has:outfit has:wear-log has:laundry-log has:packing-list no:task without:backlink 复盘")
 
         XCTAssertEqual(query.textTerms, ["复盘"])
         XCTAssertEqual(
             query.requiredContentFilters,
-            [.attachment, .audio, .imageEdit, .laundryLog, .link, .outfit, .packingList, .reference, .scrapbook, .screenshot, .video, .wardrobe, .webClip, .wearLog, .workLog]
+            [.attachment, .audio, .clipFragment, .imageEdit, .laundryLog, .link, .outfit, .packingList, .reference, .scrapbook, .screenshot, .video, .wardrobe, .webClip, .wearLog, .workLog]
         )
         XCTAssertEqual(
             query.excludedContentFilters,
@@ -550,6 +550,14 @@ final class SomeTests: XCTestCase {
             summary: "网页摘要",
             highlights: []
         ))
+        let clipFragmentText = try XCTUnwrap(ClipFragmentExtractor.mergedText(
+            title: "网页和截图摘录",
+            fragments: [
+                ClipFragment(source: .web, title: "网页资料", text: "网页关键句", uri: "https://example.com/web", stableKey: "clip-web"),
+                ClipFragment(source: .ocr, title: "截图", text: "截图关键句", uri: "some-attachment://screen.png", stableKey: "clip-ocr")
+            ]
+        ))
+        store.addMemo(text: clipFragmentText)
         store.addMemo(text: """
         图片文字：receipt.png
 
@@ -597,6 +605,9 @@ final class SomeTests: XCTestCase {
                 )
             ]
         )
+
+        store.searchText = "has:clip"
+        XCTAssertEqual(store.filteredMemos.map(\.text), [clipFragmentText])
 
         store.searchText = "has:attachment"
         XCTAssertEqual(
@@ -1238,6 +1249,24 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(text.contains("- [OCR] 2. 合计 128 元"))
     }
 
+    func testClipFragmentExtractorReadsMergedTextBlocks() throws {
+        let text = try XCTUnwrap(ClipFragmentExtractor.mergedText(
+            title: "资料卡",
+            fragments: [
+                ClipFragment(source: .web, title: "文章", text: "网页摘要", uri: "https://example.com/a", stableKey: "web"),
+                ClipFragment(source: .ocr, title: "截图", text: "合计 128 元", uri: "some-attachment://receipt.png", stableKey: "ocr")
+            ]
+        ))
+
+        let fragments = ClipFragmentExtractor.fragments(in: text)
+        let summaries = ClipFragmentExtractor.assetSummaries(in: text)
+
+        XCTAssertEqual(fragments.map(\.source), [.web, .ocr])
+        XCTAssertEqual(fragments.map(\.text), ["网页摘要", "合计 128 元"])
+        XCTAssertEqual(summaries.first?.title, "资料卡")
+        XCTAssertEqual(summaries.first?.summary, "网页摘要 · 合计 128 元")
+    }
+
     func testSelectedWebClipContentSeparatesWebAndOCRFragments() throws {
         let fragments = [
             ClipFragment(source: .web, title: "文章", text: "网页摘要", uri: "https://example.com/a", stableKey: "web-summary"),
@@ -1605,6 +1634,29 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(assets.contains { $0.kind == .attachment && $0.uri?.contains(attachment.relativePath) == true })
         XCTAssertTrue(assets.contains { $0.kind == .task && $0.title == "整理素材" && $0.summary == "open" })
         XCTAssertTrue(assets.contains { $0.kind == .reference && $0.uri == "some-memo://\(target.id.uuidString)" })
+    }
+
+    func testMemoAssetsIndexClipFragments() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let clipText = try XCTUnwrap(ClipFragmentExtractor.mergedText(
+            title: "发票摘录",
+            fragments: [
+                ClipFragment(source: .web, title: "网页", text: "订单页面摘要", uri: "https://example.com/order", stableKey: "web"),
+                ClipFragment(source: .ocr, title: "截图", text: "合计 128 元", uri: "some-attachment://receipt.png", stableKey: "ocr")
+            ]
+        ))
+        guard let memo = store.addMemo(text: clipText) else {
+            return XCTFail("Expected clip memo")
+        }
+
+        let clipAsset = try XCTUnwrap(store.assets(for: memo).first { $0.kind == .clipFragment })
+
+        XCTAssertEqual(clipAsset.title, "发票摘录")
+        XCTAssertEqual(clipAsset.summary, "订单页面摘要 · 合计 128 元")
+        XCTAssertEqual(clipAsset.typeIdentifier, UTType.text.identifier)
+
+        store.searchText = "has:摘录片段"
+        XCTAssertEqual(store.filteredMemos.map(\.id), [memo.id])
     }
 
     func testMemoAssetsUpdateWhenMemoChanges() {

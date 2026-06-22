@@ -32,6 +32,7 @@
 - 2026-06-23：阶段 23 开工前复查 Git 状态、规划文件、衣橱引擎、衣橱 UI、结构化保存与测试边界，并检索 `wardrobe outfit planner MIT`、`virtual closet swift MIT`、`packing list swiftui MIT`、`laundry reminder swift MIT` 等候选；GitHub API 返回 0 个适合直接复制进当前 SwiftUI/iOS 工程的成熟 MIT 模块。继续以 `MemoAsset`、结构化 memo 和 `WardrobeInsightEngine` 自建轻量建议层。
 - 2026-06-23：阶段 24 开工前复查图片编辑模型、渲染器、UI、保存路径和测试边界。尝试检索 `swift photo collage MIT`、`ios collage editor swift MIT`、`photo layout swift MIT ios`、`swiftui photo editor collage MIT` 时审批服务临时 503 拦截，不能继续重复同类联网操作；结合此前手帐/拼贴/图片编辑多轮审计未发现可直接复制的成熟 MIT SwiftUI 模块，本轮不引入新依赖，先在 `ImageEditRecipe` 内加入可保存的版式模板/导出预设底座。
 - 2026-06-23：阶段 25 开工前复查手帐图层模型、`ScrapbookRenderer`、附件解析、手帐首页和图片编辑缺口。多图拼贴选择复用现有 `ScrapbookPageLayout` / `ScrapbookRenderer`，因为手帐已经具备多图片图层、PNG 导出、可迁移 JSON 和后续编辑器入口；本轮新增拼贴创建入口而不是重复建立第二套画布模型。
+- 2026-06-23：本轮恢复后尝试查询 GitHub Actions 最新状态时，联网审批服务返回 503 并拒绝升级命令；按安全规则不绕路重复同一外部查询。随后补做摘录片段索引前的开源对标：`usememos/memos` 是 MIT 的 memo 服务端/前端项目，适合继续参考数据所有权与 Markdown 记录思路，但 Go/TypeScript 架构不能直接复制进当前 SwiftUI 本地素材索引；Simplenote iOS、Joplin、Zettlr 等项目许可证或技术栈也不适合直接搬源码。本轮继续复用 some 现有 `MemoAsset` / SQLite 索引。
 
 ## 当前缺口
 
@@ -40,5 +41,5 @@
 - 电子手帐：已有图层 JSON、预览、详情页拖拽/缩放/旋转、独立编辑器图层新增/复制/删除/层级调整、图片素材追加、画布底色、字体/贴纸/花边预设、颜色/字号/圆角/线宽编辑、PNG/PDF 导出和保存回原 memo；后续缺真实图片排版长页性能、PDF 分享表细化和真机手势验证。
 - 图片编辑：已完成素材库图片编辑入口、预设比例裁剪、可调裁剪中心/缩放、背景柔化/纯色画布、授权图片瑕疵清理贴片、Core Image 滤镜、边框、文字、贴纸、版式模板/导出预设、多图拼贴 MVP、输出 PNG 附件、`imageEdit` / `scrapbookPage` 素材索引和相关搜索；完整手势裁剪器、人物/物体抠图、对象级修复和更自由的多图拼贴编辑仍待补。
 - 电子衣橱：已完成衣橱洞察 v4，可从现有素材索引统计分类、颜色、季节、场景、未进入穿搭组合单品、常用单品、穿着次数、最近穿着和成本/次，并记录洗护状态与旅行打包清单；现在可根据最近穿着天气生成天气穿搭、自动生成打包草稿，并用最新洗护状态提醒待清洗/送洗/待熨烫/待修补单品。后续可接真实天气 API、行程天数、材质/厚薄字段和本地通知提醒。
-- 网页摘录：已有标题/description、正文清洗、段落评分、来源、摘录卡、重点候选、网页/OCR 统一摘录片段和快速输入片段勾选；后续再做批量网页导入、截图/OCR 区域选择和摘录片段独立素材索引。
+- 网页摘录：已有标题/description、正文清洗、段落评分、来源、摘录卡、重点候选、网页/OCR 统一摘录片段、快速输入片段勾选、摘录片段独立素材索引和 `has:clip` 搜索；后续再做批量网页导入和截图/OCR 区域选择。
 - CI 测试稳定性：GitHub iPhone 16 Pro 模拟器默认图片 renderer scale 可能不是 1，像素尺寸测试必须显式设置 `UIGraphicsImageRendererFormat.scale = 1` 或断言比例；视频/媒体测试应使用真实保存文件，不应手工构造不存在的 `SharedAttachment`。App Intents 元数据训练在 CI 测试阶段可能触发 `extract.actionsdata` 解析失败，当前通过独立 DerivedData、测试阶段 `clean test`、`SWIFT_EMIT_LOC_STRINGS=NO`、条件编译和 `EXCLUDED_SOURCE_FILE_NAMES` 暂避，待远端复验。

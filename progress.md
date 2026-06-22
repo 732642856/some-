@@ -217,3 +217,19 @@
 - `MemoStore.addPhotoCollage` 会把多张图片渲染为 PNG 附件，同时保存可迁移手帐 JSON 和原图附件引用，后续仍可用手帐编辑器继续调整。
 - 手帐首页新增多选图片 chip 和“保存拼贴”按钮，最多选择 6 张图片，保存后进入手帐素材列表。
 - 新增测试覆盖拼贴布局图层、PNG 附件生成、原图引用保留和 `scrapbookPage` 素材索引。
+
+## 2026-06-23T04:34:31+08:00
+
+- 接续用户“没有需要询问就持续主动推进”的要求，恢复规划文件、Git 状态和全量文件清单；当前 `master...origin/master` 且工作树干净。
+- 远端 GitHub Actions 最新状态查询被审批服务 503 拦截并拒绝升级命令；按安全规则不绕路重复同一外部查询，阶段 17 继续等待后续可用查询窗口。
+- 补做阶段 26 开工前审计：读取 `MemoAsset`、`ClipFragmentExtractor`、`MemoSearchQuery`、`MemoStore.matchesContentFilter`、素材库 UI、SQLite asset 存储和相关测试。
+- 开源对标结论：`usememos/memos` 可继续参考自有数据与 Markdown 记录理念，但 Go/TypeScript 架构不能直接复制进 SwiftUI 本地索引；Simplenote iOS、Joplin、Zettlr 等不适合直接搬源码。本轮继续复用 some 现有素材索引。
+- 进入阶段 26：摘录片段素材索引与搜索，目标是把网页/OCR 勾选后保存的“摘录片段”从纯正文升级为可在素材库筛选、可用 `has:clip` / `has:摘录片段` 检索的独立资产。
+
+## 2026-06-23T04:43:13+08:00
+
+- 完成阶段 26：新增 `MemoAssetKind.clipFragment`、素材库“摘录”标签/图标、`ClipFragmentExtractor.assetSummaries`、摘录片段块解析和 `has:clip` / `has:摘录片段` 搜索筛选。
+- 修正别名边界：`has:clip`、`has:clips`、`has:摘录` 归入摘录片段，`has:web` / `has:webclip` 继续只代表网页摘录，避免搜索结果混淆。
+- 避免分享扩展 target 风险：`ClipFragmentExtractor` 不再依赖 `ImageTextRecognizer`，分享扩展条件编译解析时不需要 Vision OCR 文件。
+- 新增测试覆盖：内容筛选解析、`has:clip` 搜索、摘录片段块反解析、摘录片段素材索引和 `has:摘录片段` 中文搜索。
+- 本地验证通过：`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`、旧 Swift parser 覆盖 `ClipFragmentExtractor.swift` / `LinkExtractor.swift` / `MemoReferenceParser.swift` / `MemoTaskParser.swift` / `SharedAttachmentStore.swift` / `MemoSearchQuery.swift` / `Memo.swift` / `SomeTests.swift`，并用 `-D SOME_SHARE_EXTENSION` 覆盖 `MemoStore.swift` 分享扩展路径。

@@ -9,6 +9,7 @@ enum MemoContentFilter: String, CaseIterable, Hashable {
     case reference
     case backlink
     case webClip = "web-clip"
+    case clipFragment = "clip-fragment"
     case imageEdit = "image-edit"
     case screenshot
     case scrapbook
@@ -190,8 +191,10 @@ enum MemoSearchQueryParser {
             return .reference
         case "backlink", "backlinks", "incoming-reference", "incoming-references", "被引用", "反向引用":
             return .backlink
-        case "web", "webclip", "web-clip", "clip", "clips", "article", "articles", "网页", "网页摘录", "摘录":
+        case "web", "webclip", "web-clip", "article", "articles", "网页", "网页摘录":
             return .webClip
+        case "clip", "clips", "clip-fragment", "clipfragment", "excerpt", "excerpts", "snippet", "snippets", "摘录", "摘录片段", "片段", "关键片段", "摘录卡片":
+            return .clipFragment
         case "image-edit", "imageedit", "edited-image", "photo-edit", "photoedit", "image-work", "图片编辑", "照片编辑", "图片作品", "滤镜", "边框", "裁剪":
             return .imageEdit
         case "ocr", "image-text", "screenshot", "screenshots", "scan", "scan-text", "图片文字", "截图", "截图文字", "识别文字":

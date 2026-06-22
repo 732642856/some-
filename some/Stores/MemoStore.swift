@@ -1336,6 +1336,8 @@ final class MemoStore: ObservableObject {
             return !backlinkMemos(to: memo).isEmpty
         case .webClip:
             return !LinkExtractor.webClips(in: memo.text).isEmpty
+        case .clipFragment:
+            return assets(for: memo).contains { $0.kind == .clipFragment }
         case .imageEdit:
             return assets(for: memo).contains { $0.kind == .imageEdit }
         case .screenshot:

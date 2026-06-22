@@ -98,6 +98,8 @@
 
 2026-06-23 网页/OCR 摘录片段检索决策：阶段 16 继续前检索 `SwiftUI text highlight selection annotation MIT`、`iOS OCR text selection Vision Swift MIT`、`SwiftUI web clip article highlight MIT`、`VisionKit document scanner SwiftUI MIT` 等关键词，多轮 GitHub API 查询均返回 0 个可直接复用模块。本轮未复制第三方代码，先新增项目内 `ClipFragment` / `ClipFragmentExtractor` 纯模型，把网页摘要、网页重点和 OCR 行统一成可勾选片段；快速输入的网页摘录卡已可选择片段后保存。
 
+2026-06-23 摘录片段素材索引检索决策：恢复后尝试查询 GitHub Actions 最新状态时审批服务 503 拦截，未继续绕路重复外部查询。随后补做开源对标：`usememos/memos` 为 MIT，可继续参考 memo/Markdown/自有数据产品思路，但 Go/TypeScript 服务端架构不能直接复制到当前 SwiftUI 本地素材索引；Simplenote iOS、Joplin、Zettlr 等项目许可证或技术栈不适合直接搬源码。本轮继续扩展 some 现有 `MemoAsset` 和 SQLite `memo_assets` 字符串类型索引，新增摘录片段素材和 `has:clip` 搜索。
+
 2026-06-22 本轮图片/截图 OCR MVP 检索决策：再次检索 `VNRecognizeTextRequest`、`OpenFind`、`SwiftOCRKit` 和 Swift Vision OCR MIT 候选。`OpenFind` 是完整 App，可参考工作流但不适合复制进当前项目；`SwiftOCRKit` 是较新的 MIT 封装，仍需在 Xcode 16/SPM 环境验证 API、维护性和体量。本轮不复制第三方 OCR 源码，也不新增依赖，直接使用 Apple Vision `VNRecognizeTextRequest` 在本机识别导入图片文字，并把结果复用现有 memo、附件、备份、搜索和 `MemoAsset.screenshot` 索引。后续如要做批量 OCR、框选区域、置信度、语言配置和扫描校正，再评估是否引入 `SwiftOCRKit` 或参考 `OpenFind` 的交互。
 
 ### 电子手帐、贴纸和画布
