@@ -8,7 +8,8 @@
 
 直接相关：
 
-- `outputs/some`：当前 iOS 工程
+- `/Users/wuyongnaren/Documents/some随记`：当前主仓库与唯一继续开发入口
+- `outputs/some`：早期输出目录名称，当前有效工程已收拢到主仓库
 - `work/open-source/MoeMemos`：已克隆，SwiftUI iOS memos 客户端，MPLv2
 - `work/open-source/memos`：已克隆，usememos 服务端/Web，MIT
 
@@ -17,15 +18,60 @@
 - `2026-06-18/new-chat-4/work/starcanvas-active`：StarCanvas 项目，含 memory/supermemory 方向，但不是 iOS 备忘 App 可直接迁移代码
 - `2026-06-18/new-chat-4/work/agent-tools/taste-skill`：审美/品味技能材料，可用于后续 UI 评审，不是功能代码
 
-未发现此前已存在的 flomo/iOS 备忘 App 工程碎片。
-
 2026-06-22 复查：
 
 - 当前主仓库：`/Users/wuyongnaren/Documents/some随记`，Git 工作区在开工前干净，分支为 `master`，远端为 `https://github.com/732642856/some-.git`。
 - 旧 Codex 工作区：`/Users/wuyongnaren/Documents/Codex/2026-06-20/some-flomo-app-app-store-1`、`/Users/wuyongnaren/Documents/Codex/2026-06-21/some-flomo-app-app-store-1`。二者主要是早期工程快照，当前主仓库已包含其后续功能补齐内容。
+- 旧输出碎片：`/Users/wuyongnaren/Documents/Codex/2026-06-20/wo/outputs/some`。这是本轮新增发现的早期输出目录，不是 Git 仓库；与当前主仓库比对后，未发现当前主仓库缺失的更新功能文件。
 - 已克隆开源参考仍在 `/Users/wuyongnaren/Documents/Codex/2026-06-20/wo/work/open-source/MoeMemos` 与 `/Users/wuyongnaren/Documents/Codex/2026-06-20/wo/work/open-source/memos`。
 - 额外用 `/Users/wuyongnaren` 有限深度搜索 `some.xcodeproj`、`SomeTests.swift`、`SomeShareExtension`、`research-and-gap-audit.md`，未发现除当前主仓库以外的新工程碎片。
 - Xcode 工程引用已覆盖当前新增过的核心文件；本轮未新增 Swift 文件，只修改已有 target 内文件。
+
+结论：此前确实遗漏了 `2026-06-20/wo/outputs/some` 这个旧输出目录的文档记录；本轮已经纳入碎片清单。实际代码比对显示，当前主仓库是几个旧 some 目录的功能超集，未发现需要从旧目录补回的独有新功能。
+
+## 当前代码资产盘点
+
+当前仓库的主要代码模块：
+
+- App 入口与主界面：`some/SomeApp.swift`、`some/Views/ContentView.swift`
+- 记录模型与历史：`some/Models/Memo.swift`、`some/Models/MemoRevision.swift`
+- 存储与迁移：`some/Stores/MemoStore.swift`、`some/Stores/SQLiteMemoDatabase.swift`
+- 备份与附件：`some/Models/MemoBackupArchive.swift`、`some/Utilities/MemoBackupPackage.swift`、`some/Utilities/SharedAttachmentStore.swift`
+- 搜索与解析：`some/Utilities/MemoSearchQuery.swift`、`some/Utilities/TagParser.swift`、`some/Utilities/LinkExtractor.swift`、`some/Utilities/MemoTaskParser.swift`、`some/Utilities/MemoReferenceParser.swift`
+- 分享与快捷入口：`SomeShareExtension/ShareViewController.swift`、`some/AppIntents/SaveMemoIntent.swift`、`some/AppIntents/SomeAppShortcuts.swift`
+- 隐私与提醒：`some/Views/AppLockView.swift`、`some/Stores/ReminderManager.swift`
+- AI：`some/AI/OpenAIClient.swift`、`some/AI/SemanticSearchEngine.swift`、`some/AI/AIInsightComposer.swift`、`some/AI/KeychainStore.swift`
+- UI：快速输入、列表、详情、回顾、统计、设置、Markdown 渲染和附件预览分布在 `some/Views/`
+- 测试：`SomeTests/SomeTests.swift`
+- 发布/说明文档：`README.md`、`AppStore/`、`docs/`、`verification.md`
+
+当前明显缺口：没有独立素材表、媒体资产表、网页摘录表、手帐页面/图层模型、图片编辑管线、音视频采集管线、衣橱单品/搭配模型。这些缺口已提升为下一轮优先级。
+
+## 开工前强制审计流程
+
+后续每一轮功能开发前，必须先完成并在本文件或 `docs/open-source-reuse-audit.md` 留痕：
+
+1. 执行 `git status --short --branch`，确认当前分支、远端和未提交文件。
+2. 执行 `git ls-files --others --exclude-standard` 与 `rg --files -uu`，确认未跟踪碎片和实际文件清单。
+3. 在 `/Users/wuyongnaren/Documents` 下搜索 `some`、`some.xcodeproj`、`SomeShareExtension`、`SomeTests.swift`、核心文档名，发现旧窗口/旧输出目录后用 `diff -qr` 或 Git 状态比对。
+4. 检查 `some.xcodeproj/project.pbxproj` 的 target membership，防止新增 Swift 文件只存在磁盘、不进 App 或 Extension target。
+5. 先做全网/GitHub 开源检索，记录候选项目、许可证、语言、维护状态和可复用边界。
+6. 优先复用系统框架或 MIT / Apache-2.0 / BSD Swift Package；无许可证、GPL/AGPL/MPL 项目不得直接复制进当前工程。
+7. 若直接引入代码或依赖，先记录来源、许可证、文件范围和替代方案，再写实现。
+8. 开发结束必须更新验证记录，说明哪些能力已实现，哪些只是路线目标。
+
+## 新产品目标（2026-06-22 用户修订）
+
+some 不再只是 flomo 式轻备忘，而是本地优先的个人生活与工作素材库。核心目标如下：
+
+- 捕捉层：文字、想法、待办、工作记录、图片、截图、录音、视频、文件、网址、网页内容、衣服、饰品、包包、穿搭灵感。
+- 理解层：标签、全文搜索、OCR、网页正文提取、链接摘要、音频转写、图片/视频描述、关键信息提炼、相关素材查找。
+- 电子手帐：用户选择日记/手帐素材后，系统辅助排版成电子手帐页面；贴纸、字体、花边、装饰、边框、背景、图片位置都应可编辑。
+- 工作日志：用户勾选输入内容后，生成类似工作记录和工作汇总的日志，支持项目、日期、任务、进展、问题、下一步和复盘。
+- 网页摘录：用户导入网址、链接、截图等信息后，提炼重点、摘要、引用和摘录卡，方便后续整理。
+- 图片编辑：吃饭、出游、穿搭等照片需要滤镜、边框、裁剪、抠图、贴纸、文字、拼贴、页面排版；只做用户拥有或获授权图片的修复与清理，不把规避第三方版权/平台水印作为产品目标。
+- 电子衣橱：像极简衣橱类应用一样，整理衣服、饰品、包包、鞋履、颜色、材质、季节、场景、穿着次数、搭配组合、旅行清单和灵感板。
+- 私有优先：用户当前目标是自己使用，不以上架为第一目标；但仍保持隐私、备份、可迁移和权限边界清晰。
 
 ## 官方 flomo 功能对标
 
@@ -46,6 +92,13 @@
 - API 与 URL Scheme
 - 扩展中心
 - AI 语音输入、自然语言搜索、相关笔记、AI 洞察、AI 记忆档案、MCP
+
+flomo 对标结论：
+
+- 已覆盖：快速文字记录、多级标签、每日回顾、热力图/统计、快捷搜索、历史版本基础、存储导出、密码锁基础、URL Scheme、Share Extension、AI 洞察、自然语言搜索、相关记录。
+- 部分覆盖：引用批注目前只有内部引用和反向引用，缺批注正文、关系图、引用筛选和摘录型引用工作流。
+- 未覆盖：微信服务号输入、禅定模式、小组件、公开 API、MCP 读写接口、AI 语音输入、AI 记忆档案、多端同步/自托管同步。
+- 超出 flomo 的新目标：电子手帐、图片编辑、网页/截图提炼、工作日志生成、电子衣橱和穿搭搭配。
 
 ## 开源项目对标
 
@@ -140,27 +193,37 @@ P0：
 - 用完整 Xcode 编译运行，修掉真实编译错误
 - 增加基础单元测试：继续补 SQLite 迁移边界、Share Extension 端保存流程、App Group 真机验证
 - 在 Apple Developer / Xcode Signing & Capabilities 中为主 App 和 Share Extension 配好同一个 App Group
+- 设计统一素材模型：文字、图片、截图、音频、视频、链接、网页摘录、衣橱单品都不能继续只塞进 memo 正文
+- 设计本地媒体存储与备份策略：原图、编辑版本、缩略图、音视频、抠图透明图、手帐页面导出都要可追踪、可恢复
 
 P1：
 
-- Share Extension 二期：主动网页标题抓取、保存后自动返回来源 App 的体验验证
-- 搜索三期：命中高亮、保存筛选重命名；附件/任务/引用与日期结构化筛选已先完成
-- Markdown 二期：完整块级渲染、代码块、引用批注、附件卡片
-- 历史版本二期：差异对比、版本备注、按版本复制
+- 多模态采集 MVP：相机拍照、相册导入、录音、视频、截图导入、文件导入统一进入素材库
+- 网页摘录 MVP：链接预览、主动网页标题/正文提取、截图 OCR、摘要、重点、引用片段
+- 电子手帐 MVP：页面模型、素材拖拽、图片/文字/贴纸/边框/背景、字体与装饰编辑、导出图片/PDF
+- 工作日志 MVP：勾选记录生成日报/周报/项目日志，支持进展、问题、下一步和汇总
+- 图片编辑 MVP：裁剪、滤镜、边框、文字、贴纸、基础拼贴；抠图/背景移除作为下一阶段
+- 电子衣橱 MVP：单品建档、分类、颜色/季节/场景标签、搭配组合、穿着日历和使用统计
 
 P2：
 
 - 小组件
-- 引用批注二期：批注正文、关系图、引用搜索筛选
-- 导出 zip，按年月拆分 Markdown
+- 引用批注二期：批注正文、关系图、引用搜索筛选、网页摘录引用链
+- Markdown 二期：完整块级渲染、代码块、引用批注、附件卡片
+- 历史版本二期：差异对比、版本备注、按版本复制
+- 导出 zip，按年月/项目/手帐页拆分 Markdown、图片和附件
 - 自托管 usememos API 同步
+- AI 图片/网页/音频理解：OCR、语音转写、图片描述、视频摘要、素材自动标签
+- 衣橱搭配建议：按天气、场景、颜色、穿着频率、旅行清单推荐组合
 
 P3：
 
-- AI 语音输入 / 语音转写
+- flomo 缺口：禅定模式、微信输入替代方案、小组件、公开 API、MCP 读写接口、AI 记忆档案
+- 高级图片编辑：抠图精修、背景替换、对象清理、模板化拼贴、批量导出
+- 高级手帐：模板市场/个人模板、贴纸库、字体库、花边库、跨页相册
+- 高级衣橱：购买清单、闲置提醒、成本/次统计、胶囊衣橱、行李箱打包
 - AI 洞察周报 / 月报
 - 本地向量缓存，减少重复 embedding 调用
-- MCP 读写接口
 - 多 provider 支持：Gemini、OpenAI 兼容 endpoint、自托管模型
 
 ## 复用策略

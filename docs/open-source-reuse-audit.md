@@ -9,6 +9,8 @@
 - MPL-2.0 可参考架构；如果复制单个文件，必须保留 MPL 文件级开源义务和版权声明，当前项目默认避免直接复制。
 - GPL / AGPL / 无许可证项目只做产品和实现思路参考，不拷贝代码。
 - 涉及 App Store 发布的代码，优先用 Swift Package Manager 依赖；只有小而稳定、许可证清晰的文件才考虑 vendoring。
+- 每轮开发前必须重新检索本轮涉及的产品域和开源库，把候选、许可证、维护状态、是否可直接复制写入本文件；没有记录不得直接开写成熟功能。
+- 直接复制代码前必须先记录来源 URL、许可证、版权声明、复制文件范围和本项目修改点；默认优先依赖系统框架或 SPM，而不是把大段源码混进仓库。
 
 ## 已深入对标项目
 
@@ -65,15 +67,61 @@
 - `kg54ktdvxx-gif/Flash-Note`：无许可证，不复制；可参考 quick-capture、watch、Spotlight、voice notes 的功能方向。
 - `carlomigueldy/NoteGraph`：无许可证，不复制；可参考 backlinks/knowledge graph 思路。
 
+## 2026-06-22 新目标补充检索
+
+用户已把 some 目标扩展为个人素材库、电子手帐、工作日志、网页摘录、图片编辑和电子衣橱。以下是本轮全网/GitHub 检索后的复用判断。
+
+### 图片、视频、裁剪和编辑
+
+- `guoyingtao/Mantis`：<https://github.com/guoyingtao/Mantis>，MIT，Swift，维护活跃，iOS 图片裁剪库，支持 SwiftUI 方向；做裁剪 MVP 时优先评估 SPM 接入。
+- `TimOliver/TOCropViewController`：<https://github.com/TimOliver/TOCropViewController>，MIT，成熟 iOS 图片裁剪控件，Objective-C 为主但 Swift 可用；如果 Mantis 不适合，再评估它。
+- `SilenceLove/HXPhotoPicker`：<https://github.com/SilenceLove/HXPhotoPicker>，MIT，Swift，图片/视频选择、预览、编辑能力很全；适合评估“相册选择 + 图片/视频编辑”大模块，但体量较大，不应盲目全量接入。
+- `bevy/photo-editor`、`jogendra/phimpme-iOS`、`sprint84/PhotoCropEditor` 等 MIT 项目可做历史参考，但部分维护较旧；除非具体文件仍适配当前 iOS/Swift，否则不优先复制。
+- 系统能力：PhotosUI / PHPicker、AVFoundation、Core Image、Vision、VisionKit 应优先使用。滤镜、边框、裁剪、基础拼贴可先靠系统框架实现；抠图/背景移除优先评估 Vision 前景分割能力。
+
+水印/清理边界：本项目可以做用户拥有或获授权图片的瑕疵修复、对象清理、背景处理和排版，不把移除第三方版权标识、平台水印或规避授权限制作为产品目标。
+
+### 网页摘录、截图 OCR 和链接理解
+
+- `exyte/ReadabilityKit`：<https://github.com/exyte/ReadabilityKit>，MIT，Swift，网页预览/正文提取，但仓库已归档；可参考算法或少量隔离代码，正式接入前要验证现代网页、中文内容和 iOS 兼容性。
+- `aheze/OpenFind`：<https://github.com/aheze/OpenFind>，MIT，Swift/SwiftUI，Vision OCR 实际 App，可参考 OCR 工作流和交互；不需要复制完整 App。
+- `DrcKarim/SwiftOCRKit`：<https://github.com/DrcKarim/SwiftOCRKit>，MIT，较新的 Vision OCR Swift Package，可作为 OCR 封装候选；仍需验证 API 稳定性。
+- 系统能力：Vision OCR、LinkPresentation、WKWebView、URLSession、Share Extension 是网页和截图摘录的首选底座。
+
+### 电子手帐、贴纸和画布
+
+- 本轮搜索 `SwiftUI canvas drag resize sticker license:mit` 未找到成熟且直接可用的 MIT SwiftUI 手帐/贴纸画布库。
+- 初步策略：先用本地页面模型加 SwiftUI 手势实现素材拖拽、缩放、旋转、层级、字体、边框、背景和贴纸；每个子能力开工前再检索专门库，例如图片裁剪、文本排版、PDF/图片导出。
+- 复用边界：可参考设计工具、拼贴工具和画布编辑器的交互，不复制无许可证项目素材、贴纸、模板和 UI 资源。
+
+### 电子衣橱和穿搭规划
+
+- `Jean-Regis-M/AURA`：<https://github.com/Jean-Regis-M/AURA>，MIT，Kotlin/Jetpack Compose，离线优先 AI 衣橱规划，包含天气、场景、颜色/材质、搭配推荐方向；可做产品结构参考，不能直接移植 iOS UI 代码。
+- `denzariu/outfit-planner`、`DaveShaffer/WDI6-outfttr`、`taliacs22/Capsule---Outfit-Planner` 等搜索结果多为旧项目、Web/React Native/Ruby 或无许可证；只做产品参考，不复制代码。
+- 初步策略：some 自建 Swift 数据模型：衣物、饰品、包包、鞋履、品牌/购买信息、颜色、材质、季节、场景、照片、抠图版本、搭配组合、穿着日期、旅行清单和统计。实现前继续搜索可用的 Swift 图像抠图、颜色提取、标签选择和日历组件。
+
+### 工作日志和 flomo 补漏
+
+- 工作日志生成更像本项目已有 memo/搜索/AI 洞察的组合，不需要先找大型开源 App；应复用现有保存搜索、日期过滤、任务项、标签、引用和 AI composer。
+- flomo 仍有未覆盖能力：禅定模式、小组件、公开 API、MCP 读写接口、AI 语音输入、AI 记忆档案、微信服务号输入替代方案。后续每项开工前继续单独检索可复用实现。
+
 ## some 当前缺口与复用优先级
 
 P0 验证：
 
 - 完整 Xcode 编译、单元测试、模拟器/真机运行。
 - App Group、Share Extension、FTS 搜索在真机/模拟器上验证。
+- 统一素材模型：不能继续只把文字、图片、音频、视频、链接、网页、衣橱单品都塞进 memo 正文。
+- 本地媒体存储与备份：原始素材、缩略图、编辑版本、导出版本、衣橱抠图和手帐页面需要可追踪。
 
 P1 优先复用：
 
+- 多模态采集：PhotosUI / PHPicker、AVFoundation、Share Extension、Files importer。
+- 图片裁剪/编辑：优先评估 `Mantis`、`TOCropViewController`、`HXPhotoPicker` 与系统 Core Image / Vision。
+- 网页和截图摘录：优先评估 Vision OCR、LinkPresentation、ReadabilityKit、OpenFind / SwiftOCRKit 的可复用部分。
+- 电子手帐：先建本地页面/图层模型，画布交互每个子能力单独检索，不复制无许可证素材。
+- 电子衣橱：先建 Swift 数据模型和本地存储；Android/Web 衣橱项目只做产品参考。
+- 工作日志：复用现有任务项、日期筛选、保存搜索、引用和 AI composer。
 - Markdown 二期：完整块级渲染、引用、代码块和附件卡片，优先评估 `Textual` / `MarkdownUI` / `swift-markdown`。
 - Widget 快速入口：参考 MoeMemos 的 Widget 结构，重新实现。
 - Share Extension 二期附件：参考 MoeMemos 附件处理流程，重写本项目的本地附件存储。
@@ -103,18 +151,13 @@ P3 只参考：
 
 2026-06-22 本轮实现决策：继续补搜索三期第二段，参考 Joplin `created:` / `updated:` 日期过滤与“错误过滤器按普通文本处理”的交互原则。some 重新实现本地日期解析，只支持清晰的 `yyyy` / `yyyy-MM` / `yyyy-MM-dd` 和 `>` / `>=` / `<` / `<=` 边界语法，避免引入模糊自然语言日期依赖，也没有复制 Joplin 源码。
 
-下一轮开发建议做引用批注二期或搜索三期，因为：
-
-- Share Extension 附件 v1 已完成，主动网页标题抓取可后置到联网能力更明确时。
-- 搜索二期已完成基础版，搜索三期已补结构化筛选和日期筛选；下一步应继续做命中高亮、保存筛选重命名。
-- 历史版本基础版已完成；下一步应做差异对比、版本备注、按版本复制。
-- 卡片引用 v1 已完成；下一步应补批注正文、关系图和引用搜索筛选。
-- 两者都不依赖签名证书，适合在当前环境继续推进。
+2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：
 
-1. 引用批注二期：批注正文、关系图、引用搜索筛选。
-2. 搜索三期：命中高亮、保存筛选重命名。
-3. 历史版本二期：差异对比、版本备注、按版本复制。
-4. 附件后续：如需按年月拆分 Markdown 和附件目录，再引入 ZIPFoundation 做 zip 包导出。
-5. 网页后续：在明确网络策略后再做标题抓取。
+1. 统一素材模型与媒体存储：扩展 SQLite schema 或迁移到更适合复杂关系的 GRDB，覆盖文本、图片、音频、视频、链接、网页、衣橱单品、手帐页面。
+2. 多模态采集入口：相机/相册/录音/视频/文件/截图/网页分享统一进入素材库。
+3. 网页摘录与截图 OCR MVP：先用系统能力和可复用库提取标题、正文、OCR 文本、摘要和引用片段。
+4. 电子衣橱 MVP：单品建档、分类、颜色/季节/场景、饰品/包包、搭配组合、穿着记录。
+5. 电子手帐与图片编辑 MVP：素材选择、页面画布、裁剪、滤镜、边框、文字、贴纸、基础排版。
+6. 再回补 flomo 缺口：小组件、禅定模式、MCP/API、AI 语音、AI 记忆档案、引用批注二期。
