@@ -126,7 +126,7 @@
 - 本轮工作前已重新扫描主仓库、未跟踪文件、Documents 下 some 相关旧目录，并检索 `SwiftUI PhotosPicker sample`、`SwiftUI fileImporter sample`、`SwiftUI journal photo attachments`、`SwiftUI memo attachment app`、`SwiftUI asset library PhotosPicker` 等关键词。
 - GitHub API 检索到的 `drawrs/PhotosPicker-PhotoUI` 是无许可证示例仓库，不能直接复制；其他 SwiftUI 附件/素材导入检索未找到成熟、许可证清晰且可直接搬进本项目的模块。
 - 本轮采用 Apple 系统能力 `PhotosUI.PhotosPicker` 和 SwiftUI `.fileImporter`，并复用项目已有 `SharedAttachmentStore`、`SharedMemoTextComposer`、`MemoAsset` 索引，不引入第三方运行时代码。
-- 实现边界：已支持从输入卡片拍照、拍视频、录音、导入相册图片/视频和文件，保存为本地附件 memo；图片导入会尝试本地 Vision OCR 并生成“图片文字”素材；音频附件会进入 `audio` 素材索引，视频附件会进入 `video` 素材索引；音频详情页可用 Apple Speech 本机识别追加转写文本。批量扫描、缩略图缓存、语言选择和复杂媒体元数据仍属于后续多模态采集二期。
+- 实现边界：已支持从输入卡片拍照、拍视频、录音、导入相册图片/视频和文件，保存为本地附件 memo；图片导入会尝试本地 Vision OCR 并生成“图片文字”素材；音频附件会进入 `audio` 素材索引，视频附件会进入 `video` 素材索引；音频详情页可用 Apple Speech 本机识别追加转写文本；视频缩略图已缓存到本地 `ThumbnailCache`，图片/音视频附件会展示本机媒体摘要。批量扫描、转写语言选择、批量媒体元数据刷新和长列表性能验证仍属于后续多模态采集二期。
 
 2026-06-22 相机拍照入口检索决策：本轮继续前已重新检查 Git 状态、未跟踪文件、当前文件清单和 Documents 下旧 some 目录。联网检索 `SwiftUI camera UIImagePickerController MIT`、`SwiftUI AVCapturePhotoOutput camera MIT`、`iOS document scanner VisionKit MIT SwiftUI`，GitHub API 返回 0 个可直接复用的成熟候选；Apple 系统能力 `UIImagePickerController` / `AVCapturePhotoOutput` / VisionKit 仍是首选。本轮不复制第三方源码，也不新增 SPM，先用 `UIImagePickerController` 的系统相机做拍照导入 v1，拿到 JPEG 后复用现有 `SharedAttachmentStore`、本地 OCR 和 `MemoAsset` 索引。后续如果要做自定义取景框、连续拍摄、扫描边缘校正或实时 OCR，再评估 AVFoundation / VisionKit 二期。
 
@@ -137,6 +137,8 @@
 2026-06-22 语音转写入口检索决策：继续前已复查 Git 状态、未跟踪文件和现有音频附件链路，并检索 `iOS SFSpeechRecognizer audio file transcription Swift MIT`、`SFSpeechURLRecognitionRequest Swift MIT`。GitHub API 两个查询均返回 0，Apple `SFSpeechRecognizer` 与 `SFSpeechURLRecognitionRequest` 官方文档可达。本轮不复制第三方代码，不把原始音频发送到 OpenAI，采用 Apple Speech 的 `requiresOnDeviceRecognition` 本机识别；设备或语言不支持本机识别时直接提示不可用。
 
 2026-06-22 视频缩略图检索决策：继续前已复查 Git 状态、未跟踪文件、当前文件清单和视频附件展示链路，并检索 `SwiftUI AVAssetImageGenerator video thumbnail MIT`、`iOS video thumbnail AVAssetImageGenerator MIT Swift`、`SwiftUI video thumbnail open source GitHub`。GitHub API 未返回可直接复制的成熟 MIT SwiftUI 模块，网页检索也未发现比系统能力更适合当前架构的独立库；本轮采用 Apple `AVAssetImageGenerator` 在本机按需取帧，不新增第三方依赖，失败时保留原视频图标回退。
+
+2026-06-23 媒体元数据与缩略图缓存检索决策：阶段 14 继续前已复查 Git 状态、最近提交、文件清单和媒体预览链路，并检索 `SwiftUI video thumbnail cache MIT`、`AVAssetImageGenerator thumbnail cache Swift`、`Swift media metadata AVAsset MIT iOS`、`iOS local video thumbnail Swift MIT`。精确查询均返回 0；放宽到 `video thumbnail swift` 后找到 `HHK1/PryntTrimmerView`、`luispadron/LPThumbnailView`、`krad/memento` 等 MIT 候选，但它们偏视频裁剪、旧 UIKit 预览或独立小工具，不覆盖 some 的本地附件 URI、素材索引、详情页/素材库复用和缓存失效边界。本轮未复制第三方源码，继续使用 Apple AVFoundation / ImageIO，并基于现有 `SharedAttachmentStore`、`VideoThumbnailGenerator` 和 `MemoAsset.summary` 自建小型缓存与摘要层。
 
 2026-06-22 手帐/贴纸画布补充检索：继续通过 GitHub API 搜索 `SwiftUI sticker drag resize rotate MIT`、`SwiftUI collage editor MIT`、`StickerView iOS Swift`、`DraggableResizableView SwiftUI`、`SwiftUI canvas layers editor`。可参考候选包括 `irons163/IRSticker-swift`、`artemnovichkov/StickerViewExample`、`native-mobile-app-developers/SwiftStickerView` 等 MIT 项目，但核心多为 UIKit 贴纸视图或背景移除示例，不是当前 SwiftUI 首页/素材索引可直接复制的完整手帐画布。本轮仅记录其拖拽、缩放、旋转和背景移除方向，未复制第三方源码；当前先自建可迁移 `ScrapbookPageLayout` / `ScrapbookLayer` JSON 底座，下一步做真正画布时再针对具体类文件做许可证头、依赖体量和 iOS 版本验证。
 
@@ -149,7 +151,7 @@ P0 验证：
 - 完整 Xcode 编译、单元测试、模拟器/真机运行。
 - App Group、Share Extension、FTS 搜索在真机/模拟器上验证。
 - 统一素材模型：v1 已建立 `MemoAsset` 索引，网页摘录、手帐页面、衣橱和穿搭已有轻量正文结构；编辑版本、穿着记录、手帐图层等仍需要独立实体和关系。
-- 本地媒体存储与备份：原始素材、编辑版本、导出版本、衣橱抠图和手帐页面需要可追踪；视频缩略图 v1 已按需生成，后续还需持久化缩略图缓存和批量媒体元数据。
+- 本地媒体存储与备份：原始素材、编辑版本、导出版本、衣橱抠图和手帐页面需要可追踪；视频缩略图已支持本地持久缓存，后续还需批量媒体元数据刷新、缓存清理策略和真实长列表性能验证。
 
 P1 优先复用：
 

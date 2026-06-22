@@ -92,3 +92,7 @@
 - 开工前复查 Git 状态、最近提交、规划文件、全量文件清单和媒体预览相关源码；确认阶段 13 已通过 `a679ca8` / `6cd2154` 落地且当前工作树干净。
 - 联网检索 `SwiftUI video thumbnail cache MIT`、`AVAssetImageGenerator thumbnail cache Swift`、`Swift media metadata AVAsset MIT iOS` 等关键词，精确查询均未找到可直接复用的成熟 SwiftUI/MIT 模块。
 - 放宽检索后找到 `HHK1/PryntTrimmerView`、`luispadron/LPThumbnailView`、`krad/memento` 等可参考项目；它们偏视频裁剪、旧 UIKit 预览或独立 CLI/示例，不适合直接复制进当前本地附件索引链路。
+- 已新增 `MediaMetadataExtractor`，本机读取图片尺寸、音视频时长/分辨率和文件大小摘要。
+- 已升级 `VideoThumbnailGenerator`，视频缩略图会写入 App Group 本地 `ThumbnailCache`，缓存 key 绑定文件路径、大小、修改时间、取帧时间和目标尺寸。
+- 详情附件区和素材库视频/媒体条目已展示媒体摘要；补充时长格式、图片元数据、缓存 key 失效和缓存删除测试。
+- 本轮 `git diff --check`、`plutil -lint`、`xmllint --noout`、旧 Swift parser 主 App 路径与 `SOME_SHARE_EXTENSION` 路径均通过。

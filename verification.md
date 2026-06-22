@@ -140,6 +140,8 @@
 - 2026-06-23：已新增手帐图片素材追加与 PNG 导出；编辑器可选择现有图片素材加入手帐图层，并可把当前画布渲染为 PNG 附件。
 - 2026-06-23：阶段 13 开工前已复查 Git 状态、未提交文件碎片、手帐编辑器、素材引用解析和相关测试；GitHub API 检索未找到可直接复制的 MIT SwiftUI 手帐/拼贴导出模块。
 - 2026-06-23：手帐导出本轮 `git diff --check`、`plutil -lint`、`xmllint --noout` 通过；旧版 `xcrun swiftc -parse` 覆盖 `AttachmentReferenceResolver.swift`、`ScrapbookRenderer.swift`、`ScrapbookEditorView.swift`、`ContentView.swift`、`MemoStore.swift` 和相关测试。
+- 2026-06-23：已新增媒体元数据与视频缩略图缓存 v1，详情附件区和素材库媒体条目可展示图片尺寸、音视频时长/分辨率与文件大小摘要，视频缩略图写入本地 `ThumbnailCache` 并随文件大小/修改时间失效。
+- 2026-06-23：阶段 14 本轮 `git diff --check`、`plutil -lint`、`xmllint --noout` 通过；旧版 `xcrun swiftc -parse` 覆盖 `MediaMetadataExtractor.swift`、`VideoThumbnailGenerator.swift`、`AttachmentPreviewList.swift`、`ContentView.swift` 和 `SomeTests.swift`，并用 `-D SOME_SHARE_EXTENSION` 覆盖分享扩展可解析路径。
 - 2026-06-22：已新增衣橱洞察 v1，基于现有 `MemoAsset` 计算分类、颜色、季节、场景、未搭配单品、常用单品和搭配建议；衣橱页可将建议填入穿搭草稿，穿搭表单已补季节字段。
 - 2026-06-22：阶段 11 开工前已复查 Git 状态、全量文件清单、衣橱/穿搭模型与 UI；GitHub API 检索未找到可直接复制的现代 SwiftUI MIT 衣橱模块，旧 Swift/ObjC 项目和 Kotlin `AURA` 仅做产品参考。
 - 2026-06-22：已补充衣橱洞察统计与建议单元测试；本轮 `git diff --check`、`plutil -lint`、`xmllint --noout` 通过，旧版 `xcrun swiftc -parse` 已覆盖 `WardrobeInsightEngine.swift`、`ContentView.swift` 和 `SomeTests.swift`。
@@ -155,6 +157,7 @@
 - 2026-06-22：拍视频导入需要真机或可用相机/麦克风的模拟器环境验证；当前机器无法完成真实系统相机录制、权限弹窗和 movie URL 回调验证。
 - 2026-06-22：语音转写需要真机或支持 Speech 的模拟器环境验证授权弹窗、本机识别可用性、不同语言和长音频表现；当前旧 CLT 只能做语法层和 plist/scheme 校验。
 - 2026-06-22：视频缩略图需要在完整 Xcode 16 + 模拟器/真机环境验证真实 `.mov` / `.mp4` 文件取帧、旋转方向和长列表滚动表现；当前环境只能做静态校验和失败路径测试。
+- 2026-06-23：媒体元数据与缩略图缓存仍需要在完整 Xcode 16 + 模拟器/真机环境验证真实 `.mov` / `.mp4` / `.m4a` 元数据读取、缓存目录增长、长列表滚动和大文件内存表现；当前环境已覆盖格式化、图片尺寸读取、缓存 key 失效、缓存删除和语法层检查。
 - 2026-06-22：手帐画布拖拽、双指缩放和旋转需要完整 Xcode 16 + 模拟器/真机环境做真实手势验证；当前环境已完成模型替换测试、plist/scheme 校验和旧 Swift parser 对可解析文件的检查。
 - 2026-06-22：手帐画布编辑需要完整 Xcode 16 + 模拟器/真机验证多指缩放/旋转、拖拽边界、滚动页面内手势冲突和真实图片图层显示；当前环境只能验证模型替换逻辑和静态语法。
 - 2026-06-22：图片编辑需要完整 Xcode 16 + 模拟器/真机验证真实照片色彩、保存耗时、素材库 sheet 交互、长边大图内存占用和系统分享/备份链路；当前环境已完成渲染核心静态解析和小图单元测试。
