@@ -382,7 +382,7 @@ final class SomeTests: XCTestCase {
             return XCTFail("Expected memo")
         }
 
-        store.update(memo, text: "最终内容 #发布")
+        XCTAssertTrue(store.update(memo, text: "最终内容 #发布"))
         store.searchText = "最终 发布"
         XCTAssertEqual(store.filteredMemos.map(\.text), ["最终内容 #发布"])
 
@@ -391,6 +391,27 @@ final class SomeTests: XCTestCase {
         }
 
         XCTAssertTrue(store.filteredMemos.isEmpty)
+    }
+
+    func testMemoUpdateRejectsEmptyTextAndKeepsExistingMemo() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.addMemo(text: "保留原文 #编辑")
+
+        guard let memo = store.memos.first else {
+            return XCTFail("Expected memo")
+        }
+
+        XCTAssertFalse(store.update(memo, text: "   \n\t"))
+        XCTAssertEqual(store.memos.first?.text, "保留原文 #编辑")
+        XCTAssertEqual(store.memos.first?.tags, ["编辑"])
+    }
+
+    func testMemoUpdateReturnsFalseForMissingMemo() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let missingMemo = Memo(text: "不在当前仓库里", tags: [])
+
+        XCTAssertFalse(store.update(missingMemo, text: "不会保存"))
+        XCTAssertTrue(store.memos.isEmpty)
     }
 
     func testMemoTaskParserFindsMarkdownTasks() {
@@ -629,7 +650,7 @@ final class SomeTests: XCTestCase {
             return XCTFail("Expected memo")
         }
 
-        store.update(memo, text: "保留正文")
+        XCTAssertTrue(store.update(memo, text: "保留正文"))
 
         XCTAssertFalse(FileManager.default.fileExists(atPath: attachmentURL.path))
     }
@@ -652,7 +673,7 @@ final class SomeTests: XCTestCase {
             return XCTFail("Expected first memo")
         }
 
-        store.update(firstMemo, text: "第一条移除附件")
+        XCTAssertTrue(store.update(firstMemo, text: "第一条移除附件"))
 
         XCTAssertTrue(FileManager.default.fileExists(atPath: attachmentURL.path))
     }

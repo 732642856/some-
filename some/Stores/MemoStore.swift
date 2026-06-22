@@ -176,10 +176,15 @@ final class MemoStore: ObservableObject {
         return memo
     }
 
-    func update(_ memo: Memo, text: String) {
+    @discardableResult
+    func update(_ memo: Memo, text: String) -> Bool {
+        guard storageError == nil else {
+            return false
+        }
+
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        guard let index = memos.firstIndex(where: { $0.id == memo.id }) else { return }
+        guard !trimmed.isEmpty else { return false }
+        guard let index = memos.firstIndex(where: { $0.id == memo.id }) else { return false }
 
         let previousMemo = memos[index]
         let previousAttachments = SharedAttachmentStore.attachments(in: memos[index].text)
@@ -189,8 +194,10 @@ final class MemoStore: ObservableObject {
         memos[index].updatedAt = Date()
         if save(memos[index]) {
             deleteRemovedAttachments(previousAttachments: previousAttachments, updatedAttachments: updatedAttachments)
+            return true
         } else {
             memos[index] = previousMemo
+            return false
         }
     }
 

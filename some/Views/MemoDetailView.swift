@@ -10,6 +10,7 @@ struct MemoDetailView: View {
     @State private var text: String
     @State private var isEditing = false
     @State private var isShowingDeleteConfirmation = false
+    @State private var editErrorMessage: String?
     @FocusState private var isFocused: Bool
 
     init(memo: Memo) {
@@ -36,6 +37,13 @@ struct MemoDetailView: View {
                             .lineSpacing(5)
                             .foregroundStyle(Color.primaryText)
                             .frame(minHeight: 260)
+
+                        if let editErrorMessage = editErrorMessage {
+                            Label(editErrorMessage, systemImage: "exclamationmark.triangle.fill")
+                                .font(.footnote)
+                                .foregroundStyle(Color.red)
+                                .accessibilityIdentifier("memo-edit-error")
+                        }
                     } else {
                         ScrollView {
                             VStack(alignment: .leading, spacing: 12) {
@@ -166,9 +174,14 @@ struct MemoDetailView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 if isEditing {
                     Button {
-                        store.update(currentMemo, text: text)
-                        isEditing = false
-                        isFocused = false
+                        if store.update(currentMemo, text: text) {
+                            editErrorMessage = nil
+                            isEditing = false
+                            isFocused = false
+                        } else {
+                            editErrorMessage = "保存失败，当前编辑内容已保留。"
+                            isFocused = true
+                        }
                     } label: {
                         Label("完成", systemImage: "checkmark")
                     }
@@ -176,6 +189,7 @@ struct MemoDetailView: View {
                 } else {
                     Button {
                         text = currentMemo.text
+                        editErrorMessage = nil
                         isEditing = true
                         DispatchQueue.main.async {
                             isFocused = true
