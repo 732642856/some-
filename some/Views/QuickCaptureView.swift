@@ -920,8 +920,10 @@ private final class QuickAudioRecorder: NSObject, ObservableObject, AVAudioRecor
         return url
     }
 
-    func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
-        _ = stop()
+    nonisolated func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
+        Task { @MainActor in
+            _ = self.stop()
+        }
     }
 
     private func requestPermission() async -> Bool {
