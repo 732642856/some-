@@ -347,8 +347,9 @@ struct MemoDetailView: View {
                         return
                     }
 
-                    let updatedText = memo.text.appendingMemoSection(appendedText)
-                    if store.update(memo, text: updatedText),
+                    let latestMemo = store.memos.first(where: { $0.id == memo.id }) ?? memo
+                    let updatedText = latestMemo.text.appendingMemoSection(appendedText)
+                    if store.update(latestMemo, text: updatedText),
                        let updatedMemo = store.memos.first(where: { $0.id == memo.id }) {
                         text = updatedMemo.text
                         transcriptionStatusText = "已追加语音转写"

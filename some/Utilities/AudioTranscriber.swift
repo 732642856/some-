@@ -20,12 +20,10 @@ enum AudioTranscriber {
         request.requiresOnDeviceRecognition = true
 
         return try await withCheckedThrowingContinuation { continuation in
-            var didResume = false
-            var recognitionTask: SFSpeechRecognitionTask?
-
-            recognitionTask = recognizer.recognitionTask(with: request) { result, error in
+            let continuationBox = RecognitionContinuationBox(continuation: continuation)
+            let recognitionTask = recognizer.recognitionTask(with: request) { result, error in
                 if let error = error {
-                    resumeOnce(with: .failure(error))
+                    continuationBox.resume(with: .failure(error))
                     return
                 }
 
@@ -34,18 +32,12 @@ enum AudioTranscriber {
                 let transcript = result.bestTranscription.formattedString
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                 if transcript.isEmpty {
-                    resumeOnce(with: .failure(TranscriptionError.emptyResult))
+                    continuationBox.resume(with: .failure(TranscriptionError.emptyResult))
                 } else {
-                    resumeOnce(with: .success(transcript))
+                    continuationBox.resume(with: .success(transcript))
                 }
             }
-
-            func resumeOnce(with result: Result<String, Error>) {
-                guard !didResume else { return }
-                didResume = true
-                recognitionTask?.cancel()
-                continuation.resume(with: result)
-            }
+            continuationBox.recognitionTask = recognitionTask
         }
     }
 
@@ -87,6 +79,30 @@ enum AudioTranscriber {
             case .emptyResult:
                 return "没有识别出可保存的文字。"
             }
+        }
+    }
+
+    private final class RecognitionContinuationBox {
+        private let lock = NSLock()
+        private var continuation: CheckedContinuation<String, Error>?
+        var recognitionTask: SFSpeechRecognitionTask?
+
+        init(continuation: CheckedContinuation<String, Error>) {
+            self.continuation = continuation
+        }
+
+        func resume(with result: Result<String, Error>) {
+            lock.lock()
+            guard let continuation else {
+                lock.unlock()
+                return
+            }
+            self.continuation = nil
+            let task = recognitionTask
+            lock.unlock()
+
+            task?.cancel()
+            continuation.resume(with: result)
         }
     }
 }
