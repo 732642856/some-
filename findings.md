@@ -20,6 +20,7 @@
 - 2026-06-23：最新 GitHub Actions run `27962981148` 在 Build for simulator 阶段失败。日志 annotation 只显示 Share Extension 编译退出 65，但本地 cross-target 扫描发现 `SomeShareExtension` 编译 `MemoStore.swift`，而 `MemoStore.addImageEdit` 引用了 `ImageEditRenderer`；`ImageEditRenderer.swift` 只在主 App target 中，属于 P1 构建阻塞。修复策略是把 `ImageEditRenderer.swift` 补入 Share Extension Sources，不改公共数据结构。
 - 2026-06-23：阶段 13 开工前检索 `SwiftUI scrapbook collage export image MIT` 与 `iOS collage editor Swift MIT export`，GitHub API 均返回 0 个可直接复用候选；本轮不新增第三方依赖，继续基于本项目 `ScrapbookPageLayout` 和 UIKit renderer 自建导出。
 - 2026-06-23：阶段 14 开工前检索 `SwiftUI video thumbnail cache MIT`、`AVAssetImageGenerator thumbnail cache Swift`、`Swift media metadata AVAsset MIT iOS`、`iOS local video thumbnail Swift MIT` 等关键词，精确查询均返回 0。放宽到 `video thumbnail swift` 后发现 `HHK1/PryntTrimmerView`（MIT、Swift、视频裁剪/帧选择）、`luispadron/LPThumbnailView`（MIT、Swift/UIKit、已归档）、`krad/memento`（MIT、小型 Swift 视频缩略图工具）等候选；这些项目不覆盖 some 当前“本地附件 URI、素材索引、详情页/素材库复用、离线缓存失效”的架构，不直接复制源码。本轮优先复用 Apple AVFoundation 与现有 `SharedAttachmentStore` / `VideoThumbnailGenerator`，自建小型持久缩略图缓存和媒体元数据摘要。
+- 2026-06-23：阶段 15 开工前复查网页摘录链路并检索网页正文清洗候选。`scinfu/SwiftSoup` 为 MIT、Swift、2026-06 仍活跃，适合作为后续完整 HTML DOM 解析依赖候选；`exyte/ReadabilityKit` 为 MIT、Swift，但仓库已归档且 2023 后未推送；`Swift readability html article extractor MIT` 与 `SwiftSoup readability article extractor` 搜索未找到更合适的可复制模块。本轮不复制第三方源码、不引入 SPM，先扩展 some 内置的轻量 HTML 清洗、段落评分和摘录卡结构。
 
 ## 当前缺口
 

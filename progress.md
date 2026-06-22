@@ -96,3 +96,10 @@
 - 已升级 `VideoThumbnailGenerator`，视频缩略图会写入 App Group 本地 `ThumbnailCache`，缓存 key 绑定文件路径、大小、修改时间、取帧时间和目标尺寸。
 - 详情附件区和素材库视频/媒体条目已展示媒体摘要；补充时长格式、图片元数据、缓存 key 失效和缓存删除测试。
 - 本轮 `git diff --check`、`plutil -lint`、`xmllint --noout`、旧 Swift parser 主 App 路径与 `SOME_SHARE_EXTENSION` 路径均通过。
+
+## 2026-06-23T10:15:00+08:00
+
+- 进入阶段 15：网页摘录正文清洗与摘录卡。
+- 开工前复查 Git 状态、网页摘录保存格式、`LinkExtractor`、`QuickCaptureView` 抓取链路、`webClip` 素材索引和现有测试。
+- GitHub API 复查 `scinfu/SwiftSoup` 与 `exyte/ReadabilityKit`；SwiftSoup 为 MIT 且活跃，ReadabilityKit 为 MIT 但已归档。
+- 检索 `Swift readability html article extractor MIT` 与 `SwiftSoup readability article extractor` 未找到更适合直接复制的 Swift 项目；当前环境也无法可靠做 Xcode 16/SPM 验证。本轮先扩展本地 HTML 清洗和摘录卡格式，不新增依赖。
