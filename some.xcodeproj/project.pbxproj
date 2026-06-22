@@ -80,6 +80,7 @@
 		7AD000010000000000000001 /* ScrapbookEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AD001010000000000000001 /* ScrapbookEditorView.swift */; };
 		7AE000010000000000000001 /* ImageEditRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE001010000000000000001 /* ImageEditRenderer.swift */; };
 		7AE000010000000000000002 /* ImageEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE001010000000000000002 /* ImageEditorView.swift */; };
+		7AE000010000000000000003 /* ImageEditRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE001010000000000000001 /* ImageEditRenderer.swift */; };
 		7AF000010000000000000001 /* WardrobeInsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AF001010000000000000001 /* WardrobeInsightEngine.swift */; };
 /* End PBXBuildFile section */
 
@@ -587,6 +588,7 @@
 				7A5000010000000000000002 /* SharedAttachmentStore.swift in Sources */,
 				7A8000010000000000000002 /* MemoReferenceParser.swift in Sources */,
 				7A9000010000000000000001 /* LinkExtractor.swift in Sources */,
+				7AE000010000000000000003 /* ImageEditRenderer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

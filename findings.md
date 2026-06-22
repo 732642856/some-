@@ -15,6 +15,8 @@
 - 2026-06-22：视频缩略图继续检索 `SwiftUI AVAssetImageGenerator video thumbnail MIT`、`iOS video thumbnail AVAssetImageGenerator MIT Swift` 等关键词，GitHub API 未返回可直接复制的成熟 MIT 模块；采用 Apple `AVAssetImageGenerator` 本机取帧，复用现有附件存储和素材索引。
 - 2026-06-22：阶段 9 继续前检索 `SwiftUI draggable resizable rotatable view MIT`、`SwiftUI sticker drag resize rotate MIT`、`iOS sticker view drag resize rotate Swift MIT`、`SwiftUI collage editor drag resize rotate`，GitHub API 均返回 0；此前记录的 UIKit 贴纸项目只做交互参考，本轮继续基于现有 SwiftUI 与 `ScrapbookPageLayout` JSON 自建编辑器。
 - 2026-06-22：阶段 10 开工前复查全量文件清单、图片/附件/素材索引边界和 `imageEdit` 预留类型；GitHub API 确认 `guoyingtao/Mantis` 与 `TimOliver/TOCropViewController` 均为 MIT 且活跃，但本轮 MVP 先用 Core Image、UIKit 绘制和现有附件存储自建，避免引入 SPM/Objective-C 桥接带来的工程变更。
+- 2026-06-23：阶段 12 前继续核验图片裁剪开源候选。`guoyingtao/Mantis` 为 MIT、Swift、SwiftUI topic、2026-06 仍有推送，适合作为后续自由裁剪依赖候选；`TimOliver/TOCropViewController` 为 MIT、成熟 Objective-C/UIKit 裁剪器、2026-04 有推送，适合作为备选但会增加桥接与工程维护成本。GitHub 搜索 `SwiftUI image crop editor MIT` 未找到比二者更适合直接复制进当前工程的轻量模块。
+- 2026-06-23：最新 GitHub Actions run `27962981148` 在 Build for simulator 阶段失败。日志 annotation 只显示 Share Extension 编译退出 65，但本地 cross-target 扫描发现 `SomeShareExtension` 编译 `MemoStore.swift`，而 `MemoStore.addImageEdit` 引用了 `ImageEditRenderer`；`ImageEditRenderer.swift` 只在主 App target 中，属于 P1 构建阻塞。修复策略是把 `ImageEditRenderer.swift` 补入 Share Extension Sources，不改公共数据结构。
 
 ## 当前缺口
 

@@ -56,3 +56,11 @@
 - 补充衣橱洞察统计和建议单元测试。
 - 发现并收拢阶段 10 文件碎片：`some/Utilities/ImageEditRenderer.swift` 与 `some/Views/ImageEditorView.swift` 已存在于磁盘但未被 Git 跟踪；本轮已确认二者纳入 Xcode app target 并加入 Git 索引。
 - 静态验证通过：`git diff --check`、`plutil -lint`、`xmllint --noout`、旧 Swift parser 覆盖 `ImageEditRenderer.swift`、`ImageEditorView.swift`、`Memo.swift`、`MemoStore.swift`、`MemoSearchQuery.swift`、`ContentView.swift` 和 `SomeTests.swift`。
+
+## 2026-06-23T00:00:00Z
+
+- 接续用户“下一步”要求，开工前复查 Git 状态、项目文件清单、任务计划和进度日志；确认本地工作树干净且处于 `master...origin/master`。
+- 通过 GitHub API 读取最新 CI run `27962981148`，确认 HEAD `5184f50` 在 Build for simulator 阶段失败，测试阶段未运行。
+- 按用户要求继续检索阶段 12 图片裁剪开源候选：`Mantis` 与 `TOCropViewController` 均为 MIT 且仍活跃，适合后续自由裁剪集成评估；通用 `SwiftUI image crop editor MIT` 搜索未找到更轻量可直接复制模块。
+- 修复 P1 构建阻塞：`SomeShareExtension` 会编译 `MemoStore.swift`，而 `MemoStore.addImageEdit` 引用的 `ImageEditRenderer` 未加入扩展 target；已把 `ImageEditRenderer.swift` 加入 Share Extension Sources。
+- 本地验证通过：`git diff --check`、`plutil -lint`、`xmllint --noout`、旧 Swift parser 覆盖 `Memo.swift`、`SharedAttachmentStore.swift`、`ImageEditRenderer.swift` 和 `MemoStore.swift`。
