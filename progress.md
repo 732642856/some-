@@ -126,3 +126,11 @@
 - 新增 `ClipFragment` / `ClipFragmentExtractor`，可从网页摘录和 OCR memo 中抽取统一片段，并生成“摘录片段”合并文本。
 - `QuickCaptureView` 的网页摘录保存前新增片段选择卡；网页摘要/重点和当前草稿里的 OCR 行会合并为可勾选候选，保存时只写选中片段。
 - `ImageTextRecognizer` 新增 `extractedHighlights`，为 OCR 摘录片段和后续截图/OCR 合并复用去重行提取。
+- 复查阶段 16 提交时发现标准 OCR memo 会被空行切块影响，已改为按“图片文字/截图文字”标题扫描完整 OCR 块，并补充多截图 OCR 块单元测试。
+
+## 2026-06-23T12:20:00+08:00
+
+- 进入阶段 17：远端 CI 复验与剩余失败修复。
+- 会话恢复报告显示上轮已完成 commit/push 并停在查询 GitHub Actions；本轮重新读取规划文件、`findings.md`、`verification.md` 和 Git 状态。
+- 当前 `master` 与 `origin/master` 同步到 `14201345c80e4646a6a35fd89164cf8e0b278a2c`；工作树中存在两个上一轮遗留的正向修复碎片：`ClipFragmentExtractor` 对 OCR block 按标题行分段，`SomeTests` 增加多 OCR block 跨空行测试。
+- 已按“不回滚其他窗口改动”的原则把这些碎片纳入当前阶段验证范围，再继续查询最新提交对应的远端 CI。

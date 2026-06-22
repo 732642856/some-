@@ -1185,6 +1185,33 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(fragments.last?.uri, "some-attachment://receipt.png")
     }
 
+    func testClipFragmentExtractorKeepsOCRBlocksAcrossBlankLines() {
+        let text = """
+        图片文字：receipt.png
+
+        识别文字：
+        合计 128 元
+        谢谢惠顾
+
+        [附件: receipt.png](some-attachment://receipt.png)
+
+        截图文字：article.png
+
+        OCR:
+        标题摘录
+        正文摘录
+
+        [附件: article.png](some-attachment://article.png)
+        """
+
+        let fragments = ClipFragmentExtractor.fragments(in: text)
+
+        XCTAssertEqual(fragments.map(\.source), [.ocr, .ocr, .ocr, .ocr])
+        XCTAssertEqual(fragments.map(\.text), ["合计 128 元", "谢谢惠顾", "标题摘录", "正文摘录"])
+        XCTAssertEqual(fragments[0].uri, "some-attachment://receipt.png")
+        XCTAssertEqual(fragments[2].uri, "some-attachment://article.png")
+    }
+
     func testClipFragmentExtractorBuildsMergedText() throws {
         let fragments = [
             ClipFragment(source: .web, title: "文章", text: "网页摘要", uri: "https://example.com/a", stableKey: "web"),

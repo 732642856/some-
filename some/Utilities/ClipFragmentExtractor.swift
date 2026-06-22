@@ -103,8 +103,14 @@ enum ClipFragmentExtractor {
     }
 
     private static func imageTextBlocks(in text: String) -> [(title: String, lines: [String], attachment: SharedAttachment?)] {
-        text.components(separatedBy: "\n\n")
-            .compactMap(imageText(in:))
+        let rawLines = text.components(separatedBy: .newlines)
+        let starts = rawLines.indices.filter { index in
+            isImageTextTitle(rawLines[index].trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+        return starts.enumerated().compactMap { offset, start in
+            let end = offset + 1 < starts.count ? starts[offset + 1] : rawLines.endIndex
+            return imageText(in: rawLines[start..<end].joined(separator: "\n"))
+        }
     }
 
     private static func imageText(in text: String) -> (title: String, lines: [String], attachment: SharedAttachment?)? {
@@ -115,8 +121,7 @@ enum ClipFragmentExtractor {
             return nil
         }
 
-        let prefixes = ["图片文字：", "图片文字:", "截图文字：", "截图文字:"]
-        guard let prefix = prefixes.first(where: { firstLine.hasPrefix($0) }) else {
+        guard let prefix = imageTextTitlePrefix(in: firstLine) else {
             return nil
         }
 
@@ -142,6 +147,15 @@ enum ClipFragmentExtractor {
             finalLines,
             SharedAttachmentStore.attachments(in: text).first(where: \.isImage)
         )
+    }
+
+    private static func isImageTextTitle(_ line: String) -> Bool {
+        imageTextTitlePrefix(in: line) != nil
+    }
+
+    private static func imageTextTitlePrefix(in line: String) -> String? {
+        let prefixes = ["图片文字：", "图片文字:", "截图文字：", "截图文字:"]
+        return prefixes.first(where: { line.hasPrefix($0) })
     }
 
     private static func unique(_ fragments: [ClipFragment]) -> [ClipFragment] {
