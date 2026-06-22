@@ -762,33 +762,27 @@ struct QuickCaptureView: View {
     }
 
     private func saveWebClip(_ clip: ExtractedWebClip, selectedFragments: [ClipFragment]) {
-        let summary = selectedSummary(for: clip, selectedFragments: selectedFragments)
-        let highlights = uniqueHighlights(selectedFragments.map(\.text))
-            .filter { highlight in
-                guard let summary, !summary.isEmpty else { return true }
-                return highlight != summary
-            }
-        let saved = store.addWebClip(
+        let title = clip.title ?? LinkExtractor.displayText(for: clip.url)
+        let content = ClipFragmentExtractor.selectedWebClipContent(
+            title: title,
+            summary: clip.summary,
+            fragments: selectedFragments
+        )
+        let clipText = LinkExtractor.webClipText(
+            title: title,
             url: clip.url,
-            title: clip.title,
-            summary: summary,
-            highlights: highlights
-        ) != nil
+            summary: content.summary,
+            highlights: content.highlights
+        )
+        let memoText = [clipText, content.mergedFragmentsText]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n\n")
+        let saved = store.addMemo(text: memoText) != nil
         if saved {
             clearPendingWebClip()
         }
         statusText = saved ? "已保存网页摘录" : "网页摘录保存失败。"
-    }
-
-    private func selectedSummary(for clip: ExtractedWebClip, selectedFragments: [ClipFragment]) -> String? {
-        guard let summary = clip.summary?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !summary.isEmpty else {
-            return nil
-        }
-
-        return selectedFragments.contains { fragment in
-            fragment.text.trimmingCharacters(in: .whitespacesAndNewlines) == summary
-        } ? summary : nil
     }
 
     private func clearPendingWebClip() {
@@ -797,16 +791,6 @@ struct QuickCaptureView: View {
         selectedClipFragmentIDs = []
     }
 
-    private func uniqueHighlights(_ highlights: [String]) -> [String] {
-        var seen = Set<String>()
-        return highlights.compactMap { highlight in
-            let trimmed = highlight.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty, seen.insert(trimmed).inserted else {
-                return nil
-            }
-            return trimmed
-        }
-    }
 }
 
 private enum QuickCameraCaptureMode {

@@ -351,6 +351,7 @@ final class MemoStore: ObservableObject {
         colors: [String] = [],
         seasons: [String] = [],
         scenes: [String] = [],
+        purchasePrice: String? = nil,
         attachment: SharedAttachment? = nil
     ) -> Memo? {
         let cleanedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -363,6 +364,7 @@ final class MemoStore: ObservableObject {
         appendField("颜色", values: colors, to: &lines)
         appendField("季节", values: seasons, to: &lines)
         appendField("场景", values: scenes, to: &lines)
+        appendField("价格", value: purchasePrice, to: &lines)
         return addStructuredMemo(lines: lines, attachment: attachment)
     }
 
@@ -384,6 +386,30 @@ final class MemoStore: ObservableObject {
         appendField("单品", values: cleanedItems, to: &lines)
         appendField("场景", values: scenes, to: &lines)
         appendField("季节", values: seasons, to: &lines)
+        appendField("备注", value: note, to: &lines)
+        return addStructuredMemo(lines: lines, attachment: nil)
+    }
+
+    @discardableResult
+    func addWearLog(
+        title: String? = nil,
+        itemNames: [String],
+        date: Date = Date(),
+        scenes: [String] = [],
+        weather: String? = nil,
+        note: String? = nil
+    ) -> Memo? {
+        let cleanedItems = cleanedValues(itemNames)
+        guard !cleanedItems.isEmpty else {
+            return nil
+        }
+
+        let cleanedTitle = title?.trimmingCharacters(in: .whitespacesAndNewlines)
+        var lines = ["穿着记录：\((cleanedTitle?.isEmpty == false ? cleanedTitle : nil) ?? DateFormatters.wardrobeDay.string(from: date))"]
+        appendField("日期", value: DateFormatters.wardrobeDay.string(from: date), to: &lines)
+        appendField("单品", values: cleanedItems, to: &lines)
+        appendField("场景", values: scenes, to: &lines)
+        appendField("天气", value: weather, to: &lines)
         appendField("备注", value: note, to: &lines)
         return addStructuredMemo(lines: lines, attachment: nil)
     }
@@ -1182,6 +1208,8 @@ final class MemoStore: ObservableObject {
             return assets(for: memo).contains { $0.kind == .wardrobeItem }
         case .outfit:
             return assets(for: memo).contains { $0.kind == .outfit }
+        case .wearLog:
+            return assets(for: memo).contains { $0.kind == .wearLog }
         }
     }
 

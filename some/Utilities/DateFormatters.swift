@@ -30,6 +30,13 @@ enum DateFormatters {
         return formatter
     }()
 
+    static let wardrobeDay: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_Hans_CN")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+
     static let filename: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "zh_Hans_CN")

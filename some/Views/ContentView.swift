@@ -977,11 +977,17 @@ private struct WardrobeView: View {
     @State private var itemColors = ""
     @State private var itemSeasons = ""
     @State private var itemScenes = ""
+    @State private var itemPrice = ""
     @State private var selectedPhotoAssetID: UUID?
     @State private var outfitTitle = ""
     @State private var outfitItems = ""
     @State private var outfitScenes = ""
     @State private var outfitSeasons = ""
+    @State private var wearItems = ""
+    @State private var wearScenes = ""
+    @State private var wearWeather = ""
+    @State private var wearDate = Date()
+    @State private var wearNote = ""
     @State private var statusText: String?
 
     private let categories = ["上装", "下装", "连衣裙", "外套", "鞋履", "包包", "饰品", "其他"]
@@ -992,6 +998,10 @@ private struct WardrobeView: View {
 
     private var outfitAssets: [MemoAsset] {
         store.assets.filter { $0.kind == .outfit }
+    }
+
+    private var wearLogAssets: [MemoAsset] {
+        store.assets.filter { $0.kind == .wearLog }
     }
 
     private var imageAttachmentAssets: [MemoAsset] {
@@ -1014,6 +1024,7 @@ private struct WardrobeView: View {
                 HStack(spacing: 10) {
                     StatBadge(title: "单品", value: "\(insights.items.count)", systemImage: "tshirt")
                     StatBadge(title: "穿搭", value: "\(insights.outfits.count)", systemImage: "sparkles")
+                    StatBadge(title: "穿着", value: "\(insights.wearLogs.count)", systemImage: "calendar.badge.clock")
                     StatBadge(title: "未搭配", value: "\(insights.unusedItems.count)", systemImage: "arrow.triangle.2.circlepath")
                     StatBadge(title: "场景", value: "\(insights.sceneStats.count)", systemImage: "scope")
                 }
@@ -1022,6 +1033,7 @@ private struct WardrobeView: View {
             wardrobeInsightPanel
             wardrobeItemForm
             outfitForm
+            wearLogForm
             wardrobeList
         }
     }
@@ -1050,7 +1062,19 @@ private struct WardrobeView: View {
                 if !insights.frequentItems.isEmpty {
                     namedStrip(
                         title: "常用",
-                        values: insights.frequentItems.map { "\($0.item.name) \($0.count)次" }
+                        values: insights.frequentItems.map { usage in
+                            let cost = usage.costPerWear.map { " · \(formatCurrency($0))/次" } ?? ""
+                            return "\(usage.item.name) \(usage.count)次\(cost)"
+                        }
+                    )
+                }
+
+                if !insights.wearLogs.isEmpty {
+                    namedStrip(
+                        title: "最近穿着",
+                        values: insights.wearLogs.prefix(6).map { log in
+                            "\(DateFormatters.compactDay.string(from: log.wornAt)) \(log.itemNames.joined(separator: "、"))"
+                        }
                     )
                 }
 
@@ -1141,6 +1165,12 @@ private struct WardrobeView: View {
                 .background(Color.subtleSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
+            TextField("价格：399", text: $itemPrice)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
             if !imageAttachmentAssets.isEmpty {
                 Picker("照片", selection: $selectedPhotoAssetID) {
                     Text("不绑定照片").tag(Optional<UUID>.none)
@@ -1217,13 +1247,61 @@ private struct WardrobeView: View {
         )
     }
 
+    private var wearLogForm: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("穿着记录", systemImage: "calendar.badge.clock")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+
+            DatePicker("日期", selection: $wearDate, displayedComponents: .date)
+                .datePickerStyle(.compact)
+                .tint(Color.accentGreen)
+
+            TextField("单品：白色衬衫、牛仔裤、黑色包", text: $wearItems)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            HStack(spacing: 8) {
+                TextField("场景：通勤、聚餐", text: $wearScenes)
+                TextField("天气：晴", text: $wearWeather)
+            }
+            .textFieldStyle(.plain)
+            .padding(10)
+            .background(Color.subtleSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            TextField("备注：舒适、偏冷、需要换鞋", text: $wearNote)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            actionRow(
+                buttonTitle: "保存穿着",
+                systemImage: "checkmark.circle.fill",
+                disabled: wearItems.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ) {
+                saveWearLog()
+            }
+        }
+        .padding(14)
+        .background(Color.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.border, lineWidth: 1)
+        )
+    }
+
     private var wardrobeList: some View {
         VStack(alignment: .leading, spacing: 10) {
             Label("衣橱素材", systemImage: "square.grid.2x2")
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Color.secondaryText)
 
-            let assets = (wardrobeAssets + outfitAssets)
+            let assets = (wardrobeAssets + outfitAssets + wearLogAssets)
                 .sorted { $0.createdAt == $1.createdAt ? $0.title < $1.title : $0.createdAt > $1.createdAt }
 
             if assets.isEmpty {
@@ -1274,6 +1352,7 @@ private struct WardrobeView: View {
             colors: splitValues(itemColors),
             seasons: splitValues(itemSeasons),
             scenes: splitValues(itemScenes),
+            purchasePrice: itemPrice,
             attachment: selectedPhotoAttachment()
         ) != nil else {
             statusText = "单品保存失败。"
@@ -1284,6 +1363,7 @@ private struct WardrobeView: View {
         itemColors = ""
         itemSeasons = ""
         itemScenes = ""
+        itemPrice = ""
         selectedPhotoAssetID = nil
         statusText = "已保存单品"
     }
@@ -1306,6 +1386,26 @@ private struct WardrobeView: View {
         statusText = "已保存穿搭"
     }
 
+    private func saveWearLog() {
+        guard store.addWearLog(
+            itemNames: splitValues(wearItems),
+            date: wearDate,
+            scenes: splitValues(wearScenes),
+            weather: wearWeather,
+            note: wearNote
+        ) != nil else {
+            statusText = "穿着记录保存失败。"
+            return
+        }
+
+        wearItems = ""
+        wearScenes = ""
+        wearWeather = ""
+        wearNote = ""
+        wearDate = Date()
+        statusText = "已保存穿着记录"
+    }
+
     private func applySuggestion(_ suggestion: WardrobeOutfitSuggestion) {
         outfitTitle = suggestion.title
         outfitItems = suggestion.itemNames.joined(separator: "、")
@@ -1319,6 +1419,15 @@ private struct WardrobeView: View {
             title: title,
             values: metrics.prefix(6).map { "\($0.label) \($0.count)" }
         )
+    }
+
+    private func formatCurrency(_ value: Double) -> String {
+        let rounded = (value * 100).rounded() / 100
+        if rounded.rounded() == rounded {
+            return "¥\(Int(rounded))"
+        }
+
+        return String(format: "¥%.2f", rounded)
     }
 
     private func namedStrip<T: Collection>(title: String, values: T) -> some View where T.Element == String {

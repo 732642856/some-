@@ -164,6 +164,8 @@
 - 2026-06-23：媒体元数据与缩略图缓存仍需要在完整 Xcode 16 + 模拟器/真机环境验证真实 `.mov` / `.mp4` / `.m4a` 元数据读取、缓存目录增长、长列表滚动和大文件内存表现；当前环境已覆盖格式化、图片尺寸读取、缓存 key 失效、缓存删除和语法层检查。
 - 2026-06-23：GitHub Actions run `27971176783` 显示 Build for simulator 通过、Run tests 失败；公开 annotation 暴露失败测试集中在视频附件、手帐导出、图片编辑渲染和媒体元数据。本轮已修复测试数据真实文件、图片 renderer scale、媒体 byteCount fallback 和缺失视频文件取帧边界；等待下一次远端 CI 验证。
 - 2026-06-23：网页/OCR 摘录片段本轮已完成旧 Swift parser 语法验证、`git diff --check`、`plutil -lint` 与 `xmllint --noout`；新增测试覆盖网页+OCR 混合片段、摘录片段合并文本、OCR 去重行提取，以及空行分隔的多截图 OCR 块。
+- 2026-06-23：GitHub Actions run `27972559437` 公开 annotation 显示 Build for simulator 因 `ClipFragmentExtractor.swift` 的 Optional `map` 类型错误失败；后续修复提交 `10761c4` 后，run `27972990477` 和最新 run `27973215557` 均已通过 Build for simulator 并进入 Run tests。当前额外补充网页/OCR 片段保存语义测试：OCR 片段不再混入网页 highlights，而是进入统一“摘录片段”块。
+- 2026-06-23：穿着记录/成本洞察本轮通过 `git diff --check`、`plutil -lint`、`xmllint --noout`、旧 Swift parser 覆盖 `DateFormatters.swift`、`MemoSearchQuery.swift`、`ClipFragmentExtractor.swift`、`WardrobeInsightEngine.swift`、`Memo.swift`、`MemoStore.swift`、`ContentView.swift` 和 `SomeTests.swift`；测试新增覆盖穿着记录素材、搜索、成本/次、最近穿着和旧穿搭次数回归。
 - 2026-06-22：手帐画布拖拽、双指缩放和旋转需要完整 Xcode 16 + 模拟器/真机环境做真实手势验证；当前环境已完成模型替换测试、plist/scheme 校验和旧 Swift parser 对可解析文件的检查。
 - 2026-06-22：手帐画布编辑需要完整 Xcode 16 + 模拟器/真机验证多指缩放/旋转、拖拽边界、滚动页面内手势冲突和真实图片图层显示；当前环境只能验证模型替换逻辑和静态语法。
 - 2026-06-22：图片编辑需要完整 Xcode 16 + 模拟器/真机验证真实照片色彩、保存耗时、素材库 sheet 交互、长边大图内存占用和系统分享/备份链路；当前环境已完成渲染核心静态解析和小图单元测试。

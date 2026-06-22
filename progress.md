@@ -134,3 +134,13 @@
 - 会话恢复报告显示上轮已完成 commit/push 并停在查询 GitHub Actions；本轮重新读取规划文件、`findings.md`、`verification.md` 和 Git 状态。
 - 当前 `master` 与 `origin/master` 同步到 `14201345c80e4646a6a35fd89164cf8e0b278a2c`；工作树中存在两个上一轮遗留的正向修复碎片：`ClipFragmentExtractor` 对 OCR block 按标题行分段，`SomeTests` 增加多 OCR block 跨空行测试。
 - 已按“不回滚其他窗口改动”的原则把这些碎片纳入当前阶段验证范围，再继续查询最新提交对应的远端 CI。
+- GitHub Actions run `27972559437` 公开 annotation 显示 `ClipFragmentExtractor.swift:96` 因 `SharedAttachment` 无 `map` 成员导致 Build for simulator 失败；已在后续提交中改为显式 `attachmentURI(for:)`，run `27972990477` / `27973215557` 的 Build for simulator 均已通过并进入 Run tests。
+- 审查最新片段保存逻辑时发现混源问题：选中 OCR 片段会被写成网页 highlights。已新增 `SelectedWebClipContent`，网页 memo 只保存选中的网页摘要/重点，网页+OCR 选中片段另写入“摘录片段”合并块，保证 UI 勾选语义与保存结果一致。
+
+## 2026-06-23T12:45:00+08:00
+
+- 进入阶段 18：穿着记录、成本/次与衣橱洞察增强。
+- 收拢并补全并行窗口留下的衣橱数据层碎片：新增 `wearLog` 素材类型、`addWearLog` 结构化保存、`has:wear-log` 搜索筛选、`wardrobeDay` 日期格式和衣橱洞察中的穿着次数、最近穿着、价格解析与成本/次。
+- 修复衣橱洞察回归风险：没有穿着记录时，常用单品仍按历史穿搭次数显示；有穿着记录时再显示真实穿着次数、最近穿着和成本/次。
+- 衣橱页已补穿着记录表单、单品价格字段、穿着统计 badge、最近穿着和成本/次展示，并把穿着记录纳入衣橱素材列表。
+- 本轮新增测试覆盖：穿着记录 memo/素材生成、`has:wear-log` 查询、穿着次数/成本/次/最近穿着洞察，以及网页/OCR 片段保存时 OCR 不混入网页 highlights。

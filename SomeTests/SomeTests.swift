@@ -423,12 +423,12 @@ final class SomeTests: XCTestCase {
     }
 
     func testSearchQueryParserExtractsContentFilters() {
-        let query = MemoSearchQueryParser.parse("has:link has:web has:ocr has:image-edit has:attachment has:reference has:scrapbook has:worklog has:audio has:video has:wardrobe has:outfit no:task without:backlink 复盘")
+        let query = MemoSearchQueryParser.parse("has:link has:web has:ocr has:image-edit has:attachment has:reference has:scrapbook has:worklog has:audio has:video has:wardrobe has:outfit has:wear-log no:task without:backlink 复盘")
 
         XCTAssertEqual(query.textTerms, ["复盘"])
         XCTAssertEqual(
             query.requiredContentFilters,
-            [.attachment, .audio, .imageEdit, .link, .outfit, .reference, .scrapbook, .screenshot, .video, .wardrobe, .webClip, .workLog]
+            [.attachment, .audio, .imageEdit, .link, .outfit, .reference, .scrapbook, .screenshot, .video, .wardrobe, .webClip, .wearLog, .workLog]
         )
         XCTAssertEqual(
             query.excludedContentFilters,
@@ -566,6 +566,7 @@ final class SomeTests: XCTestCase {
         store.addMemo(text: videoMemoText)
         store.addMemo(text: "衣橱单品：白衬衫\n分类：上装\n颜色：白")
         store.addMemo(text: "穿搭组合：周一通勤\n单品：白衬衫、黑裤")
+        store.addMemo(text: "穿着记录：2026-06-23\n日期：2026-06-23\n单品：白衬衫、黑裤")
         store.addMemo(text: "普通资料")
 
         store.searchText = "has:link"
@@ -651,6 +652,9 @@ final class SomeTests: XCTestCase {
 
         store.searchText = "has:outfit"
         XCTAssertEqual(store.filteredMemos.map(\.text), ["穿搭组合：周一通勤\n单品：白衬衫、黑裤"])
+
+        store.searchText = "has:wear-log"
+        XCTAssertEqual(store.filteredMemos.map(\.text), ["穿着记录：2026-06-23\n日期：2026-06-23\n单品：白衬衫、黑裤"])
     }
 
     func testAddWorkLogCreatesStructuredAssetWithReferences() {
@@ -1224,6 +1228,45 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(text.contains("来源：网页1 · OCR1"))
         XCTAssertTrue(text.contains("- [网页] 1. 网页摘要"))
         XCTAssertTrue(text.contains("- [OCR] 2. 合计 128 元"))
+    }
+
+    func testSelectedWebClipContentSeparatesWebAndOCRFragments() throws {
+        let fragments = [
+            ClipFragment(source: .web, title: "文章", text: "网页摘要", uri: "https://example.com/a", stableKey: "web-summary"),
+            ClipFragment(source: .web, title: "文章", text: "重点一", uri: "https://example.com/a", stableKey: "web-highlight"),
+            ClipFragment(source: .ocr, title: "截图", text: "合计 128 元", uri: "some-attachment://receipt.png", stableKey: "ocr")
+        ]
+
+        let content = ClipFragmentExtractor.selectedWebClipContent(
+            title: "资料卡",
+            summary: "网页摘要",
+            fragments: fragments
+        )
+
+        XCTAssertEqual(content.summary, "网页摘要")
+        XCTAssertEqual(content.highlights, ["重点一"])
+        let mergedText = try XCTUnwrap(content.mergedFragmentsText)
+        XCTAssertTrue(mergedText.contains("- [网页] 1. 网页摘要"))
+        XCTAssertTrue(mergedText.contains("- [OCR] 3. 合计 128 元"))
+    }
+
+    func testSelectedWebClipContentDropsUnselectedSummary() throws {
+        let fragments = [
+            ClipFragment(source: .web, title: "文章", text: "重点一", uri: "https://example.com/a", stableKey: "web-highlight"),
+            ClipFragment(source: .ocr, title: "截图", text: "截图摘录", uri: "some-attachment://screen.png", stableKey: "ocr")
+        ]
+
+        let content = ClipFragmentExtractor.selectedWebClipContent(
+            title: "资料卡",
+            summary: "网页摘要",
+            fragments: fragments
+        )
+
+        XCTAssertNil(content.summary)
+        XCTAssertEqual(content.highlights, ["重点一"])
+        let mergedText = try XCTUnwrap(content.mergedFragmentsText)
+        XCTAssertTrue(mergedText.contains("来源：网页1 · OCR1"))
+        XCTAssertTrue(mergedText.contains("- [OCR] 2. 截图摘录"))
     }
 
     func testSharedMemoComposerKeepsTextAndDeduplicatesURL() {
@@ -1889,6 +1932,33 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(asset?.typeIdentifier, UTType.text.identifier)
     }
 
+    func testAddWearLogCreatesStructuredMemoAndAsset() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let date = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+
+        guard let memo = store.addWearLog(
+            itemNames: ["白衬衫", "黑裤"],
+            date: date,
+            scenes: ["通勤"],
+            weather: "晴",
+            note: "舒适"
+        ) else {
+            return XCTFail("Expected wear log memo")
+        }
+
+        XCTAssertTrue(memo.text.contains("穿着记录：2026-06-23"))
+        XCTAssertTrue(memo.text.contains("日期：2026-06-23"))
+        XCTAssertTrue(memo.text.contains("单品：白衬衫、黑裤"))
+        XCTAssertTrue(memo.text.contains("场景：通勤"))
+        XCTAssertTrue(memo.text.contains("天气：晴"))
+        XCTAssertTrue(memo.text.contains("备注：舒适"))
+
+        let asset = store.assets(for: memo).first { $0.kind == .wearLog }
+        XCTAssertEqual(asset?.title, "2026-06-23")
+        XCTAssertEqual(asset?.summary, "日期：2026-06-23 · 单品：白衬衫、黑裤 · 场景：通勤 · 天气：晴 · 备注：舒适")
+        XCTAssertEqual(asset?.typeIdentifier, UTType.text.identifier)
+    }
+
     func testWardrobeInsightsSummarizeItemsOutfitsAndSuggestions() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addWardrobeItem(
@@ -1927,7 +1997,55 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(insights.sceneStats.first, WardrobeInsightMetric(label: "通勤", count: 4))
         XCTAssertEqual(insights.unusedItems.map(\.name), ["蓝包"])
         XCTAssertEqual(insights.frequentItems.first?.item.name, "白衬衫")
+        XCTAssertEqual(insights.frequentItems.first?.count, 1)
         XCTAssertTrue(insights.suggestions.contains { $0.itemNames.contains("蓝包") })
+    }
+
+    func testWardrobeInsightsTrackWearCountsAndCostPerWear() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let firstDate = DateFormatters.wardrobeDay.date(from: "2026-06-20")!
+        let secondDate = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+        store.addWardrobeItem(
+            name: "白衬衫",
+            category: "上装",
+            colors: ["白"],
+            seasons: ["春"],
+            scenes: ["通勤"],
+            purchasePrice: "¥300"
+        )
+        store.addWardrobeItem(
+            name: "黑裤",
+            category: "下装",
+            colors: ["黑"],
+            seasons: ["春"],
+            scenes: ["通勤"]
+        )
+        store.addWearLog(
+            itemNames: ["白衬衫", "黑裤"],
+            date: firstDate,
+            scenes: ["通勤"],
+            weather: "晴"
+        )
+        store.addWearLog(
+            itemNames: ["白衬衫"],
+            date: secondDate,
+            scenes: ["通勤"],
+            weather: "雨"
+        )
+
+        let insights = WardrobeInsightEngine.insights(for: store.assets)
+
+        XCTAssertEqual(insights.wearLogs.count, 2)
+        XCTAssertEqual(insights.sceneStats.first, WardrobeInsightMetric(label: "通勤", count: 4))
+        let shirt = insights.items.first { $0.name == "白衬衫" }
+        XCTAssertEqual(shirt?.wearCount, 2)
+        XCTAssertEqual(shirt?.purchasePrice, 300)
+        XCTAssertEqual(shirt?.lastWornAt, secondDate)
+        let frequent = insights.frequentItems.first
+        XCTAssertEqual(frequent?.item.name, "白衬衫")
+        XCTAssertEqual(frequent?.count, 2)
+        XCTAssertEqual(frequent?.costPerWear, 150)
+        XCTAssertEqual(frequent?.lastWornAt, secondDate)
     }
 
     func testAddScrapbookPageCreatesStructuredMemoAndAsset() throws {

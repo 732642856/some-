@@ -596,6 +596,7 @@ enum MemoAssetKind: String, Codable, CaseIterable, Hashable {
     case workLog
     case wardrobeItem
     case outfit
+    case wearLog
     case audio
     case video
     case screenshot
@@ -615,6 +616,7 @@ extension MemoAssetKind {
         case .workLog: return "日志"
         case .wardrobeItem: return "衣橱"
         case .outfit: return "穿搭"
+        case .wearLog: return "穿着"
         case .audio: return "音频"
         case .video: return "视频"
         case .screenshot: return "截图"
@@ -634,6 +636,7 @@ extension MemoAssetKind {
         case .workLog: return "doc.text"
         case .wardrobeItem: return "tshirt"
         case .outfit: return "sparkles"
+        case .wearLog: return "calendar.badge.clock"
         case .audio: return "waveform"
         case .video: return "video"
         case .screenshot: return "camera.viewfinder"
@@ -789,6 +792,16 @@ extension MemoAsset {
             )
         }
 
+        if let wearLog = wearLogAsset(in: visibleText) {
+            append(
+                kind: .wearLog,
+                title: wearLog.title,
+                summary: wearLog.summary,
+                typeIdentifier: UTType.text.identifier,
+                stableKey: "wearlog:\(wearLog.title):\(wearLog.summary ?? "")"
+            )
+        }
+
         if let scrapbookPage = scrapbookPageAsset(in: visibleText),
            let attachment = SharedAttachmentStore.attachments(in: memo.text).first(where: \.isImage) {
             append(
@@ -920,6 +933,10 @@ extension MemoAsset {
 
     private static func outfitAsset(in text: String) -> (title: String, summary: String?)? {
         structuredAsset(in: text, prefixes: ["穿搭组合：", "穿搭组合:", "穿搭：", "穿搭:"])
+    }
+
+    private static func wearLogAsset(in text: String) -> (title: String, summary: String?)? {
+        structuredAsset(in: text, prefixes: ["穿着记录：", "穿着记录:", "穿着：", "穿着:", "穿搭记录：", "穿搭记录:"])
     }
 
     private static func scrapbookPageAsset(in text: String) -> (title: String, summary: String?)? {

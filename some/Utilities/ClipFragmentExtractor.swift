@@ -27,6 +27,12 @@ struct ClipFragment: Identifiable, Codable, Equatable {
     }
 }
 
+struct SelectedWebClipContent: Equatable {
+    var summary: String?
+    var highlights: [String]
+    var mergedFragmentsText: String?
+}
+
 enum ClipFragmentExtractor {
     static let marker = "摘录片段："
 
@@ -56,6 +62,36 @@ enum ClipFragmentExtractor {
             "- [\(fragment.source == .web ? "网页" : "OCR")] \(index + 1). \(cleanLine(fragment.text, fallback: fragment.title))"
         })
         return lines.joined(separator: "\n")
+    }
+
+    static func selectedWebClipContent(
+        title: String,
+        summary: String?,
+        fragments: [ClipFragment]
+    ) -> SelectedWebClipContent {
+        let selected = unique(fragments)
+        let cleanedSummary = summary.map { cleanLine($0, fallback: "") }
+            .flatMap { $0.isEmpty ? nil : $0 }
+        let selectedSummary = cleanedSummary.flatMap { summary in
+            selected.contains { fragment in
+                fragment.source == .web && cleanLine(fragment.text, fallback: "") == summary
+            } ? summary : nil
+        }
+        let highlights = uniqueHighlights(
+            selected
+                .filter { $0.source == .web }
+                .map(\.text)
+        )
+        .filter { highlight in
+            guard let selectedSummary = selectedSummary else { return true }
+            return highlight != selectedSummary
+        }
+
+        return SelectedWebClipContent(
+            summary: selectedSummary,
+            highlights: highlights,
+            mergedFragmentsText: mergedText(title: title, fragments: selected)
+        )
     }
 
     private static func webFragments(in text: String) -> [ClipFragment] {
@@ -174,6 +210,17 @@ enum ClipFragmentExtractor {
                 return nil
             }
             return fragment
+        }
+    }
+
+    private static func uniqueHighlights(_ highlights: [String]) -> [String] {
+        var seen = Set<String>()
+        return highlights.compactMap { highlight in
+            let cleaned = cleanLine(highlight, fallback: "")
+            guard !cleaned.isEmpty, seen.insert(cleaned).inserted else {
+                return nil
+            }
+            return cleaned
         }
     }
 

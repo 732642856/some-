@@ -9,6 +9,9 @@ struct WardrobeItemInsight: Identifiable, Equatable {
     var seasons: [String]
     var scenes: [String]
     var outfitCount: Int
+    var wearCount: Int
+    var purchasePrice: Double?
+    var lastWornAt: Date?
     var uri: String?
     var typeIdentifier: String?
     var createdAt: Date
@@ -25,6 +28,18 @@ struct WardrobeOutfitInsight: Identifiable, Equatable {
     var createdAt: Date
 }
 
+struct WardrobeWearLogInsight: Identifiable, Equatable {
+    var id: UUID
+    var memoID: UUID
+    var title: String
+    var itemNames: [String]
+    var scenes: [String]
+    var weather: String?
+    var note: String?
+    var wornAt: Date
+    var createdAt: Date
+}
+
 struct WardrobeInsightMetric: Identifiable, Equatable {
     var label: String
     var count: Int
@@ -35,6 +50,8 @@ struct WardrobeInsightMetric: Identifiable, Equatable {
 struct WardrobeItemUsage: Identifiable, Equatable {
     var item: WardrobeItemInsight
     var count: Int
+    var costPerWear: Double?
+    var lastWornAt: Date?
 
     var id: UUID { item.id }
 }
@@ -53,6 +70,7 @@ struct WardrobeOutfitSuggestion: Identifiable, Equatable {
 struct WardrobeInsights: Equatable {
     var items: [WardrobeItemInsight]
     var outfits: [WardrobeOutfitInsight]
+    var wearLogs: [WardrobeWearLogInsight]
     var categoryStats: [WardrobeInsightMetric]
     var colorStats: [WardrobeInsightMetric]
     var seasonStats: [WardrobeInsightMetric]
@@ -64,6 +82,7 @@ struct WardrobeInsights: Equatable {
     static let empty = WardrobeInsights(
         items: [],
         outfits: [],
+        wearLogs: [],
         categoryStats: [],
         colorStats: [],
         seasonStats: [],
@@ -80,12 +99,23 @@ enum WardrobeInsightEngine {
             .filter { $0.kind == .outfit }
             .compactMap(outfit(from:))
             .sorted { $0.createdAt == $1.createdAt ? $0.title < $1.title : $0.createdAt > $1.createdAt }
+        let wearLogs = assets
+            .filter { $0.kind == .wearLog }
+            .compactMap(wearLog(from:))
+            .sorted { $0.wornAt == $1.wornAt ? $0.title < $1.title : $0.wornAt > $1.wornAt }
 
         let usageByName = itemUsageCounts(in: outfits)
+        let wearStatsByName = wearStats(in: wearLogs)
         var parsedItems: [WardrobeItemInsight] = []
         for asset in assets where asset.kind == .wardrobeItem {
             let usageCount = usageByName[wardrobeNormalizedName(asset.title)] ?? 0
-            if let parsedItem = item(from: asset, outfitCount: usageCount) {
+            let wearStats = wearStatsByName[wardrobeNormalizedName(asset.title)]
+            if let parsedItem = item(
+                from: asset,
+                outfitCount: usageCount,
+                wearCount: wearStats?.count ?? 0,
+                lastWornAt: wearStats?.lastWornAt
+            ) {
                 parsedItems.append(parsedItem)
             }
         }
@@ -94,7 +124,7 @@ enum WardrobeInsightEngine {
         let categories = items.map { $0.category }.filter { !$0.isEmpty }
         let colors = items.flatMap { $0.colors }
         let seasons = items.flatMap { $0.seasons } + outfits.flatMap { $0.seasons }
-        let scenes = items.flatMap { $0.scenes } + outfits.flatMap { $0.scenes }
+        let scenes = items.flatMap { $0.scenes } + outfits.flatMap { $0.scenes } + wearLogs.flatMap { $0.scenes }
         let categoryStats = stats(from: categories)
         let colorStats = stats(from: colors)
         let seasonStats = stats(from: seasons)
@@ -102,14 +132,22 @@ enum WardrobeInsightEngine {
         let unusedItems = items
             .filter { $0.outfitCount == 0 }
             .sorted(by: sortItemsByDateThenName)
-        let usedItems = items.filter { $0.outfitCount > 0 }
+        let usedItems = items.filter { $0.outfitCount > 0 || $0.wearCount > 0 }
         let frequentItems = usedItems
-            .map { WardrobeItemUsage(item: $0, count: $0.outfitCount) }
+            .map {
+                WardrobeItemUsage(
+                    item: $0,
+                    count: max($0.wearCount, $0.outfitCount),
+                    costPerWear: costPerWear(price: $0.purchasePrice, wearCount: $0.wearCount),
+                    lastWornAt: $0.lastWornAt
+                )
+            }
             .sorted(by: sortUsageByCountThenName)
 
         return WardrobeInsights(
             items: items,
             outfits: outfits,
+            wearLogs: wearLogs,
             categoryStats: categoryStats,
             colorStats: colorStats,
             seasonStats: seasonStats,
@@ -134,7 +172,12 @@ enum WardrobeInsightEngine {
         return lhs.count > rhs.count
     }
 
-    private static func item(from asset: MemoAsset, outfitCount: Int) -> WardrobeItemInsight? {
+    private static func item(
+        from asset: MemoAsset,
+        outfitCount: Int,
+        wearCount: Int,
+        lastWornAt: Date?
+    ) -> WardrobeItemInsight? {
         guard asset.kind == .wardrobeItem else { return nil }
         let fields = fields(in: asset.summary)
         return WardrobeItemInsight(
@@ -146,8 +189,28 @@ enum WardrobeInsightEngine {
             seasons: fields["季节"] ?? [],
             scenes: fields["场景"] ?? [],
             outfitCount: outfitCount,
+            wearCount: wearCount,
+            purchasePrice: parsedPrice(fields["价格"]?.first),
+            lastWornAt: lastWornAt,
             uri: asset.uri,
             typeIdentifier: asset.typeIdentifier,
+            createdAt: asset.createdAt
+        )
+    }
+
+    private static func wearLog(from asset: MemoAsset) -> WardrobeWearLogInsight? {
+        guard asset.kind == .wearLog else { return nil }
+        let fields = fields(in: asset.summary)
+        let wornAt = fields["日期"]?.first.flatMap { DateFormatters.wardrobeDay.date(from: $0) } ?? asset.createdAt
+        return WardrobeWearLogInsight(
+            id: asset.id,
+            memoID: asset.memoID,
+            title: asset.title,
+            itemNames: fields["单品"] ?? [],
+            scenes: fields["场景"] ?? [],
+            weather: fields["天气"]?.joined(separator: "、"),
+            note: fields["备注"]?.joined(separator: "、"),
+            wornAt: wornAt,
             createdAt: asset.createdAt
         )
     }
@@ -175,6 +238,23 @@ enum WardrobeInsightEngine {
             }
         }
         return counts
+    }
+
+    private static func wearStats(in wearLogs: [WardrobeWearLogInsight]) -> [String: (count: Int, lastWornAt: Date?)] {
+        var stats: [String: (count: Int, lastWornAt: Date?)] = [:]
+        for log in wearLogs {
+            for name in Set(log.itemNames.map(wardrobeNormalizedName).filter { !$0.isEmpty }) {
+                let current = stats[name]
+                let lastWornAt: Date?
+                if let existing = current?.lastWornAt {
+                    lastWornAt = max(existing, log.wornAt)
+                } else {
+                    lastWornAt = log.wornAt
+                }
+                stats[name] = ((current?.count ?? 0) + 1, lastWornAt)
+            }
+        }
+        return stats
     }
 
     private static func suggestions(
@@ -318,6 +398,7 @@ enum WardrobeInsightEngine {
         if !Set(item.seasons).isDisjoint(with: Set(seed.seasons)) { score += 2 }
         if !Set(item.scenes).isDisjoint(with: Set(seed.scenes)) { score += 2 }
         if item.outfitCount == 0 { score += 1 }
+        if item.wearCount == 0 { score += 1 }
         return score
     }
 
@@ -400,6 +481,25 @@ enum WardrobeInsightEngine {
 
     private static func commonValues(_ values: [String]) -> [String] {
         Array(stats(from: values).prefix(2).map(\.label))
+    }
+
+    private static func parsedPrice(_ text: String?) -> Double? {
+        guard let text = text else { return nil }
+        let normalized = text
+            .replacingOccurrences(of: "￥", with: "")
+            .replacingOccurrences(of: "¥", with: "")
+            .replacingOccurrences(of: "元", with: "")
+            .replacingOccurrences(of: ",", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return Double(normalized)
+    }
+
+    private static func costPerWear(price: Double?, wearCount: Int) -> Double? {
+        guard let price = price, wearCount > 0 else {
+            return nil
+        }
+
+        return price / Double(wearCount)
     }
 }
 
