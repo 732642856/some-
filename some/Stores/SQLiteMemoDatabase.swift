@@ -63,8 +63,39 @@ final class SQLiteMemoDatabase {
         return memos
     }
 
+    func fetchAllRevisions() throws -> [MemoRevision] {
+        let statement = try prepare("""
+        SELECT id, memo_id, text, tags_json, created_at, memo_updated_at
+        FROM memo_revisions
+        ORDER BY created_at DESC;
+        """)
+        defer { sqlite3_finalize(statement) }
+
+        var revisions: [MemoRevision] = []
+
+        while true {
+            let result = sqlite3_step(statement)
+            if result == SQLITE_ROW {
+                revisions.append(try revision(from: statement))
+            } else if result == SQLITE_DONE {
+                break
+            } else {
+                throw DatabaseError.stepFailed(Self.errorMessage(database))
+            }
+        }
+
+        return revisions
+    }
+
     func upsert(_ memo: Memo) throws {
+        try upsert(memo, revision: nil)
+    }
+
+    func upsert(_ memo: Memo, revision: MemoRevision?) throws {
         try transaction {
+            if let revision = revision {
+                try insertRevisionRow(revision)
+            }
             try upsertMemoRow(memo)
             try upsertSearchIndex(for: memo)
         }
@@ -85,6 +116,8 @@ final class SQLiteMemoDatabase {
                 try deleteSearchIndex(rowID: rowID)
             }
 
+            try deleteRevisions(memoID: id)
+
             let statement = try prepare("DELETE FROM memos WHERE id = ?;")
             defer { sqlite3_finalize(statement) }
 
@@ -102,6 +135,20 @@ final class SQLiteMemoDatabase {
         }
 
         return sqlite3_column_int64(statement, 0) == 0
+    }
+
+    func replaceAll(memos: [Memo], revisions: [MemoRevision]) throws {
+        try transaction {
+            for memo in memos {
+                try upsertMemoRow(memo)
+                try upsertSearchIndex(for: memo)
+            }
+
+            try execute("DELETE FROM memo_revisions;")
+            for revision in revisions {
+                try insertRevisionRow(revision)
+            }
+        }
     }
 
     func searchIDs(matching text: String, limit: Int = 250) throws -> [MemoSearchMatch] {
@@ -166,6 +213,18 @@ final class SQLiteMemoDatabase {
             tokenize = 'unicode61'
         );
         """)
+        try execute("""
+        CREATE TABLE IF NOT EXISTS memo_revisions (
+            id TEXT PRIMARY KEY NOT NULL,
+            memo_id TEXT NOT NULL,
+            text TEXT NOT NULL,
+            tags_json TEXT NOT NULL,
+            created_at REAL NOT NULL,
+            memo_updated_at REAL NOT NULL
+        );
+        """)
+        try execute("CREATE INDEX IF NOT EXISTS idx_memo_revisions_memo_id ON memo_revisions(memo_id);")
+        try execute("CREATE INDEX IF NOT EXISTS idx_memo_revisions_created_at ON memo_revisions(created_at DESC);")
     }
 
     private func rebuildSearchIndexIfNeeded() throws {
@@ -225,6 +284,26 @@ final class SQLiteMemoDatabase {
         sqlite3_bind_text(statement, 2, memo.id.uuidString, -1, sqliteTransient)
         sqlite3_bind_text(statement, 3, memo.text, -1, sqliteTransient)
         sqlite3_bind_text(statement, 4, memo.tags.joined(separator: " "), -1, sqliteTransient)
+        try stepDone(statement)
+    }
+
+    private func insertRevisionRow(_ revision: MemoRevision) throws {
+        let statement = try prepare("""
+        INSERT OR IGNORE INTO memo_revisions (
+            id, memo_id, text, tags_json, created_at, memo_updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?);
+        """)
+        defer { sqlite3_finalize(statement) }
+
+        try bind(revision, to: statement)
+        try stepDone(statement)
+    }
+
+    private func deleteRevisions(memoID: UUID) throws {
+        let statement = try prepare("DELETE FROM memo_revisions WHERE memo_id = ?;")
+        defer { sqlite3_finalize(statement) }
+
+        sqlite3_bind_text(statement, 1, memoID.uuidString, -1, sqliteTransient)
         try stepDone(statement)
     }
 
@@ -291,6 +370,18 @@ final class SQLiteMemoDatabase {
         sqlite3_bind_int(statement, 7, memo.isArchived ? 1 : 0)
     }
 
+    private func bind(_ revision: MemoRevision, to statement: OpaquePointer?) throws {
+        let tagsData = try JSONEncoder().encode(revision.tags)
+        let tagsJSON = String(decoding: tagsData, as: UTF8.self)
+
+        sqlite3_bind_text(statement, 1, revision.id.uuidString, -1, sqliteTransient)
+        sqlite3_bind_text(statement, 2, revision.memoID.uuidString, -1, sqliteTransient)
+        sqlite3_bind_text(statement, 3, revision.text, -1, sqliteTransient)
+        sqlite3_bind_text(statement, 4, tagsJSON, -1, sqliteTransient)
+        sqlite3_bind_double(statement, 5, revision.createdAt.timeIntervalSince1970)
+        sqlite3_bind_double(statement, 6, revision.memoUpdatedAt.timeIntervalSince1970)
+    }
+
     private func stepDone(_ statement: OpaquePointer?) throws {
         guard sqlite3_step(statement) == SQLITE_DONE else {
             throw DatabaseError.stepFailed(Self.errorMessage(database))
@@ -319,6 +410,32 @@ final class SQLiteMemoDatabase {
             tags: tags,
             isPinned: isPinned,
             isArchived: isArchived
+        )
+    }
+
+    private func revision(from statement: OpaquePointer?) throws -> MemoRevision {
+        let idText = Self.columnText(statement, index: 0)
+        let memoIDText = Self.columnText(statement, index: 1)
+        guard let id = UUID(uuidString: idText) else {
+            throw DatabaseError.invalidID(idText)
+        }
+        guard let memoID = UUID(uuidString: memoIDText) else {
+            throw DatabaseError.invalidID(memoIDText)
+        }
+
+        let text = Self.columnText(statement, index: 2)
+        let tagsJSON = Self.columnText(statement, index: 3)
+        let tags = (try? JSONDecoder().decode([String].self, from: Data(tagsJSON.utf8))) ?? []
+        let createdAt = Date(timeIntervalSince1970: sqlite3_column_double(statement, 4))
+        let memoUpdatedAt = Date(timeIntervalSince1970: sqlite3_column_double(statement, 5))
+
+        return MemoRevision(
+            id: id,
+            memoID: memoID,
+            text: text,
+            tags: tags,
+            createdAt: createdAt,
+            memoUpdatedAt: memoUpdatedAt
         )
     }
 

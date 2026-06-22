@@ -38,6 +38,7 @@ final class MemoStore: ObservableObject {
     @Published var selectedTag: String? = nil
     @Published var homeMode: MemoHomeMode = .timeline
     @Published private(set) var reviewMemo: Memo?
+    @Published private(set) var revisionsByMemoID: [UUID: [MemoRevision]] = [:]
 
     private let fileURL: URL
     private let backupFileURL: URL
@@ -185,14 +186,16 @@ final class MemoStore: ObservableObject {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return false }
         guard let index = memos.firstIndex(where: { $0.id == memo.id }) else { return false }
+        guard trimmed != memos[index].text else { return true }
 
         let previousMemo = memos[index]
         let previousAttachments = SharedAttachmentStore.attachments(in: memos[index].text)
         let updatedAttachments = SharedAttachmentStore.attachments(in: trimmed)
+        let revision = makeRevision(from: previousMemo)
         memos[index].text = trimmed
         memos[index].tags = TagParser.extractTags(from: trimmed)
         memos[index].updatedAt = Date()
-        if save(memos[index]) {
+        if save(memos[index], revision: revision) {
             deleteRemovedAttachments(previousAttachments: previousAttachments, updatedAttachments: updatedAttachments)
             return true
         } else {
@@ -248,10 +251,12 @@ final class MemoStore: ObservableObject {
 
         let previousReviewMemo = reviewMemo
         let previousSelectedTag = selectedTag
+        let previousRevisions = revisionsByMemoID[memo.id] ?? []
         let removedMemo = memos.remove(at: index)
         if reviewMemo?.id == memo.id {
             reviewMemo = nil
         }
+        revisionsByMemoID[memo.id] = nil
         if let selectedTag = selectedTag, !allTags.contains(selectedTag) {
             self.selectedTag = nil
         }
@@ -261,6 +266,47 @@ final class MemoStore: ObservableObject {
             memos.insert(removedMemo, at: index)
             reviewMemo = previousReviewMemo
             selectedTag = previousSelectedTag
+            revisionsByMemoID[memo.id] = previousRevisions
+        }
+    }
+
+    func revisions(for memo: Memo) -> [MemoRevision] {
+        revisionsByMemoID[memo.id] ?? []
+    }
+
+    @discardableResult
+    func restore(_ revision: MemoRevision, for memo: Memo) -> Bool {
+        guard storageError == nil else {
+            return false
+        }
+
+        guard revision.memoID == memo.id,
+              let index = memos.firstIndex(where: { $0.id == memo.id }) else {
+            return false
+        }
+
+        let currentMemo = memos[index]
+        let restoredText = revision.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !restoredText.isEmpty else {
+            return false
+        }
+        guard restoredText != currentMemo.text else {
+            return true
+        }
+
+        let previousAttachments = SharedAttachmentStore.attachments(in: currentMemo.text)
+        let restoredAttachments = SharedAttachmentStore.attachments(in: restoredText)
+        let currentRevision = makeRevision(from: currentMemo)
+        memos[index].text = restoredText
+        memos[index].tags = TagParser.extractTags(from: restoredText)
+        memos[index].updatedAt = Date()
+
+        if save(memos[index], revision: currentRevision) {
+            deleteRemovedAttachments(previousAttachments: previousAttachments, updatedAttachments: restoredAttachments)
+            return true
+        } else {
+            memos[index] = currentMemo
+            return false
         }
     }
 
@@ -327,7 +373,12 @@ final class MemoStore: ObservableObject {
 
     func makeBackupArchive(includeInlineAttachmentData: Bool) throws -> MemoBackupArchive {
         let sortedMemos = memos.sorted { sortMemos($0, $1) }
-        let attachments = try uniqueAttachments(in: sortedMemos).map { attachment -> MemoBackupAttachment in
+        let sortedRevisions = revisionsByMemoID
+            .values
+            .flatMap { $0 }
+            .sorted { $0.createdAt > $1.createdAt }
+        let attachmentTexts = sortedMemos.map(\.text) + sortedRevisions.map(\.text)
+        let attachments = try uniqueAttachments(in: attachmentTexts).map { attachment -> MemoBackupAttachment in
             let base64Data: String?
             if includeInlineAttachmentData {
                 guard let data = SharedAttachmentStore.data(for: attachment) else {
@@ -351,12 +402,13 @@ final class MemoStore: ObservableObject {
             version: 1,
             exportedAt: Date(),
             memos: sortedMemos,
-            attachments: attachments
+            attachments: attachments,
+            revisions: sortedRevisions
         )
     }
 
     func importJSON(_ text: String) throws -> Int {
-        if let storageError {
+        if let storageError = storageError {
             throw storageError
         }
 
@@ -389,20 +441,34 @@ final class MemoStore: ObservableObject {
     }
 
     func importBackupArchive(_ archive: MemoBackupArchive) throws -> Int {
-        if let storageError {
+        if let storageError = storageError {
             throw storageError
         }
 
         let previousMemos = memos
+        let previousRevisions = revisionsByMemoID
         let importableMemos = archive.memos.filter { memo in
             !memo.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 && !memos.contains(where: { $0.id == memo.id })
         }
+        let importableMemoIDs = Set(importableMemos.map(\.id))
+        let importableRevisions = archive.revisions.filter { revision in
+            importableMemoIDs.contains(revision.memoID)
+                && !revision.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
         let existingReferencedAttachmentPaths = Set(memos.flatMap { memo in
             SharedAttachmentStore.attachments(in: memo.text).map(\.relativePath)
         })
+        let existingRevisionAttachmentPaths = Set(revisionsByMemoID.values.flatMap { revisions in
+            revisions.flatMap { revision in
+                SharedAttachmentStore.attachments(in: revision.text).map(\.relativePath)
+            }
+        })
         let importableReferencedAttachmentPaths = Set(importableMemos.flatMap { memo in
             SharedAttachmentStore.attachments(in: memo.text).map(\.relativePath)
+        })
+        let importableRevisionAttachmentPaths = Set(importableRevisions.flatMap { revision in
+            SharedAttachmentStore.attachments(in: revision.text).map(\.relativePath)
         })
         var restoredAttachments: [String: SharedAttachment] = [:]
         var newlyRestoredAttachments: [SharedAttachment] = []
@@ -413,7 +479,10 @@ final class MemoStore: ObservableObject {
 
         func deleteUnreferencedNewlyRestoredAttachments() {
             newlyRestoredAttachments
-                .filter { !existingReferencedAttachmentPaths.contains($0.relativePath) }
+                .filter {
+                    !existingReferencedAttachmentPaths.contains($0.relativePath)
+                        && !existingRevisionAttachmentPaths.contains($0.relativePath)
+                }
                 .forEach { SharedAttachmentStore.delete($0) }
         }
 
@@ -431,8 +500,13 @@ final class MemoStore: ObservableObject {
         let missingExistingReferencedAttachmentPaths = Set(existingReferencedAttachmentPaths.filter { relativePath in
             !attachmentFileExists(relativePath: relativePath)
         })
+        let missingExistingRevisionAttachmentPaths = Set(existingRevisionAttachmentPaths.filter { relativePath in
+            !attachmentFileExists(relativePath: relativePath)
+        })
         let attachmentPathsNeedingArchiveData = importableReferencedAttachmentPaths
+            .union(importableRevisionAttachmentPaths)
             .union(missingExistingReferencedAttachmentPaths)
+            .union(missingExistingRevisionAttachmentPaths)
 
         do {
             for attachment in archive.attachments where attachmentPathsNeedingArchiveData.contains(attachment.relativePath) {
@@ -464,11 +538,19 @@ final class MemoStore: ObservableObject {
             let missingImportableAttachmentPaths = importableReferencedAttachmentPaths.filter { relativePath in
                 restoredAttachments[relativePath] == nil
             }
+            let missingImportableRevisionAttachmentPaths = importableRevisionAttachmentPaths.filter { relativePath in
+                restoredAttachments[relativePath] == nil
+            }
             let missingExistingRepairAttachmentPaths = missingExistingReferencedAttachmentPaths.filter { relativePath in
                 restoredAttachments[relativePath] == nil
             }
+            let missingExistingRevisionRepairAttachmentPaths = missingExistingRevisionAttachmentPaths.filter { relativePath in
+                restoredAttachments[relativePath] == nil
+            }
             let missingAttachmentPaths = missingImportableAttachmentPaths
+                .union(missingImportableRevisionAttachmentPaths)
                 .union(missingExistingRepairAttachmentPaths)
+                .union(missingExistingRevisionRepairAttachmentPaths)
             if let missingAttachmentPath = missingAttachmentPaths.sorted().first {
                 throw MemoBackupArchiveError.missingAttachmentData(missingAttachmentPath)
             }
@@ -485,6 +567,17 @@ final class MemoStore: ObservableObject {
                 imported += 1
             }
 
+            for revision in importableRevisions {
+                var normalized = revision
+                normalized.text = SharedAttachmentStore.replacingAttachmentReferences(
+                    in: revision.text,
+                    remapping: restoredAttachments
+                )
+                normalized.tags = TagParser.extractTags(from: normalized.text)
+                revisionsByMemoID[normalized.memoID, default: []].append(normalized)
+            }
+            sortRevisionCache()
+
             guard imported > 0 else {
                 deleteUnreferencedNewlyRestoredAttachments()
                 return 0
@@ -492,6 +585,7 @@ final class MemoStore: ObservableObject {
 
             if !saveAll() {
                 memos = previousMemos
+                revisionsByMemoID = previousRevisions
                 deleteNewlyRestoredAttachments()
                 return 0
             }
@@ -499,6 +593,7 @@ final class MemoStore: ObservableObject {
             return imported
         } catch {
             memos = previousMemos
+            revisionsByMemoID = previousRevisions
             deleteNewlyRestoredAttachments()
             throw error
         }
@@ -657,6 +752,7 @@ final class MemoStore: ObservableObject {
                     try database.upsert(legacyMemos)
                 }
                 memos = try database.fetchAll()
+                loadRevisions()
                 cleanupUnreferencedAttachments()
                 return
             } catch {
@@ -665,7 +761,24 @@ final class MemoStore: ObservableObject {
         }
 
         memos = loadLegacyMemos() ?? []
+        revisionsByMemoID = [:]
         cleanupUnreferencedAttachments()
+    }
+
+    private func loadRevisions() {
+        guard let database = database else {
+            revisionsByMemoID = [:]
+            return
+        }
+
+        do {
+            let revisions = try database.fetchAllRevisions()
+            revisionsByMemoID = Dictionary(grouping: revisions, by: \.memoID)
+            sortRevisionCache()
+        } catch {
+            assertionFailure("Failed to load memo revisions: \(error)")
+            revisionsByMemoID = [:]
+        }
     }
 
     private func loadLegacyMemos() -> [Memo]? {
@@ -681,10 +794,13 @@ final class MemoStore: ObservableObject {
     }
 
     @discardableResult
-    private func save(_ memo: Memo) -> Bool {
+    private func save(_ memo: Memo, revision: MemoRevision? = nil) -> Bool {
         if let database = database {
             do {
-                try database.upsert(memo)
+                try database.upsert(memo, revision: revision)
+                if let revision = revision {
+                    cache(revision)
+                }
                 return true
             } catch {
                 assertionFailure("Failed to save memo in SQLite: \(error)")
@@ -699,7 +815,8 @@ final class MemoStore: ObservableObject {
     private func saveAll() -> Bool {
         if let database = database {
             do {
-                try database.upsert(memos)
+                let revisions = revisionsByMemoID.values.flatMap { $0 }
+                try database.replaceAll(memos: memos, revisions: revisions)
                 return true
             } catch {
                 assertionFailure("Failed to save memos in SQLite: \(error)")
@@ -737,9 +854,7 @@ final class MemoStore: ObservableObject {
     private func deleteAttachmentsIfUnreferenced(_ attachments: [SharedAttachment]) {
         guard !attachments.isEmpty else { return }
 
-        let referencedPaths = Set(memos.flatMap { memo in
-            SharedAttachmentStore.attachments(in: memo.text).map(\.relativePath)
-        })
+        let referencedPaths = referencedAttachmentPaths()
         var seenPaths: Set<String> = []
 
         for attachment in attachments {
@@ -751,12 +866,12 @@ final class MemoStore: ObservableObject {
         }
     }
 
-    private func uniqueAttachments(in memos: [Memo]) -> [SharedAttachment] {
+    private func uniqueAttachments(in texts: [String]) -> [SharedAttachment] {
         var seenPaths: Set<String> = []
         var result: [SharedAttachment] = []
 
-        for memo in memos {
-            for attachment in SharedAttachmentStore.attachments(in: memo.text) {
+        for text in texts {
+            for attachment in SharedAttachmentStore.attachments(in: text) {
                 guard !seenPaths.contains(attachment.relativePath) else { continue }
                 seenPaths.insert(attachment.relativePath)
                 result.append(attachment)
@@ -768,8 +883,43 @@ final class MemoStore: ObservableObject {
 
     private func cleanupUnreferencedAttachments() {
         SharedAttachmentStore.deleteUnreferencedAttachments(
-            referencedBy: memos.map(\.text)
+            referencedBy: memos.map(\.text) + revisionsByMemoID.values.flatMap { $0.map(\.text) }
         )
+    }
+
+    private func referencedAttachmentPaths() -> Set<String> {
+        let currentPaths = memos.flatMap { memo in
+            SharedAttachmentStore.attachments(in: memo.text).map(\.relativePath)
+        }
+        let revisionPaths = revisionsByMemoID.values.flatMap { revisions in
+            revisions.flatMap { revision in
+                SharedAttachmentStore.attachments(in: revision.text).map(\.relativePath)
+            }
+        }
+        return Set(currentPaths + revisionPaths)
+    }
+
+    private func makeRevision(from memo: Memo) -> MemoRevision {
+        MemoRevision(
+            memoID: memo.id,
+            text: memo.text,
+            tags: memo.tags,
+            memoUpdatedAt: memo.updatedAt
+        )
+    }
+
+    private func cache(_ revision: MemoRevision) {
+        var revisions = revisionsByMemoID[revision.memoID] ?? []
+        if !revisions.contains(where: { $0.id == revision.id }) {
+            revisions.append(revision)
+        }
+        revisionsByMemoID[revision.memoID] = revisions.sorted { $0.createdAt > $1.createdAt }
+    }
+
+    private func sortRevisionCache() {
+        for key in revisionsByMemoID.keys {
+            revisionsByMemoID[key] = revisionsByMemoID[key]?.sorted { $0.createdAt > $1.createdAt }
+        }
     }
 
     @discardableResult

@@ -10,7 +10,9 @@ struct MemoDetailView: View {
     @State private var text: String
     @State private var isEditing = false
     @State private var isShowingDeleteConfirmation = false
+    @State private var isShowingHistory = false
     @State private var editErrorMessage: String?
+    @State private var historyErrorMessage: String?
     @FocusState private var isFocused: Bool
 
     init(memo: Memo) {
@@ -187,18 +189,46 @@ struct MemoDetailView: View {
                     }
                     .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 } else {
-                    Button {
-                        text = currentMemo.text
-                        editErrorMessage = nil
-                        isEditing = true
-                        DispatchQueue.main.async {
-                            isFocused = true
+                    HStack(spacing: 8) {
+                        Button {
+                            historyErrorMessage = nil
+                            isShowingHistory = true
+                        } label: {
+                            Label("历史", systemImage: "clock.arrow.circlepath")
                         }
-                    } label: {
-                        Label("编辑", systemImage: "pencil")
+                        .disabled(store.revisions(for: currentMemo).isEmpty)
+
+                        Button {
+                            text = currentMemo.text
+                            editErrorMessage = nil
+                            isEditing = true
+                            DispatchQueue.main.async {
+                                isFocused = true
+                            }
+                        } label: {
+                            Label("编辑", systemImage: "pencil")
+                        }
                     }
                 }
             }
+        }
+        .sheet(isPresented: $isShowingHistory) {
+            MemoHistoryView(
+                memo: currentMemo,
+                revisions: store.revisions(for: currentMemo),
+                errorMessage: historyErrorMessage,
+                onRestore: { revision in
+                    if store.restore(revision, for: currentMemo) {
+                        if let updatedMemo = store.memos.first(where: { $0.id == currentMemo.id }) {
+                            text = updatedMemo.text
+                        }
+                        historyErrorMessage = nil
+                        isShowingHistory = false
+                    } else {
+                        historyErrorMessage = "恢复失败，请稍后再试。"
+                    }
+                }
+            )
         }
         .confirmationDialog("删除这条闪念？", isPresented: $isShowingDeleteConfirmation, titleVisibility: .visible) {
             Button("删除", role: .destructive) {
@@ -215,5 +245,86 @@ struct MemoDetailView: View {
 
     private func links(in text: String) -> [URL] {
         LinkExtractor.urls(in: text)
+    }
+}
+
+private struct MemoHistoryView: View {
+    let memo: Memo
+    let revisions: [MemoRevision]
+    let errorMessage: String?
+    let onRestore: (MemoRevision) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.appBackground.ignoresSafeArea()
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        if let errorMessage = errorMessage {
+                            Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                                .font(.footnote)
+                                .foregroundStyle(Color.red)
+                                .padding(.horizontal, 16)
+                                .padding(.top, 12)
+                        }
+
+                        ForEach(revisions) { revision in
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack(alignment: .firstTextBaseline) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(DateFormatters.detail.string(from: revision.createdAt))
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundStyle(Color.primaryText)
+                                        Text("原更新时间 \(DateFormatters.detail.string(from: revision.memoUpdatedAt))")
+                                            .font(.caption)
+                                            .foregroundStyle(Color.secondaryText)
+                                    }
+
+                                    Spacer()
+
+                                    Button {
+                                        onRestore(revision)
+                                    } label: {
+                                        Label("恢复", systemImage: "arrow.uturn.backward")
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .tint(Color.accentGreen)
+                                }
+
+                                Text(Self.previewText(for: revision.text))
+                                    .font(.footnote)
+                                    .lineLimit(4)
+                                    .foregroundStyle(Color.secondaryText)
+                            }
+                            .padding(14)
+                            .background(Color.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .stroke(Color.border, lineWidth: 1)
+                            )
+                        }
+                    }
+                    .padding(18)
+                }
+            }
+            .navigationTitle("历史版本")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("关闭") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private static func previewText(for text: String) -> String {
+        SharedAttachmentStore.displayTextWithoutAttachmentReferences(text)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

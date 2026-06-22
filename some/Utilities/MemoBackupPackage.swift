@@ -104,7 +104,8 @@ enum MemoBackupPackage {
             version: archive.version,
             exportedAt: archive.exportedAt,
             memos: archive.memos,
-            attachments: hydratedAttachments
+            attachments: hydratedAttachments,
+            revisions: archive.revisions
         )
         return try store.importBackupArchive(hydratedArchive)
     }

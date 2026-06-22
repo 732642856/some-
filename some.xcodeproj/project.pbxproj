@@ -43,6 +43,8 @@
 		7A1000010000000000000034 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000037 /* libsqlite3.tbd */; };
 		7A1000010000000000000035 /* MemoBackupArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000038 /* MemoBackupArchive.swift */; };
 		7A1000010000000000000036 /* MemoBackupArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000038 /* MemoBackupArchive.swift */; };
+		7A7000010000000000000001 /* MemoRevision.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A7001010000000000000001 /* MemoRevision.swift */; };
+		7A7000010000000000000003 /* MemoRevision.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A7001010000000000000001 /* MemoRevision.swift */; };
 		7A6000010000000000000001 /* MemoBackupPackage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6001010000000000000001 /* MemoBackupPackage.swift */; };
 		7A6000010000000000000002 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 7A600C010000000000000001 /* ZIPFoundation */; };
 		7A6000010000000000000003 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 7A600C010000000000000001 /* ZIPFoundation */; };
@@ -140,6 +142,7 @@
 		7A1001010000000000000036 /* SQLiteMemoDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteMemoDatabase.swift; sourceTree = "<group>"; };
 		7A1001010000000000000037 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		7A1001010000000000000038 /* MemoBackupArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoBackupArchive.swift; sourceTree = "<group>"; };
+		7A7001010000000000000001 /* MemoRevision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoRevision.swift; sourceTree = "<group>"; };
 		7A2001010000000000000001 /* SharedMemoStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedMemoStorage.swift; sourceTree = "<group>"; };
 		7A2001010000000000000002 /* SharedMemoTextComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedMemoTextComposer.swift; sourceTree = "<group>"; };
 		7A2001010000000000000003 /* some.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = some.entitlements; sourceTree = "<group>"; };
@@ -223,6 +226,7 @@
 			children = (
 				7A1001010000000000000002 /* Memo.swift */,
 				7A1001010000000000000038 /* MemoBackupArchive.swift */,
+				7A7001010000000000000001 /* MemoRevision.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -479,6 +483,7 @@
 				7A1000010000000000000001 /* SomeApp.swift in Sources */,
 					7A1000010000000000000002 /* Memo.swift in Sources */,
 					7A1000010000000000000035 /* MemoBackupArchive.swift in Sources */,
+					7A7000010000000000000001 /* MemoRevision.swift in Sources */,
 					7A1000010000000000000003 /* MemoStore.swift in Sources */,
 				7A1000010000000000000004 /* TagParser.swift in Sources */,
 				7A1000010000000000000005 /* DateFormatters.swift in Sources */,
@@ -532,6 +537,7 @@
 					7A2000010000000000000004 /* ShareViewController.swift in Sources */,
 					7A2000010000000000000005 /* Memo.swift in Sources */,
 					7A1000010000000000000036 /* MemoBackupArchive.swift in Sources */,
+					7A7000010000000000000003 /* MemoRevision.swift in Sources */,
 					7A2000010000000000000006 /* MemoStore.swift in Sources */,
 				7A2000010000000000000007 /* TagParser.swift in Sources */,
 				7A2000010000000000000008 /* SQLiteMemoDatabase.swift in Sources */,

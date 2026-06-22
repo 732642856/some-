@@ -88,6 +88,62 @@ final class SomeTests: XCTestCase {
         SharedAttachmentStore.delete(restoredAttachments[0])
     }
 
+    func testBackupArchiveRoundTripRestoresRevisionsAndTheirAttachments() throws {
+        let source = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let attachment = try SharedAttachmentStore.save(
+            data: Data("revision attachment".utf8),
+            suggestedFilename: "revision-\(UUID().uuidString).txt",
+            typeIdentifier: UTType.plainText.identifier
+        )
+        defer { SharedAttachmentStore.delete(attachment) }
+
+        source.addMemo(text: "历史里有附件 #导出\n\n\(attachment.referenceLine)")
+        guard let memo = source.memos.first else {
+            return XCTFail("Expected memo")
+        }
+        XCTAssertTrue(source.update(memo, text: "当前正文 #导出"))
+
+        let exported = try source.exportBackupArchive()
+        SharedAttachmentStore.delete(attachment)
+
+        let target = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let imported = try target.importJSON(exported)
+
+        XCTAssertEqual(imported, 1)
+        guard let importedMemo = target.memos.first,
+              let importedRevision = target.revisions(for: importedMemo).first else {
+            return XCTFail("Expected imported revision")
+        }
+        XCTAssertEqual(importedRevision.text, "历史里有附件 #导出\n\n\(attachment.referenceLine)")
+        XCTAssertEqual(
+            SharedAttachmentStore.data(for: attachment),
+            Data("revision attachment".utf8)
+        )
+        SharedAttachmentStore.delete(attachment)
+    }
+
+    func testBackupPackageRoundTripRestoresRevisions() throws {
+        let source = MemoStore(filename: "test-\(UUID().uuidString).json")
+        source.addMemo(text: "ZIP 第一版 #历史")
+
+        guard let memo = source.memos.first else {
+            return XCTFail("Expected memo")
+        }
+
+        XCTAssertTrue(source.update(memo, text: "ZIP 第二版 #历史"))
+        let packageURL = try MemoBackupPackage.export(from: source)
+        defer { try? FileManager.default.removeItem(at: packageURL) }
+
+        let target = MemoStore(filename: "test-\(UUID().uuidString).json")
+        XCTAssertEqual(try MemoBackupPackage.importPackage(at: packageURL, into: target), 1)
+
+        guard let importedMemo = target.memos.first else {
+            return XCTFail("Expected imported memo")
+        }
+
+        XCTAssertEqual(target.revisions(for: importedMemo).first?.text, "ZIP 第一版 #历史")
+    }
+
     func testBackupArchiveExportFailsWhenReferencedAttachmentIsMissing() throws {
         let source = MemoStore(filename: "test-\(UUID().uuidString).json")
         let attachment = try SharedAttachmentStore.save(
@@ -414,6 +470,84 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(store.memos.isEmpty)
     }
 
+    func testMemoUpdateCreatesRestorableRevision() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.addMemo(text: "第一版 #历史")
+
+        guard let memo = store.memos.first else {
+            return XCTFail("Expected memo")
+        }
+
+        XCTAssertTrue(store.update(memo, text: "第二版 #历史"))
+
+        guard let updatedMemo = store.memos.first else {
+            return XCTFail("Expected updated memo")
+        }
+        let revisions = store.revisions(for: updatedMemo)
+        XCTAssertEqual(revisions.count, 1)
+        XCTAssertEqual(revisions.first?.text, "第一版 #历史")
+        XCTAssertEqual(revisions.first?.tags, ["历史"])
+    }
+
+    func testMemoUpdateDoesNotCreateRevisionWhenTextIsUnchanged() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.addMemo(text: "不变内容 #历史")
+
+        guard let memo = store.memos.first else {
+            return XCTFail("Expected memo")
+        }
+
+        XCTAssertTrue(store.update(memo, text: "不变内容 #历史"))
+
+        guard let unchangedMemo = store.memos.first else {
+            return XCTFail("Expected unchanged memo")
+        }
+        XCTAssertTrue(store.revisions(for: unchangedMemo).isEmpty)
+    }
+
+    func testMemoRestoreCreatesReverseRevision() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.addMemo(text: "原始内容 #历史")
+
+        guard let memo = store.memos.first else {
+            return XCTFail("Expected memo")
+        }
+
+        XCTAssertTrue(store.update(memo, text: "当前内容 #恢复"))
+        guard let updatedMemo = store.memos.first,
+              let revision = store.revisions(for: updatedMemo).first else {
+            return XCTFail("Expected revision")
+        }
+
+        XCTAssertTrue(store.restore(revision, for: updatedMemo))
+
+        guard let restoredMemo = store.memos.first else {
+            return XCTFail("Expected restored memo")
+        }
+        XCTAssertEqual(restoredMemo.text, "原始内容 #历史")
+        XCTAssertEqual(restoredMemo.tags, ["历史"])
+        XCTAssertTrue(store.revisions(for: restoredMemo).contains { $0.text == "当前内容 #恢复" })
+    }
+
+    func testMemoRevisionsPersistAcrossStoreReloads() {
+        let filename = "test-\(UUID().uuidString).json"
+        let source = MemoStore(filename: filename)
+        source.addMemo(text: "重载前 #历史")
+
+        guard let memo = source.memos.first else {
+            return XCTFail("Expected memo")
+        }
+
+        XCTAssertTrue(source.update(memo, text: "重载后 #历史"))
+
+        let reloaded = MemoStore(filename: filename)
+        guard let reloadedMemo = reloaded.memos.first else {
+            return XCTFail("Expected reloaded memo")
+        }
+
+        XCTAssertEqual(reloaded.revisions(for: reloadedMemo).first?.text, "重载前 #历史")
+    }
+
     func testMemoTaskParserFindsMarkdownTasks() {
         let items = MemoTaskParser.taskItems(in: "今天要处理\n- [ ] 写发布说明\n  - [x] 检查截图")
 
@@ -676,6 +810,29 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(store.update(firstMemo, text: "第一条移除附件"))
 
         XCTAssertTrue(FileManager.default.fileExists(atPath: attachmentURL.path))
+    }
+
+    func testMemoUpdateKeepsAttachmentReferencedByRevision() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let attachment = try SharedAttachmentStore.save(
+            data: Data("revision referenced".utf8),
+            suggestedFilename: "revision-kept-\(UUID().uuidString).txt",
+            typeIdentifier: UTType.plainText.identifier
+        )
+        defer { SharedAttachmentStore.delete(attachment) }
+        guard let attachmentURL = SharedAttachmentStore.url(for: attachment) else {
+            return XCTFail("Expected attachment URL")
+        }
+        store.addMemo(text: "第一版带附件\n\n\(attachment.referenceLine)")
+
+        guard let memo = store.memos.first else {
+            return XCTFail("Expected memo")
+        }
+
+        XCTAssertTrue(store.update(memo, text: "第二版移除附件"))
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: attachmentURL.path))
+        XCTAssertEqual(store.revisions(for: store.memos[0]).first?.text, "第一版带附件\n\n\(attachment.referenceLine)")
     }
 
     func testMemoDeleteDeletesAttachmentAfterStorageDeleteSucceeds() throws {
