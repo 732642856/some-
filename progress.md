@@ -317,3 +317,12 @@
 - Apple 官方文档显示 `VNGenerateForegroundInstanceMaskRequest` / `VNInstanceMaskObservation` 为 iOS 17+，`VNInstanceMaskObservation` 可生成所有前景实例的 masked image；当前阶段以 iOS 17 渐进增强方式接入，iOS 16 或识别失败时安全回退原图。
 - 按 Superpowers/TDD 写入对象主体测试后再实现：`ImageEditRecipe.SubjectExtraction.Mode.object`、摘要“智能主体”、输出文件名 `subject`、图片编辑保存正文“主体：智能主体”。
 - 完成阶段 34。本地验证通过：`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`、`.github/workflows/ios-ci.yml` YAML 解析、旧 Swift parser 覆盖 `Memo.swift` / `ImageEditRenderer.swift` / `ImageEditorView.swift` / `SomeTests.swift`。
+
+## 2026-06-23T15:24:03+08:00
+
+- 回到阶段 17：远端 CI 复验与剩余失败修复。最新 GitHub Actions run `28009254154` 对应 `82ccb67`，Build and test 仍在 Run tests。
+- 开工前复查 Git 状态，发现 `SomeTests/SomeTests.swift` 与 `WardrobeInsightEngine.swift` 已有未提交正向碎片；已逐行读取并保留，不回滚其他窗口可能留下的修复。
+- 整合测试兼容性修复：内容筛选断言改为集合比较，避免 `Set` 去重排序实现变动造成测试误报；音频/视频断言改为 UTType conform 检查，兼容系统返回的等价媒体类型；视频缓存 key 测试改为通过取帧时间验证 key 变化，避免依赖临时文件修改时间精度。
+- 保留并纳入 `MemoBackupPackage.fileExtension` 的 `nonisolated` 修复，避免 `@MainActor` 类型里的纯常量在文档类型静态声明等非隔离上下文触发 Swift 并发隔离报错。
+- 衣橱天气洞察改为保留“天气”原始字段，避免 `多云，午后阵雨 22C` 被通用字段拆分逻辑切碎；新增回归测试覆盖天气穿搭、打包建议和说明文案保留完整天气短语。
+- 本地验证通过：`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、旧 Swift parser 覆盖 `MemoSearchQuery.swift` / `VideoThumbnailGenerator.swift` / `WardrobeInsightEngine.swift` / `SomeTests.swift`。

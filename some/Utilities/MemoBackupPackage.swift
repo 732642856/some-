@@ -1,12 +1,12 @@
 import Foundation
 import ZIPFoundation
 
-@MainActor
 enum MemoBackupPackage {
     static let fileExtension = "somebackup"
     private static let manifestFilename = "manifest.json"
     private static let attachmentsDirectoryName = "attachments"
 
+    @MainActor
     static func export(from store: MemoStore) throws -> URL {
         let packageURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("some-exports", isDirectory: true)
@@ -47,6 +47,7 @@ enum MemoBackupPackage {
         return packageURL
     }
 
+    @MainActor
     static func importPackage(at packageURL: URL, into store: MemoStore) throws -> Int {
         let accessed = packageURL.startAccessingSecurityScopedResource()
         defer {

@@ -265,7 +265,7 @@ enum WardrobeInsightEngine {
             title: asset.title,
             itemNames: fields["单品"] ?? [],
             scenes: fields["场景"] ?? [],
-            weather: fields["天气"]?.joined(separator: "、"),
+            weather: rawField("天气", in: asset.summary),
             note: fields["备注"]?.joined(separator: "、"),
             wornAt: wornAt,
             createdAt: asset.createdAt
@@ -734,6 +734,15 @@ enum WardrobeInsightEngine {
             fields[parsed.label] = splitValues(parsed.value)
         }
         return fields
+    }
+
+    private static func rawField(_ label: String, in summary: String?) -> String? {
+        guard let summary = summary else { return nil }
+        for part in summary.components(separatedBy: " · ") {
+            guard let parsed = field(in: part), parsed.label == label else { continue }
+            return parsed.value.isEmpty ? nil : parsed.value
+        }
+        return nil
     }
 
     private static func field(in text: String) -> (label: String, value: String)? {

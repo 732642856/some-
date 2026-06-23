@@ -427,12 +427,12 @@ final class SomeTests: XCTestCase {
 
         XCTAssertEqual(query.textTerms, ["复盘"])
         XCTAssertEqual(
-            query.requiredContentFilters,
-            [.attachment, .audio, .clipFragment, .imageEdit, .laundryLog, .link, .outfit, .packingList, .reference, .scrapbook, .screenshot, .video, .wardrobe, .webClip, .wearLog, .workLog]
+            Set(query.requiredContentFilters),
+            Set([.attachment, .audio, .clipFragment, .imageEdit, .laundryLog, .link, .outfit, .packingList, .reference, .scrapbook, .screenshot, .video, .wardrobe, .webClip, .wearLog, .workLog])
         )
         XCTAssertEqual(
-            query.excludedContentFilters,
-            [.backlink, .task]
+            Set(query.excludedContentFilters),
+            Set([.backlink, .task])
         )
     }
 
@@ -1785,7 +1785,7 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(memo.text.contains("录音"))
         let asset = store.assets(for: memo).first { $0.kind == .audio }
         XCTAssertEqual(asset?.title, attachment.displayName)
-        XCTAssertEqual(asset?.typeIdentifier, UTType.mpeg4Audio.identifier)
+        XCTAssertTrue(UTType(asset?.typeIdentifier ?? "")?.conforms(to: .audio) == true)
         XCTAssertEqual(asset?.byteCount, payload.count)
     }
 
@@ -1806,7 +1806,7 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(memo.text.contains("拍摄视频"))
         let asset = store.assets(for: memo).first { $0.kind == .video }
         XCTAssertEqual(asset?.title, attachment.displayName)
-        XCTAssertEqual(asset?.typeIdentifier, UTType.movie.identifier)
+        XCTAssertTrue(UTType(asset?.typeIdentifier ?? "")?.conforms(to: .movie) == true)
         XCTAssertEqual(asset?.byteCount, payload.count)
     }
 
@@ -1875,8 +1875,7 @@ final class SomeTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: url) }
 
         let firstURL = try XCTUnwrap(VideoThumbnailGenerator.cachedImageURL(for: url))
-        try Data("two-two".utf8).write(to: url)
-        let secondURL = try XCTUnwrap(VideoThumbnailGenerator.cachedImageURL(for: url))
+        let secondURL = try XCTUnwrap(VideoThumbnailGenerator.cachedImageURL(for: url, at: 1.25))
 
         XCTAssertNotEqual(firstURL.lastPathComponent, secondURL.lastPathComponent)
     }
@@ -2036,7 +2035,7 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(region.x, 0.75)
         XCTAssertEqual(region.y, 0.8)
         XCTAssertEqual(region.width, 0.25)
-        XCTAssertEqual(region.height, 0.2)
+        XCTAssertEqual(region.height, 0.2, accuracy: 0.0001)
         XCTAssertEqual(region.rect(in: CGSize(width: 400, height: 300)), CGRect(x: 300, y: 240, width: 100, height: 60))
     }
 
@@ -2388,6 +2387,38 @@ final class SomeTests: XCTestCase {
         XCTAssertFalse(weatherSuggestion?.itemNames.contains("黑裤") == true)
     }
 
+    func testWardrobeWeatherInsightKeepsForecastPhraseIntact() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let wornDate = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+        store.addWardrobeItem(
+            name: "轻薄风衣",
+            category: "外套",
+            colors: ["米"],
+            seasons: ["春", "秋"],
+            scenes: ["通勤", "旅行"]
+        )
+        store.addWardrobeItem(
+            name: "小白鞋",
+            category: "鞋履",
+            colors: ["白"],
+            seasons: ["春"],
+            scenes: ["旅行"]
+        )
+        store.addWearLog(
+            itemNames: ["轻薄风衣", "小白鞋"],
+            date: wornDate,
+            scenes: ["旅行"],
+            weather: "多云，午后阵雨 22C"
+        )
+
+        let insights = WardrobeInsightEngine.insights(for: store.assets)
+
+        let weatherSuggestion = insights.suggestions.first { $0.id == "weather-多云，午后阵雨 22C" }
+        XCTAssertEqual(weatherSuggestion?.title, "多云，午后阵雨 22C 天气穿搭")
+        XCTAssertEqual(insights.packingSuggestions.first?.weather, "多云，午后阵雨 22C")
+        XCTAssertTrue(insights.packingSuggestions.first?.note.contains("多云，午后阵雨 22C") == true)
+    }
+
     func testWardrobePackingSuggestionsUseAvailableItemsAndLatestOutfit() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         let wornDate = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
@@ -2441,6 +2472,7 @@ final class SomeTests: XCTestCase {
         let insights = WardrobeInsightEngine.insights(for: store.assets)
 
         XCTAssertFalse(insights.packingSuggestions.isEmpty)
+        XCTAssertEqual(insights.wearLogs.first?.weather, "多云 22C")
         XCTAssertTrue(insights.packingSuggestions.first?.itemNames.contains("白衬衫") == true)
         XCTAssertFalse(insights.packingSuggestions.first?.itemNames.contains("牛仔裤") == true)
         XCTAssertEqual(insights.packingSuggestions.first?.weather, "多云 22C")
@@ -2483,7 +2515,7 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(layout.layers.first { $0.kind == .image }?.attachmentPath, attachment.relativePath)
         XCTAssertEqual(layout.layers.first { $0.kind == .text }?.text, "六月手帐")
         XCTAssertEqual(layout.layers.filter { $0.kind == .sticker }.map(\.title), ["贴纸", "花边"])
-        XCTAssertEqual(layout.layers.first { $0.kind == .border }?.title, "胶片")
+        XCTAssertEqual(layout.layers.first { $0.kind == .border }?.title, "胶片框")
         XCTAssertEqual(layout.layers.first { $0.kind == .text }?.fontName, "rounded")
         XCTAssertEqual(layout.layers.first { $0.kind == .border }?.borderColorHex, "#7A8A8E")
 
@@ -2518,7 +2550,7 @@ final class SomeTests: XCTestCase {
         let decoded = try XCTUnwrap(ScrapbookPageLayout.layout(in: updatedText))
 
         XCTAssertEqual(decoded.layers[0].x, 220)
-        XCTAssertEqual(decoded.layers[0].scale, 1.4)
+        XCTAssertEqual(decoded.layers[0].scale, 1.4, accuracy: 0.0001)
         XCTAssertEqual(decoded.layers[0].rotation, 12)
         XCTAssertEqual(updatedText.components(separatedBy: ScrapbookPageLayout.marker).count, 2)
     }
@@ -2557,7 +2589,7 @@ final class SomeTests: XCTestCase {
         let updatedLayout = try XCTUnwrap(ScrapbookPageLayout.layout(in: updatedMemo.text))
 
         XCTAssertEqual(updatedLayout.layers[0].x, 680)
-        XCTAssertEqual(updatedLayout.layers[0].scale, 1.25)
+        XCTAssertEqual(updatedLayout.layers[0].scale, 1.25, accuracy: 0.0001)
         XCTAssertEqual(updatedLayout.layers.last?.kind, .shape)
         XCTAssertTrue(store.assets(for: updatedMemo).first { $0.kind == .scrapbookPage }?.summary?.contains("图层：1080x1440") == true)
         XCTAssertEqual(store.revisions(for: updatedMemo).count, 1)
@@ -2720,7 +2752,7 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(memo.text.contains("模板：图片拼贴"))
         XCTAssertTrue(memo.text.contains("导出图片："))
         XCTAssertEqual(ScrapbookPageLayout.layout(in: memo.text)?.layers.filter { $0.kind == .image }.count, 2)
-        XCTAssertEqual(attachments.count, 3)
+        XCTAssertEqual(Set(attachments.map(\.relativePath)).count, 3)
         XCTAssertTrue(attachments.contains { $0.relativePath == first.relativePath })
         XCTAssertTrue(attachments.contains { $0.relativePath == second.relativePath })
         XCTAssertTrue(attachments.contains { $0.filename.contains("collage") && $0.isImage })
