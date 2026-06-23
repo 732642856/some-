@@ -2416,7 +2416,7 @@ final class SomeTests: XCTestCase {
         let weatherSuggestion = insights.suggestions.first { $0.id == "weather-多云，午后阵雨 22C" }
         XCTAssertEqual(weatherSuggestion?.title, "多云，午后阵雨 22C 天气穿搭")
         XCTAssertEqual(insights.packingSuggestions.first?.weather, "多云，午后阵雨 22C")
-        XCTAssertTrue(insights.packingSuggestions.first?.note.contains("多云，午后阵雨 22C") == true)
+        XCTAssertTrue(insights.packingSuggestions.first?.note?.contains("多云，午后阵雨 22C") == true)
     }
 
     func testWardrobePackingSuggestionsUseAvailableItemsAndLatestOutfit() {
