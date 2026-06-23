@@ -639,3 +639,19 @@
 - 阶段 62/63 已由提交 `076e5cd`、`439808e`、`776160f` 落地并同步到 `origin/master`；恢复后重新校准 Git 状态，确认主功能代码已进入提交历史。
 - 补阶段 63 文档和提示收口：README 将本地语音转写更新为 v2，移除“转写语言选择”路线图项；AI 工作台无 Key banner 改为说明本地 AI 已可用；验证记录改成已经实际执行过的命令与旧 Swift parser 限制说明。
 - 远端 run `28035724252` 暴露 `MemoStore.referencedMemos(from:)` 在 Share Extension 编译路径下的闭包返回诊断，已在 `26bfbdb` 给 `compactMap` 闭包显式补 `return`，本地通过 `MemoStore.swift` parse、`git diff --check`、plist/scheme/workflow 校验，等待 run `28035841758` 复验。
+
+## 2026-06-23T23:34:00+08:00
+
+- 进入并完成阶段 64：本地 AI 搜索命中解释。开工前复查阶段 62 的本地搜索、AI 工作台结果卡和模糊搜索开源候选。
+- `SemanticMemoResult` 新增 `matchedTerms`；`localSearch` 改为标签、完整词、中日韩片段带权计分，并只对紧凑文字生成二字滑窗，避免英文片段误匹配。
+- AI 工作台本地搜索结果会显示最多 4 个命中词，让用户知道为何匹配；配置 OpenAI Key 后 embedding 搜索仍保持原路径。
+- 进入并完成阶段 65：连续扫描与扫描页 OCR。复查并行窗口留下的扫描页测试，补 `ImageTextRecognizer.memoText(titlePrefix:pageNumber:)`，让 `MemoAsset` / `ClipFragmentExtractor` 识别“扫描文字：”标题，并在快速输入加入 VisionKit 连续扫描入口。
+- 本地验证覆盖：AI/记忆相关可解析文件、`rg` 命中检查、`git diff --check`、plist/scheme/workflow 校验；含 `async` 的文件完整编译继续以 GitHub Actions/Xcode 16.4 为准。
+
+## 2026-06-23T23:40:00+08:00
+
+- 进入并完成阶段 64：本地 AI 搜索命中解释。开工前复查 Git 状态、`SemanticSearchEngine`、AI 工作台结果卡片、AI 搜索测试和当前 CI 状态。
+- 按用户要求继续检索本地模糊搜索候选；`fuse-swift` / `Ifrit` 可参考，但本轮不引入依赖，继续复用项目内搜索引擎。
+- 按 TDD 增加 `testLocalSemanticSearchWeightsTagsAndReportsMatchedTerms`，锁定标签命中权重优先于普通文本片段，并要求结果返回 `matchedTerms`。
+- `SemanticMemoResult` 新增向后兼容的 `matchedTerms`；本地搜索改为标签、完整词和中日韩片段加权评分，英文不再用二字片段误匹配；AI 结果卡片显示最多 4 个命中词。
+- 进入并完成阶段 65：连续扫描与扫描页 OCR。快速输入新增 `doc.viewfinder` 扫描按钮，调用系统 `VNDocumentCameraViewController`；扫描完成后逐页保存 JPEG 附件、运行本机 OCR，并写入“扫描文字/扫描页：第 N 页”记录，素材摘要会过滤页码元数据。

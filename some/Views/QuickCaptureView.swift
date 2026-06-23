@@ -4,6 +4,7 @@ import SwiftUI
 import LinkPresentation
 import UIKit
 import UniformTypeIdentifiers
+import VisionKit
 
 struct QuickCaptureView: View {
     @EnvironmentObject private var store: MemoStore
@@ -11,6 +12,7 @@ struct QuickCaptureView: View {
     @State private var statusText: String?
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var isShowingCamera = false
+    @State private var isShowingDocumentScanner = false
     @State private var cameraCaptureMode: QuickCameraCaptureMode = .photo
     @State private var isShowingFileImporter = false
     @State private var isImportingMedia = false
@@ -159,6 +161,24 @@ struct QuickCaptureView: View {
                     .accessibilityLabel("拍视频导入")
 
                     Button {
+                        guard canScanDocuments else {
+                            statusText = "当前设备不可用连续扫描。"
+                            return
+                        }
+                        isShowingDocumentScanner = true
+                    } label: {
+                        Image(systemName: "doc.viewfinder")
+                            .frame(width: 34, height: 34)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.secondaryText)
+                    .background(Color.subtleSurface)
+                    .clipShape(Circle())
+                    .disabled(isImportingMedia || audioRecorder.isRecording || !canScanDocuments)
+                    .opacity(canScanDocuments ? 1 : 0.35)
+                    .accessibilityLabel("连续扫描")
+
+                    Button {
                         toggleRecording()
                     } label: {
                         Image(systemName: audioRecorder.isRecording ? "stop.fill" : "mic")
@@ -277,6 +297,17 @@ struct QuickCaptureView: View {
                 }
             )
         }
+        .fullScreenCover(isPresented: $isShowingDocumentScanner) {
+            DocumentScannerView(
+                onScan: { images in
+                    isShowingDocumentScanner = false
+                    importScannedImages(images)
+                },
+                onCancel: {
+                    isShowingDocumentScanner = false
+                }
+            )
+        }
         .fileImporter(
             isPresented: $isShowingFileImporter,
             allowedContentTypes: importableContentTypes,
@@ -323,6 +354,10 @@ struct QuickCaptureView: View {
 
     private var canRecordVideo: Bool {
         UIImagePickerController.availableMediaTypes(for: .camera)?.contains(UTType.movie.identifier) == true
+    }
+
+    private var canScanDocuments: Bool {
+        VNDocumentCameraViewController.isSupported
     }
 
     private func submit() {
@@ -425,6 +460,50 @@ struct QuickCaptureView: View {
                     isImportingMedia = false
                     statusText = "拍照导入失败：\(error.localizedDescription)"
                 }
+            }
+        }
+    }
+
+    private func importScannedImages(_ images: [UIImage]) {
+        guard !images.isEmpty else { return }
+
+        isImportingMedia = true
+        statusText = "正在保存扫描..."
+
+        Task {
+            var importedCount = 0
+            var failedCount = 0
+
+            for (index, image) in images.enumerated() {
+                guard let data = image.jpegData(compressionQuality: 0.92) else {
+                    failedCount += 1
+                    continue
+                }
+
+                do {
+                    let attachment = try SharedAttachmentStore.save(
+                        data: data,
+                        suggestedFilename: importedFilename(prefix: "scan-\(index + 1)", type: .jpeg),
+                        typeIdentifier: UTType.jpeg.identifier
+                    )
+                    let note = await scannedPageNote(
+                        for: attachment,
+                        data: data,
+                        pageNumber: index + 1
+                    )
+                    let imported = await MainActor.run {
+                        store.addAttachmentMemo(attachment, note: note) != nil
+                    }
+                    importedCount += imported ? 1 : 0
+                    failedCount += imported ? 0 : 1
+                } catch {
+                    failedCount += 1
+                }
+            }
+
+            await MainActor.run {
+                isImportingMedia = false
+                statusText = scanImportStatus(imported: importedCount, failed: failedCount)
             }
         }
     }
@@ -615,6 +694,21 @@ struct QuickCaptureView: View {
             ?? importNote(for: type)
     }
 
+    private func scannedPageNote(
+        for attachment: SharedAttachment,
+        data: Data,
+        pageNumber: Int
+    ) async -> String {
+        let recognizedLines = await ImageTextRecognizer.recognizeText(in: data)
+        return ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: recognizedLines,
+            includesAttachmentReference: true,
+            titlePrefix: "扫描文字",
+            pageNumber: pageNumber
+        ) ?? "扫描页：第 \(pageNumber) 页"
+    }
+
     private func importedFilename(prefix: String, type: UTType) -> String {
         let timestamp = Int(Date().timeIntervalSince1970)
         let suffix = String(UUID().uuidString.prefix(8))
@@ -637,6 +731,18 @@ struct QuickCaptureView: View {
         }
 
         return failed > 0 ? "没有导入素材，\(failed) 个失败。" : "没有导入素材"
+    }
+
+    private func scanImportStatus(imported: Int, failed: Int) -> String {
+        if imported > 0, failed > 0 {
+            return "已保存 \(imported) 页扫描，\(failed) 页失败。"
+        }
+
+        if imported > 0 {
+            return "已保存 \(imported) 页扫描"
+        }
+
+        return failed > 0 ? "扫描保存失败，\(failed) 页未保存。" : "没有保存扫描"
     }
 
     private func clipURLs() {
@@ -893,6 +999,52 @@ private struct CameraCaptureView: UIViewControllerRepresentable {
         }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            onCancel()
+        }
+    }
+}
+
+private struct DocumentScannerView: UIViewControllerRepresentable {
+    let onScan: ([UIImage]) -> Void
+    let onCancel: () -> Void
+
+    func makeUIViewController(context: Context) -> VNDocumentCameraViewController {
+        let scanner = VNDocumentCameraViewController()
+        scanner.delegate = context.coordinator
+        return scanner
+    }
+
+    func updateUIViewController(_ uiViewController: VNDocumentCameraViewController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onScan: onScan, onCancel: onCancel)
+    }
+
+    final class Coordinator: NSObject, VNDocumentCameraViewControllerDelegate {
+        private let onScan: ([UIImage]) -> Void
+        private let onCancel: () -> Void
+
+        init(onScan: @escaping ([UIImage]) -> Void, onCancel: @escaping () -> Void) {
+            self.onScan = onScan
+            self.onCancel = onCancel
+        }
+
+        func documentCameraViewController(
+            _ controller: VNDocumentCameraViewController,
+            didFinishWith scan: VNDocumentCameraScan
+        ) {
+            let images = (0..<scan.pageCount).map { scan.imageOfPage(at: $0) }
+            onScan(images)
+        }
+
+        func documentCameraViewControllerDidCancel(_ controller: VNDocumentCameraViewController) {
+            onCancel()
+        }
+
+        func documentCameraViewController(
+            _ controller: VNDocumentCameraViewController,
+            didFailWithError error: Error
+        ) {
             onCancel()
         }
     }

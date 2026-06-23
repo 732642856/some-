@@ -1668,7 +1668,7 @@ extension MemoAsset {
 
     private static func imageTextBlock(in rawLines: [String]) -> (title: String, summary: String, attachments: [SharedAttachment])? {
         let lines = rawLines.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-        let prefixes = ["图片文字：", "图片文字:", "截图文字：", "截图文字:"]
+        let prefixes = imageTextTitlePrefixes
         guard let firstLine = lines.first,
               let prefix = prefixes.first(where: { firstLine.hasPrefix($0) }) else {
             return nil
@@ -1685,6 +1685,8 @@ extension MemoAsset {
                 !line.isEmpty
                     && !line.hasPrefix("区域：")
                     && !line.hasPrefix("区域:")
+                    && !line.hasPrefix("扫描页：")
+                    && !line.hasPrefix("扫描页:")
                     && !line.hasPrefix("[附件:")
                     && !line.hasPrefix("some-attachment://")
             }
@@ -1701,9 +1703,14 @@ extension MemoAsset {
     }
 
     private static func imageTextTitlePrefix(in line: String) -> String? {
-        let prefixes = ["图片文字：", "图片文字:", "截图文字：", "截图文字:"]
-        return prefixes.first(where: { line.hasPrefix($0) })
+        imageTextTitlePrefixes.first(where: { line.hasPrefix($0) })
     }
+
+    private static let imageTextTitlePrefixes = [
+        "图片文字：", "图片文字:",
+        "截图文字：", "截图文字:",
+        "扫描文字：", "扫描文字:"
+    ]
 
     private static func wardrobeItemAsset(in text: String) -> (title: String, summary: String?)? {
         structuredAsset(in: text, prefixes: ["衣橱单品：", "衣橱单品:", "单品：", "单品:"])

@@ -3,6 +3,13 @@ import Foundation
 struct SemanticMemoResult: Identifiable, Equatable {
     let memo: Memo
     let score: Double
+    let matchedTerms: [String]
+
+    init(memo: Memo, score: Double, matchedTerms: [String] = []) {
+        self.memo = memo
+        self.score = score
+        self.matchedTerms = matchedTerms
+    }
 
     var id: UUID { memo.id }
 
@@ -22,6 +29,7 @@ enum SemanticSearchEngine {
         guard !queryTerms.isEmpty else {
             return []
         }
+        let totalQueryWeight = queryTerms.values.reduce(0) { $0 + $1.weight }
 
         return memos
             .filter { !$0.isArchived }
@@ -32,15 +40,22 @@ enum SemanticSearchEngine {
                     return nil
                 }
 
-                let sharedTerms = queryTerms.intersection(memoTerms)
+                let sharedTerms = queryTerms.keys.filter { memoTerms[$0] != nil }
                 guard !sharedTerms.isEmpty else {
                     return nil
                 }
 
-                let coverage = Double(sharedTerms.count) / Double(queryTerms.count)
-                let density = Double(sharedTerms.count) / Double(memoTerms.count)
+                let sharedWeight = sharedTerms.reduce(0) { partial, key in
+                    partial + min(queryTerms[key]?.weight ?? 0, memoTerms[key]?.weight ?? 0)
+                }
+                let memoWeight = memoTerms.values.reduce(0) { $0 + $1.weight }
+                let coverage = sharedWeight / totalQueryWeight
+                let density = sharedWeight / memoWeight
                 let score = min(1, (coverage * 0.75) + (density * 0.25))
-                return SemanticMemoResult(memo: memo, score: score)
+                let matchedTerms = visibleMatchedTerms(
+                    from: sharedTerms.compactMap { queryTerms[$0] }
+                )
+                return SemanticMemoResult(memo: memo, score: score, matchedTerms: matchedTerms)
             }
             .sorted { lhs, rhs in
                 if lhs.score == rhs.score {
@@ -111,7 +126,7 @@ enum SemanticSearchEngine {
         return dot / (lhsMagnitude * rhsMagnitude)
     }
 
-    private static func localSearchTerms(in text: String) -> Set<String> {
+    private static func localSearchTerms(in text: String) -> [String: LocalSearchTerm] {
         let separators = CharacterSet(charactersIn: " \n\t，。！？、；：,.!?;:()（）[]【】<>《》\"“”'‘’")
         let rawTerms = text
             .lowercased()
@@ -119,23 +134,64 @@ enum SemanticSearchEngine {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
 
-        var terms = Set<String>()
+        var terms: [String: LocalSearchTerm] = [:]
         rawTerms.forEach { term in
             guard !term.hasPrefix("#") else {
-                terms.insert(String(term.dropFirst()))
+                let tag = String(term.dropFirst())
+                insertLocalSearchTerm(key: "tag:\(tag)", display: "#\(tag)", weight: 2.2, into: &terms)
+                insertLocalSearchTerm(key: tag, display: tag, weight: 1.4, into: &terms)
                 return
             }
             guard term.count >= 2 else { return }
-            terms.insert(term)
+            insertLocalSearchTerm(key: term, display: term, weight: 1.4, into: &terms)
 
             if term.count >= 4, containsCompactScript(in: term) {
                 let characters = Array(term)
                 for index in 0..<(characters.count - 1) {
-                    terms.insert(String(characters[index...(index + 1)]))
+                    let fragment = String(characters[index...(index + 1)])
+                    insertLocalSearchTerm(key: fragment, display: fragment, weight: 0.45, into: &terms)
                 }
             }
         }
         return terms
+    }
+
+    private static func insertLocalSearchTerm(
+        key: String,
+        display: String,
+        weight: Double,
+        into terms: inout [String: LocalSearchTerm]
+    ) {
+        if let existing = terms[key], existing.weight >= weight {
+            return
+        }
+        terms[key] = LocalSearchTerm(display: display, weight: weight)
+    }
+
+    private static func visibleMatchedTerms(from terms: [LocalSearchTerm]) -> [String] {
+        var seenDisplays = Set<String>()
+        var tagDisplays = Set<String>()
+
+        return terms
+            .sorted()
+            .compactMap { term in
+                let normalizedDisplay = term.display.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !normalizedDisplay.isEmpty else {
+                    return nil
+                }
+
+                if normalizedDisplay.hasPrefix("#") {
+                    tagDisplays.insert(String(normalizedDisplay.dropFirst()))
+                } else if tagDisplays.contains(normalizedDisplay) {
+                    return nil
+                }
+
+                guard seenDisplays.insert(normalizedDisplay).inserted else {
+                    return nil
+                }
+
+                return normalizedDisplay
+            }
     }
 
     private static func containsCompactScript(in term: String) -> Bool {
@@ -146,6 +202,18 @@ enum SemanticSearchEngine {
             default:
                 return false
             }
+        }
+    }
+
+    private struct LocalSearchTerm: Comparable {
+        let display: String
+        let weight: Double
+
+        static func < (lhs: LocalSearchTerm, rhs: LocalSearchTerm) -> Bool {
+            if lhs.weight == rhs.weight {
+                return lhs.display < rhs.display
+            }
+            return lhs.weight > rhs.weight
         }
     }
 }

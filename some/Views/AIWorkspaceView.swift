@@ -299,6 +299,12 @@ struct AIWorkspaceView: View {
                             .font(.body)
                             .lineLimit(4)
                             .foregroundStyle(Color.primaryText)
+                        if !result.matchedTerms.isEmpty {
+                            Text("命中：" + result.matchedTerms.prefix(4).joined(separator: "、"))
+                                .font(.caption)
+                                .lineLimit(1)
+                                .foregroundStyle(Color.secondaryText)
+                        }
                     }
                     .padding(14)
                     .background(Color.surface)

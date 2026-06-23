@@ -272,7 +272,7 @@ enum ClipFragmentExtractor {
     }
 
     private static func imageTextTitlePrefix(in line: String) -> String? {
-        let prefixes = ["图片文字：", "图片文字:", "截图文字：", "截图文字:"]
+        let prefixes = ["图片文字：", "图片文字:", "截图文字：", "截图文字:", "扫描文字：", "扫描文字:"]
         return prefixes.first(where: { line.hasPrefix($0) })
     }
 

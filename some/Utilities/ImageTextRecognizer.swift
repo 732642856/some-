@@ -73,7 +73,9 @@ enum ImageTextRecognizer {
         for attachment: SharedAttachment,
         recognizedLines: [String],
         region: ImageTextRegion? = nil,
-        includesAttachmentReference: Bool = true
+        includesAttachmentReference: Bool = true,
+        titlePrefix: String = "图片文字",
+        pageNumber: Int? = nil
     ) -> String? {
         let cleanedLines = uniqueLines(recognizedLines)
         guard !cleanedLines.isEmpty else {
@@ -81,8 +83,12 @@ enum ImageTextRecognizer {
         }
 
         var lines = [
-            "图片文字：\(attachment.displayName)"
+            "\(titlePrefix)：\(attachment.displayName)"
         ]
+
+        if let pageNumber {
+            lines.append("扫描页：第 \(pageNumber) 页")
+        }
 
         if let region = region, !region.isFullImage {
             lines.append("区域：\(region.summary)")

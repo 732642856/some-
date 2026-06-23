@@ -1787,6 +1787,26 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(results.map(\.memo.id), [product.id])
     }
 
+    func testLocalSemanticSearchWeightsTagsAndReportsMatchedTerms() {
+        let generic = Memo(
+            text: "产品灵感碎片",
+            createdAt: Date(timeIntervalSince1970: 1_700_000_100)
+        )
+        let tagged = Memo(
+            text: "路线复盘 #产品",
+            createdAt: Date(timeIntervalSince1970: 1_700_000_000)
+        )
+
+        let results = SemanticSearchEngine.localSearch(
+            query: "#产品 路线",
+            memos: [generic, tagged],
+            limit: 2
+        )
+
+        XCTAssertEqual(results.first?.memo.id, tagged.id)
+        XCTAssertEqual(results.first?.matchedTerms, ["#产品", "路线"])
+    }
+
     func testInsightPromptKeepsProvidedMemoContent() {
         let memo = Memo(
             text: "下午整理产品灵感 #产品",
@@ -2968,6 +2988,43 @@ final class SomeTests: XCTestCase {
         let memo = Memo(text: text ?? "")
         let imageTextAsset = MemoAsset.assets(in: memo).first { $0.kind == .screenshot }
         XCTAssertEqual(imageTextAsset?.summary, "区域文字")
+    }
+
+    func testImageTextRecognizerBuildsScannedPageMemoText() {
+        let attachment = SharedAttachment(
+            id: "scan-1.jpg",
+            filename: "scan-1.jpg",
+            relativePath: "scan-1.jpg",
+            typeIdentifier: UTType.jpeg.identifier,
+            byteCount: 256
+        )
+
+        let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: ["第一页合同", "签名"],
+            includesAttachmentReference: true,
+            titlePrefix: "扫描文字",
+            pageNumber: 1
+        )
+
+        XCTAssertEqual(
+            text,
+            """
+            扫描文字：scan-1.jpg
+            扫描页：第 1 页
+
+            识别文字：
+            第一页合同
+            签名
+
+            [附件: scan-1.jpg](some-attachment://scan-1.jpg)
+            """
+        )
+
+        let memo = Memo(text: text ?? "")
+        let asset = MemoAsset.assets(in: memo).first { $0.kind == .screenshot }
+        XCTAssertEqual(asset?.title, "scan-1.jpg")
+        XCTAssertEqual(asset?.summary, "第一页合同\n签名")
     }
 
     func testImageTextRecognizerBuildsAppendableRegionMemoText() {
