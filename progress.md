@@ -717,3 +717,10 @@
 - 开工前通过 GitHub API 检索团队状态报告、周报、OKR 周报和事故复盘 Markdown 模板，精确查询没有返回可直接复制进当前 SwiftUI/iOS 工程的模块。
 - 按 TDD 增加 `testWorkLogExporterBuildsTeamWeeklyReportDraft`，锁定团队周报应输出项目/日期、本周成果、关键影响、风险/需要协作和下周重点。
 - `WorkLogExporter.ReportDraftStyle` 新增 `.teamWeekly`，工作日志导出菜单新增“团队周报”；README、隐私政策、App Store metadata 和上架清单同步补充工作日志 AI 润色会发送工作汇报草稿到 OpenAI API 的说明。
+
+## 2026-06-24T01:48:00+08:00
+
+- 进入并完成阶段 75：本地 AI 搜索 NaturalLanguage 分词增强。阶段 74 推送后最新 CI 仍在运行，本轮继续处理无 Key AI 搜索质量缺口。
+- 开工前检索 Swift/NaturalLanguage/本地模糊搜索候选，未找到可直接复制进当前笔记搜索链路的成熟模块；继续复用 Apple 系统 `NaturalLanguage`。
+- 按 TDD 增加 `testLocalSemanticSearchTokenizesCompactChinesePhrases`，要求“团队周报模板”能命中“工作日志团队周报导出”，并展示“团队/周报”命中词。
+- `SemanticSearchEngine.localSearchTerms` 新增 `NLTokenizer(unit: .word)` 分词结果，连续中文短语会补“团队、周报、模板”这类词；低权重二字碎片仍参与打分，但命中词展示优先隐藏碎片，减少 UI 噪音。

@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import NaturalLanguage
 
 struct SemanticMemoResult: Identifiable, Equatable {
     let memo: Memo
@@ -371,7 +372,8 @@ enum SemanticSearchEngine {
 
     private static func localSearchTerms(in text: String) -> [String: LocalSearchTerm] {
         let separators = CharacterSet(charactersIn: " \n\t，。！？、；：,.!?;:()（）[]【】<>《》\"“”'‘’")
-        let rawTerms = text
+        let lowercasedText = text.lowercased()
+        let rawTerms = lowercasedText
             .lowercased()
             .components(separatedBy: separators)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -379,12 +381,13 @@ enum SemanticSearchEngine {
 
         var terms: [String: LocalSearchTerm] = [:]
         rawTerms.forEach { term in
-            guard !term.hasPrefix("#") else {
+            if term.hasPrefix("#") {
                 let tag = String(term.dropFirst())
                 insertLocalSearchTerm(key: "tag:\(tag)", display: "#\(tag)", weight: 2.2, into: &terms)
                 insertLocalSearchTerm(key: tag, display: tag, weight: 1.4, into: &terms)
                 return
             }
+
             guard term.count >= 2 else { return }
             insertLocalSearchTerm(key: term, display: term, weight: 1.4, into: &terms)
 
@@ -396,7 +399,27 @@ enum SemanticSearchEngine {
                 }
             }
         }
+
+        naturalLanguageTokens(in: lowercasedText).forEach { token in
+            guard token.count >= 2 else { return }
+            insertLocalSearchTerm(key: token, display: token, weight: 1.1, into: &terms)
+        }
+
         return terms
+    }
+
+    private static func naturalLanguageTokens(in text: String) -> [String] {
+        let tokenizer = NLTokenizer(unit: .word)
+        tokenizer.string = text
+        var tokens: [String] = []
+        tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { range, _ in
+            let token = String(text[range])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !token.isEmpty else { return true }
+            tokens.append(token)
+            return true
+        }
+        return tokens
     }
 
     private static func insertLocalSearchTerm(
@@ -414,10 +437,15 @@ enum SemanticSearchEngine {
     private static func visibleMatchedTerms(from terms: [LocalSearchTerm]) -> [String] {
         var seenDisplays = Set<String>()
         var tagDisplays = Set<String>()
+        let hasStrongTerms = terms.contains { $0.weight >= 1 }
 
         return terms
             .sorted()
             .compactMap { term in
+                guard !hasStrongTerms || term.weight >= 1 else {
+                    return nil
+                }
+
                 let normalizedDisplay = term.display.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !normalizedDisplay.isEmpty else {
                     return nil

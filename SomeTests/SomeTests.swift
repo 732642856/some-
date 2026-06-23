@@ -1924,6 +1924,25 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(results.first?.matchedTerms, ["#产品", "路线"])
     }
 
+    func testLocalSemanticSearchTokenizesCompactChinesePhrases() {
+        let workLog = Memo(
+            text: "工作日志团队周报导出",
+            createdAt: Date(timeIntervalSince1970: 1_700_000_000)
+        )
+        let unrelated = Memo(
+            text: "图片滤镜和手帐边框",
+            createdAt: Date(timeIntervalSince1970: 1_700_000_100)
+        )
+
+        let results = SemanticSearchEngine.localSearch(
+            query: "团队周报模板",
+            memos: [unrelated, workLog]
+        )
+
+        XCTAssertEqual(results.map(\.memo.id), [workLog.id])
+        XCTAssertEqual(Set(results.first?.matchedTerms ?? []), Set(["团队", "周报"]))
+    }
+
     func testSemanticEmbeddingCacheReusesRepeatedInputs() throws {
         var cache = SemanticEmbeddingCache()
         let inputs = [" 产品路线 ", "用户反馈", "用户反馈"]
