@@ -62,7 +62,7 @@
 - 可选 OpenAI API Key，保存在 iOS Keychain
 - AI 洞察：周期复盘、困惑破局、自我觉察、主题研究、写作灵感
 - 本地 AI 记忆档案：不需要 API Key，可从设备内记录提炼主题、任务和工作线索，并保存为普通记录
-- AI 自然语言语义搜索：未配置 Key 时走本地带权相关搜索并显示命中词，配置 Key 后走 OpenAI embedding，并在本机 App Group 缓存最近使用的记录 embedding 以减少重复请求，可在设置里清除语义缓存
+- AI 自然语言语义搜索：未配置 Key 时走本地带权相关搜索并显示命中词，配置 Key 后走 OpenAI embedding，并在本机 App Group 缓存最近使用的记录 embedding 以减少重复请求，设置里可查看并清除语义缓存
 - AI 相关记录查找：未配置 Key 时可用本地带权相关度和命中词解释，配置 Key 后走 OpenAI embedding，并跨启动复用最近使用的记录 embedding
 - 隐私锁：支持 Face ID / Touch ID / 设备密码解锁
 - 每日回顾提醒：本地通知，可设置提醒时间

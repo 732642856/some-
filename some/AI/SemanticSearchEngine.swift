@@ -188,6 +188,17 @@ struct SemanticEmbeddingDiskCache: Sendable {
         return file.snapshot
     }
 
+    var summary: Summary {
+        guard let attributes = try? FileManager.default.attributesOfItem(atPath: fileURL.path),
+              let byteCount = attributes[.size] as? NSNumber else {
+            return Summary(entryCount: 0, byteCount: 0)
+        }
+        return Summary(
+            entryCount: load().entries.count,
+            byteCount: byteCount.intValue
+        )
+    }
+
     func save(_ snapshot: SemanticEmbeddingCache.Snapshot) throws {
         try FileManager.default.createDirectory(
             at: fileURL.deletingLastPathComponent(),
@@ -206,6 +217,11 @@ struct SemanticEmbeddingDiskCache: Sendable {
     }
 
     private static let currentVersion = 1
+
+    struct Summary: Equatable, Sendable {
+        let entryCount: Int
+        let byteCount: Int
+    }
 
     private struct File: Codable, Equatable, Sendable {
         let version: Int

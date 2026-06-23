@@ -684,3 +684,10 @@
 - 开工前检索 SwiftUI 设置页清缓存入口和 confirmation dialog 示例，没有找到能直接复制到当前 some 设置页结构的模块；继续复用现有 `SettingsView` 和 `SemanticSearchEngine.clearEmbeddingCache()`。
 - 设置页 AI 区域新增“清除 AI 语义缓存”按钮，带 destructive confirmation dialog；确认后只清空本机 embedding 缓存并更新 AI 状态文案，不删除笔记、API Key 或本地 AI 记忆档案。
 - 隐私说明同步补充本机 embedding 缓存可在设置里清除。
+
+## 2026-06-24T00:56:00+08:00
+
+- 进入并完成阶段 70：设置页 AI 语义缓存摘要。阶段 69 已能清缓存，本轮继续补透明度，让用户看到当前本机缓存条数和占用大小。
+- 按 TDD 增加 `testSemanticEmbeddingDiskCacheReportsSummary`，先用红灯探针确认 `SemanticEmbeddingDiskCache.summary` 缺失。
+- `SemanticEmbeddingDiskCache.Summary` 返回条目数和文件字节数；空/已删除缓存返回 0 条 0 bytes，保存快照后可读到真实条目数和非零文件大小。
+- 设置页 AI 区域新增“AI 语义缓存：暂无本机缓存 / N 条，X KB”摘要，进入设置页刷新，清除缓存后立即更新。

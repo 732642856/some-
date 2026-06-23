@@ -14,6 +14,7 @@ struct SettingsView: View {
     @State private var isShowingPrivacyPolicy = false
     @State private var apiKeyDraft = ""
     @State private var aiStatusText: String?
+    @State private var aiCacheSummary = SemanticEmbeddingDiskCache.Summary(entryCount: 0, byteCount: 0)
     @State private var dataStatusText: String?
     @State private var isShowingAICacheClearConfirmation = false
 
@@ -219,6 +220,10 @@ struct SettingsView: View {
                             .font(.footnote)
                             .foregroundStyle(Color.secondaryText)
 
+                        Text(aiCacheSummaryText)
+                            .font(.footnote)
+                            .foregroundStyle(Color.secondaryText)
+
                         Text(aiStatusText ?? (aiSettings.isConfigured ? "Key 已保存在本机 Keychain。" : "未配置 AI。"))
                             .font(.footnote)
                             .foregroundStyle(Color.secondaryText)
@@ -308,6 +313,9 @@ struct SettingsView: View {
             .sheet(isPresented: $isShowingPrivacyPolicy) {
                 PrivacyPolicyView()
             }
+            .task {
+                refreshAICacheSummary()
+            }
             .confirmationDialog(
                 "清除 AI 语义缓存？",
                 isPresented: $isShowingAICacheClearConfirmation,
@@ -322,6 +330,20 @@ struct SettingsView: View {
             }
         }
     }
+
+    private var aiCacheSummaryText: String {
+        guard aiCacheSummary.entryCount > 0 else {
+            return "AI 语义缓存：暂无本机缓存。"
+        }
+        return "AI 语义缓存：\(aiCacheSummary.entryCount) 条，\(Self.byteCountFormatter.string(fromByteCount: Int64(aiCacheSummary.byteCount)))。"
+    }
+
+    private static let byteCountFormatter: ByteCountFormatter = {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useKB, .useMB]
+        formatter.countStyle = .file
+        return formatter
+    }()
 
     private func saveAPIKey() {
         do {
@@ -346,7 +368,12 @@ struct SettingsView: View {
     @MainActor
     private func clearAICache() async {
         await SemanticSearchEngine.clearEmbeddingCache()
+        refreshAICacheSummary()
         aiStatusText = "AI 语义缓存已清除。"
+    }
+
+    private func refreshAICacheSummary() {
+        aiCacheSummary = SemanticEmbeddingDiskCache().summary
     }
 
     private func exportBackup() {

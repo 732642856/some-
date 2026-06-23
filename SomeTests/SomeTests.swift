@@ -1953,6 +1953,30 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(cache.snapshot().entries.count, 2)
     }
 
+    func testSemanticEmbeddingDiskCacheReportsSummary() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("semantic-cache-summary-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let diskCache = SemanticEmbeddingDiskCache(directory: directory)
+
+        XCTAssertEqual(diskCache.summary.entryCount, 0)
+        XCTAssertEqual(diskCache.summary.byteCount, 0)
+
+        var cache = SemanticEmbeddingCache()
+        let lookup = cache.lookup(inputs: ["缓存透明度"], modelID: "text-embedding-3-small")
+        try cache.store([[0.25, 0.75]], for: lookup.missingRequests)
+        try diskCache.save(cache.snapshot())
+
+        let summary = diskCache.summary
+        XCTAssertEqual(summary.entryCount, 1)
+        XCTAssertGreaterThan(summary.byteCount, 0)
+
+        try diskCache.remove()
+
+        XCTAssertEqual(diskCache.summary.entryCount, 0)
+        XCTAssertEqual(diskCache.summary.byteCount, 0)
+    }
+
     func testInsightPromptKeepsProvidedMemoContent() {
         let memo = Memo(
             text: "下午整理产品灵感 #产品",
