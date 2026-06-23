@@ -514,3 +514,20 @@
 - 按系统化调试确认根因不在业务断言，而是 Xcode 16.4 测试构建对 Swift Package 触发 App Intents metadata processor；正式 Build for simulator 仍要保留 ZIPFoundation，以继续覆盖完整备份真实构建。
 - `.github/workflows/ios-ci.yml` 的 Run tests 阶段会临时从 pbxproj 移除 ZIPFoundation package/framework/product 引用，并传入 `-DCI_DISABLE_ZIP_BACKUP`；`MemoBackupPackage` 在该 flag 下提供不导入 ZIPFoundation 的 stub，CI 只跳过 3 个 ZIP 包专属测试，普通 JSON 备份/附件恢复测试继续跑。
 - 本地验证通过：CI Ruby 改写后的临时 `project.pbxproj` 通过 `plutil -lint` 且不含 ZIPFoundation 引用，`.github/workflows/ios-ci.yml` YAML 解析通过，`xcrun swiftc -parse -D CI_DISABLE_ZIP_BACKUP some/Utilities/MemoBackupPackage.swift SomeTests/SomeTests.swift` 通过，`git diff --check` 通过。完整远端复验等待新 GitHub Actions run。
+
+## 2026-06-23T19:55:00+08:00
+
+- 进入并完成阶段 51：完整备份导入摘要与附件大小记录。开工前复查 Git 状态、备份 archive、ZIP 包导入、设置页导入反馈和现有导入测试。
+- 按用户要求检索 `SwiftUI backup import export notes app MIT`、`iOS notes app backup restore Swift MIT`，GitHub Search 均返回 0 个可直接复制的 SwiftUI/MIT 模块；本轮继续复用 some 的 `MemoBackupArchive` 和 `ImportFeedback`。
+- 按 TDD 补测试：`MemoBackupSummary` 应统计记录、历史版本、附件数和附件字节数；完整备份恢复反馈应显示摘要；大小格式化使用确定性 `KB/MB/GB/B`，避免 `ByteCountFormatter` 在 CI/设备区域设置下漂移。
+- `MemoBackupAttachment` 新增向后兼容的 `byteCount`；普通 JSON/inline 备份导出记录现有附件大小，ZIP 包导入会以实际解包数据大小回填；旧备份缺字段时按 0 处理。
+- 设置页粘贴旧 JSON 时会先识别是否为完整 `MemoBackupArchive`；完整备份 JSON 走“已恢复备份记录”反馈并显示摘要，普通旧 JSON 继续走 JSON 导入说明。
+
+## 2026-06-23T20:05:00+08:00
+
+- 进入并完成阶段 52：手帐照片滤镜与相框收口。开工前复查手帐图片图层模型、编辑器、导出 renderer、Core Image 使用点和 Stage 50 取景控制。
+- 按用户要求检索 `SwiftUI Core Image photo filter editor MIT`、`SwiftUI scrapbook collage editor image filter MIT`，GitHub Search 均返回 0 个可直接复制的 SwiftUI/MIT 模块；本轮不引入滤镜/拼贴第三方依赖。
+- `ScrapbookLayer.ImageFilter` 增加原图、清新、暖食、胶片、鲜明等照片滤镜；手帐编辑器图片图层 Inspector 增加照片滤镜 chip、相框颜色和相框线宽。
+- `ScrapbookRenderer` 导出路径和 `ScrapbookEditorView` 预览路径共用 `ScrapbookImageFilterRenderer`，避免预览与 PNG/PDF 导出滤镜漂移；图片相框会在预览和导出中保持一致。
+- 修复阶段 52 的 Swift 编译风险：`Memo.swift` 显式导入 `CoreGraphics`，并把滤镜 helper 私有方法从 `cgImage` 改名为 `renderedCGImage`，避免与局部 `cgImage` 变量同名导致 CI 编译歧义。
+- 本地验证通过：`xcrun swiftc -parse some/Models/Memo.swift some/Models/MemoBackupArchive.swift some/Utilities/ScrapbookRenderer.swift some/Views/ScrapbookEditorView.swift SomeTests/SomeTests.swift`、`xcrun swiftc -parse -D CI_DISABLE_ZIP_BACKUP some/Utilities/MemoBackupPackage.swift SomeTests/SomeTests.swift`、`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`、两个 GitHub workflow 的 Ruby YAML 解析。远端 GitHub API run/check-runs 查询目前返回 unauthenticated rate limit，需后续继续低频复验。
