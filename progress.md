@@ -409,3 +409,12 @@
 - 按 TDD 增加 `testWardrobePackingSuggestionsPreferLatestPackingDestinationAndWeather`，锁定最近打包清单的目的地、天气和天数应优先进入自动打包建议。
 - `WardrobeInsightEngine` 的打包建议现在优先使用最近打包清单的 `destination` / `weather` / `tripDays`，并在说明中写入“目的地参考”和“天气参考”；没有打包清单天气时仍回退最近穿着天气。
 - 本地验证通过：`xcrun swiftc -parse some/Utilities/WardrobeInsightEngine.swift SomeTests/SomeTests.swift`、`git diff --check`。
+
+## 2026-06-23T17:27:00+08:00
+
+- 进入并完成阶段 40：工作日志本地汇报摘要。开工前复查 Git 状态、CI run、工作日志导出器、AI 洞察边界和工作日志测试。
+- 按用户要求检索 `Swift work log summary markdown exporter MIT`、`Swift daily report generator markdown MIT`、`SwiftUI work report summary template GitHub MIT`、`iOS journal summary markdown exporter Swift MIT`，未找到可直接复制候选；本轮不调用 OpenAI API，也不需要用户提供密钥。
+- 按 TDD 增加 `testWorkLogExporterAddsLocalReportSummary`，锁定导出 Markdown 顶部应有“汇报摘要”，包含项目、日期、进展、风险/问题和下一步。
+- `WorkLogExporter.markdown` 现在会在正文列表前生成本地汇报摘要，并对多条日志的字段去重合并；原始日志正文仍完整保留。
+- 同步完善阶段 39：打包建议标题优先使用最近打包清单目的地，例如“厦门 快速打包”。
+- 本地验证通过：`xcrun swiftc -parse some/Utilities/WorkLogSourceFilterEngine.swift SomeTests/SomeTests.swift`、`git diff --check`。
