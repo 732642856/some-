@@ -136,7 +136,7 @@
 
 AI 功能是可选能力：只有在设置里保存 OpenAI API Key，并主动点击 AI 洞察、AI 搜索或相关记录时，应用才会把本次操作需要的文本直接发送到 OpenAI API。API Key 保存在本机 Keychain，不写入完整备份。
 
-Markdown 阅读渲染当前使用 iOS 系统 `AttributedString(markdown:)`，任务项勾选使用项目内轻量解析器。后续若要做完整块级渲染、代码块、引用批注和附件卡片，优先接入 `Textual`、`MarkdownUI` 或 `swift-markdown` 这类 MIT / Apache Swift Package。
+Markdown 阅读渲染当前使用 iOS 系统 `AttributedString(markdown:)`，任务项勾选、引用/反链和引用批注使用项目内轻量解析器。后续若要做完整块级渲染、代码块和附件卡片，优先接入 `Textual`、`MarkdownUI` 或 `swift-markdown` 这类 MIT / Apache Swift Package。
 
 快捷指令能力通过 App Intents 实现，默认提供“存到 some / 新建随记”入口；内容仍保存在本机 SQLite，不需要账号或云同步。
 
