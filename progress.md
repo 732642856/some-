@@ -560,6 +560,8 @@
 - 进入并完成阶段 55：小组件快照与深链入口。开工前继续复查 Git 状态和并行窗口碎片，发现 `SomeWidget/`、`WidgetSnapshotStore.swift`、小组件 target、`MemoStore` 快照刷新和 URL scheme 扩展已写入工作区。
 - 按用户要求检索 SwiftUI/WidgetKit/notes widget 开源参考，存在 MIT 示例项目可参考基础 WidgetKit 和深链写法，但未找到能直接复制到 some 本地 App Group 快照架构的完整笔记小组件模块。
 - `WidgetSnapshotStore` 生成 active/today/recent 快照，主 App 保存、批量替换和删除记录后刷新共享 JSON；Widget 扩展读取快照展示今日/全部计数、最近记录和记录/专注/搜索/详情深链。
+- 新增 `SomeWidget` target、Info.plist、entitlements、scheme build entry 和 App embed；小组件 UI 使用浅粉、雾蓝、淡紫、柔白的小清新色系。
+- 复查并行窗口碎片时发现重复 `SomeWidgetBundle.swift` 也声明 `@main`，已删除，避免未来接入 target 后与 `SomeWidget.swift` 冲突。
 - `MemoStore.handleURL` 新增 `some://home` / `some://zen`，并让无查询参数的 `some://search` 回到时间线；测试覆盖小组件快照排序、文件往返和小组件深链入口。
 - 远端 run `28029991853` 失败根因确认回到 Xcode 16.4 App Intents metadata processor。CI Run tests 阶段临时 pbxproj 改写升级为直接移除 AppIntents build file 定义与 source 引用，并继续移除 ZIPFoundation、分享扩展和小组件嵌入依赖；正式 Build/TestFlight 不受影响。
 
