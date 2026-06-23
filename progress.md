@@ -419,15 +419,6 @@
 - 同步完善阶段 39：打包建议标题优先使用最近打包清单目的地，例如“厦门 快速打包”。
 - 本地验证通过：`xcrun swiftc -parse some/Utilities/WorkLogSourceFilterEngine.swift SomeTests/SomeTests.swift`、`git diff --check`。
 
-## 2026-06-23T17:46:00+08:00
-
-- 进入并完成阶段 41：图片编辑智能主体单实例点选。开工前复查 Git 状态、图片编辑配方、渲染器、UI 和测试边界。
-- 按用户要求检索 `VNGenerateForegroundInstanceMaskRequest selected instance Swift GitHub MIT`、`Swift foreground instance mask point selection GitHub MIT`、`iOS object cutout selected instance point Swift MIT`、`Vision foreground instance mask select point Swift`；未找到可直接复制的 Swift/MIT 单实例点选模块，本轮继续复用 Apple Vision 与项目现有渲染管线。
-- 按 TDD 增加单主体配方和保存正文测试；`ImageEditRecipe.SubjectExtraction` 现在可保存归一化选择点，摘要显示“单主体”，输出文件名带 `selectedsubject`。
-- 图片编辑器新增“主体”模式和点选画布；选择“智能主体”后可点选单个主体，也可切回全部主体。保存的图片编辑 memo 会记录“智能主体（单主体 x/y）”。
-- `ImageEditRenderer` 在 iOS 17+ 使用 `VNInstanceMaskObservation.instanceMask` 查找点选位置对应实例，优先只导出该实例；点到背景或系统不支持时回退全部智能主体。
-- 本地验证通过：`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse some/Models/Memo.swift some/Utilities/ImageEditRenderer.swift some/Views/ImageEditorView.swift some/Stores/MemoStore.swift SomeTests/SomeTests.swift`、`git diff --check`。
-
 ## 2026-06-23T17:26:59+08:00
 
 - 进入并完成阶段 41：图片编辑智能主体单实例点选。开工前复查 Git 状态、最新远端 CI、图片编辑模型/渲染器/UI/测试和当前缺口；发现 `SomeTests.swift` 已有单主体点选 RED 测试碎片，已保留并继续实现。
