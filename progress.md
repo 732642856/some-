@@ -421,13 +421,22 @@
 
 ## 2026-06-23T17:45:00+08:00
 
-- 进入阶段 42：导入/备份恢复页体验优化。开工前确认阶段 41 的 #99 远端 CI 已通过，工作区干净。
+- 进入阶段 43：导入/备份恢复页体验优化。开工前确认阶段 41 的 #99 远端 CI 已通过，工作区干净。
+- 按用户要求检索 `SwiftUI import backup restore feedback open source MIT`、`SwiftUI file importer import result feedback MIT`，GitHub API 返回 0 个可直接复制进当前设置页/本地备份恢复链路的 SwiftUI 模块。
 - 复查 `SettingsView.ImportView`、`MemoStore.importJSON` / `importPlainText` / `MemoBackupPackage.importPackage`、App Store 自测清单和导入相关测试；当前导入页只给单行状态，普通用户难以区分完整备份、旧 JSON 和普通文本。
 - 按 TDD 增加 `ImportFeedback` 文案测试，覆盖完整备份恢复、普通文本导入和重复/空导入。
 - `ImportView` 新增导入说明区，明确 `.somebackup` 会恢复记录、历史版本和本地附件；普通文本按空行拆分，JSON 按旧备份格式导入。
 - 导入结果改为结构化反馈卡片：成功时说明下一步检查时间线/附件，0 条导入时解释可能已存在，失败时显示可理解的错误说明。
-- 整合未提交 URL Scheme 深链碎片：`some://open?id=<记录UUID>` 和 `some://open/<记录UUID>` 会清空搜索、回到时间线并通过 `ContentView` 的显式导航 path 打开记录详情；README 和发现记录已同步。
 - 本地验证通过：`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`。裸 `swiftc -parse SettingsView.swift` 仍被既有 `if let` shorthand 和 `await` parser 限制挡住，完整类型检查继续依赖远端 Xcode CI。
+
+## 2026-06-23T17:50:00+08:00
+
+- 进入并完成阶段 44：URL Scheme 单条记录深链打开。开工前复查阶段 36 的 URL Scheme 路由、`MemoStore.handleURL`、`SomeApp.onOpenURL`、`ContentView` 导航栈和 README 快速入口说明。
+- 按用户要求检索 `SwiftUI onOpenURL NavigationStack deep link open detail GitHub MIT`、`iOS SwiftUI URL scheme open specific note NavigationStack GitHub MIT`，GitHub API 返回 0 个可直接复制的许可清晰 SwiftUI 模块；阶段 36 已有 URL Scheme 底座，本轮继续复用 Apple `onOpenURL` 与项目内状态流转。
+- `some://open?id=<记录UUID>` 和 `some://open/<记录UUID>` 会校验记录存在，清空搜索，回到时间线，并通过 `ContentView` 的显式 `NavigationStack` path 打开记录详情。
+- `SomeApp.onOpenURL` 统一交给 `MemoStore.handleURL`，保存、搜索和打开三类路由共用入口；README 和发现记录已同步 `some://open` 用法。
+- 新增测试覆盖：打开已有记录不会创建新 memo、缺失记录 ID 会被忽略、query/path 两种 UUID 解析路径可用。
+- 本地验证通过：`xcrun swiftc -parse some/Stores/MemoStore.swift SomeTests/SomeTests.swift`、`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`。远端 iOS CI #102 已通过 Build for simulator 和 Run tests。
 
 ## 2026-06-23T17:26:59+08:00
 
