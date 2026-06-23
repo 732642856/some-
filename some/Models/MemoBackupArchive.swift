@@ -73,9 +73,28 @@ struct MemoBackupSummary: Equatable {
             "\(memoCount) 条记录",
             "\(revisionCount) 条历史版本",
             "\(attachmentCount) 个附件",
-            ByteCountFormatter.someBackup.string(fromByteCount: Int64(attachmentByteCount))
+            Self.formattedByteCount(attachmentByteCount)
         ]
         return parts.joined(separator: " · ")
+    }
+
+    private static func formattedByteCount(_ byteCount: Int) -> String {
+        let bytes = max(0, byteCount)
+        let units: [(name: String, size: Double)] = [
+            ("GB", 1_073_741_824),
+            ("MB", 1_048_576),
+            ("KB", 1_024)
+        ]
+
+        for unit in units where Double(bytes) >= unit.size {
+            let value = Double(bytes) / unit.size
+            if value >= 10 || value.rounded() == value {
+                return "\(Int(value.rounded())) \(unit.name)"
+            }
+            return "\(String(format: "%.1f", value)) \(unit.name)"
+        }
+
+        return "\(bytes) B"
     }
 }
 
@@ -116,15 +135,4 @@ struct MemoBackupAttachment: Codable {
         base64Data = try container.decodeIfPresent(String.self, forKey: .base64Data)
         byteCount = max(0, try container.decodeIfPresent(Int.self, forKey: .byteCount) ?? 0)
     }
-}
-
-private extension ByteCountFormatter {
-    static let someBackup: ByteCountFormatter = {
-        let formatter = ByteCountFormatter()
-        formatter.countStyle = .file
-        formatter.allowedUnits = [.useKB, .useMB, .useGB]
-        formatter.includesUnit = true
-        formatter.includesCount = true
-        return formatter
-    }()
 }
