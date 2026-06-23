@@ -261,7 +261,9 @@ enum WorkLogExporter {
             return "工作汇报\n\n暂无可汇总日志。\n"
         }
 
-        let fieldValues = records.map { fields(in: $0.asset.summary, fallbackText: $0.memo.text) }
+        let fieldValues = records
+            .map { fields(in: $0.asset.summary, fallbackText: $0.memo.text) }
+            .sorted(by: sortReportDraftFields)
         var lines = ["工作汇报", ""]
         appendDraftInline("项目", from: fieldValues, to: &lines)
         appendDraftInline("日期", from: fieldValues, to: &lines)
@@ -342,6 +344,30 @@ enum WorkLogExporter {
         let values = uniqueValues(fieldValues.compactMap { $0[title] })
         guard !values.isEmpty else { return }
         lines.append("\(title)：\(values.joined(separator: "；"))")
+    }
+
+    private static func sortReportDraftFields(_ lhs: [String: String], _ rhs: [String: String]) -> Bool {
+        let lhsPriority = reportDraftTemplatePriority(lhs["模板"])
+        let rhsPriority = reportDraftTemplatePriority(rhs["模板"])
+        if lhsPriority != rhsPriority {
+            return lhsPriority < rhsPriority
+        }
+        return (lhs["日期"] ?? "") > (rhs["日期"] ?? "")
+    }
+
+    private static func reportDraftTemplatePriority(_ template: String?) -> Int {
+        switch template {
+        case "项目汇报":
+            return 0
+        case "周报":
+            return 1
+        case "日报":
+            return 2
+        case "复盘":
+            return 3
+        default:
+            return 4
+        }
     }
 
     private static func appendDraftList(

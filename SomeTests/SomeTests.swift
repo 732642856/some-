@@ -1205,9 +1205,27 @@ final class SomeTests: XCTestCase {
         let draft = WorkLogExporter.reportDraft(memos: [firstLog, secondLog])
 
         XCTAssertTrue(draft.hasPrefix("工作汇报\n\n项目：some\n日期：2026-06-23\n"))
-        XCTAssertTrue(draft.contains("进展：\n1. 补齐多 OCR 块素材索引\n2. 完成媒体摘要预热"))
-        XCTAssertTrue(draft.contains("风险/问题：\n1. 等待 CI"))
-        XCTAssertTrue(draft.contains("下一步：\n1. 继续工作日志汇报稿\n2. 观察远端复验"))
+        XCTAssertEqual(
+            draft,
+            """
+            工作汇报
+
+            项目：some
+            日期：2026-06-23
+
+            进展：
+            1. 补齐多 OCR 块素材索引
+            2. 完成媒体摘要预热
+
+            风险/问题：
+            1. 等待 CI
+
+            下一步：
+            1. 继续工作日志汇报稿
+            2. 观察远端复验
+
+            """
+        )
         XCTAssertFalse(draft.contains("普通记录"))
     }
 

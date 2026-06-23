@@ -564,6 +564,7 @@
 - 复查并行窗口碎片时发现重复 `SomeWidgetBundle.swift` 也声明 `@main`，已删除，避免未来接入 target 后与 `SomeWidget.swift` 冲突。
 - `MemoStore.handleURL` 新增 `some://home` / `some://zen`，并让无查询参数的 `some://search` 回到时间线；测试覆盖小组件快照排序、文件往返和小组件深链入口。
 - 远端 run `28029991853` 失败根因确认回到 Xcode 16.4 App Intents metadata processor。CI Run tests 阶段临时 pbxproj 改写升级为直接移除 AppIntents build file 定义与 source 引用，并继续移除 ZIPFoundation、分享扩展和小组件嵌入依赖；正式 Build/TestFlight 不受影响。
+- 远端 run `28031203527` 已越过 AppIntents 阻塞，暴露 `testWorkLogExporterBuildsShareableReportDraft` 的真实顺序断言失败；修复为汇报稿按模板优先级排序，项目汇报优先于日报，同时把该测试改成完整文本等值断言，避免后续再只显示裸 `XCTAssertTrue failed`。
 
 ## 2026-06-23T21:05:00+08:00
 
@@ -572,3 +573,11 @@
 - `MemoSearchQueryParser.dateRange` 抽出 `localGregorianCalendar()`，测试 helper `makeDate` 也改为同样先设置 Gregorian calendar 的 `timeZone` 再调用 `calendar.date(from:)`，进一步消除 `DateComponents.date` 的隐式 calendar 差异。
 - 扩大 `.github/workflows/ios-ci.yml` 的测试失败摘要 grep 范围，失败时会附带更多前后相邻 passed/failed test case，避免 GitHub 页面只显示孤立断言。
 - 远端 run `28028932398` 仍只暴露一个裸 `XCTAssertTrue failed`，但页面已显示内容类型、日期、搜索索引等相关测试通过。继续把 parser 近邻测试中的裸布尔断言改为 `XCTEqual`，并让 CI 失败摘要额外输出失败前最近 320 条 test case 行。
+
+## 2026-06-23T22:01:03+08:00
+
+- 进入阶段 56：Widget TestFlight 签名链路。阶段 55 的小组件代码已由 `43b0fc6` 提交，文档里程碑由 `b2bcbd8` 同步到 `origin/master`；本轮在该提交之上继续补发布阻塞。
+- 复查全量文件清单与工作树，未发现新的未跟踪源码碎片；当前最高风险是 `SomeWidget` 已作为 embedded app extension 加入 app target，但 `.github/workflows/ios-testflight.yml` 仍只安装/映射主 App 与 Share Extension 的 App Store provisioning profile。
+- 按用户要求补做 WidgetKit/notes widget 开源检索，精确 GitHub 查询 `SwiftUI WidgetKit widgetURL MIT` 和 `iOS notes WidgetKit SwiftUI MIT` 均返回 0；本轮不复制第三方源码，改发布配置与文档。
+- `.github/workflows/ios-testflight.yml` 新增 `WIDGET_EXTENSION_BUNDLE_ID`、`IOS_WIDGET_EXTENSION_APP_STORE_PROVISIONING_PROFILE_BASE64`、`IOS_WIDGET_EXTENSION_APP_STORE_PROVISIONING_PROFILE_NAME`，并在安装 profile、ExportOptions provisioningProfiles 和 `xcodebuild archive` build settings 中传入 widget bundle/profile。
+- README、`docs/online-build-and-release.md` 和 `AppStore/submission-checklist.md` 已同步说明 Widget Extension 的 Bundle ID、App Group、App Store provisioning profile secret 和 TestFlight 真机验收项。
