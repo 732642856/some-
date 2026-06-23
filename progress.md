@@ -738,3 +738,17 @@
 - 开工前复查 App Intents、URL Scheme、Widget 深链和 `MemoHomeMode`；检索 App Intents 打开指定 tab/route 候选，未找到可直接复制进当前状态模型的模块。
 - 新增 `OpenZenIntent`、`OpenWorkLogIntent`、`OpenWardrobeIntent` 和 `OpenAIWorkspaceIntent`，通过 App Group `UserDefaults` 写入待打开目标，App 激活时消费并切换首页模式。
 - 新增 `testAppShortcutRouteStoreOpensAndConsumesDestination`，覆盖快捷指令目标只消费一次，并清空旧搜索条件。
+
+## 2026-06-24T03:05:00+08:00
+
+- 进入阶段 78：衣橱真实天气底座。阶段 77 最新提交已推送，前序 74/75/76 的远端 CI 均已成功，最新 App Shortcuts run 仍在运行；本轮继续处理衣橱“真实天气 API”缺口。
+- 开工前检索 Swift/Open-Meteo 开源客户端和官方 forecast/geocoding 文档；没有找到比直接调用官方无 Key JSON API 更适合当前本地草稿的可复制模块。
+- 按 TDD 增加 `testOpenMeteoWeatherServiceBuildsRequestURLsAndSummary`，锁定 geocoding URL、forecast URL、天气码/温度/降雨概率解析和本地备注文案。
+- 新增 `OpenMeteoWeatherService`，衣橱打包页增加“获取天气”按钮；用户主动点击时按目的地查询 Open-Meteo，并把天气摘要和来源备注填入本地打包草稿，不请求持续定位、不后台上传。
+
+## 2026-06-24T03:34:00+08:00
+
+- 进入并完成阶段 79：图片编辑裁剪方向与翻转。阶段 78 收口时发现并行窗口留下的图片裁剪方向正向碎片，本轮继续补齐为独立阶段。
+- 开工前复核 Mantis、SwiftyCrop、TOCropViewController、ZLImageEditor 等 MIT 候选；当前项目已有可测试的 `ImageEditRecipe`、裁剪画布与 renderer，直接接大依赖会引入状态迁移和工程风险，本轮先补项目内方向变换。
+- 按 TDD 增加 `testImageEditRendererAppliesCropTransformBeforeCropping` 与 `testImageEditRendererBuildsTransformedCropPreviewImage`，锁定裁剪前旋转/翻转、预览尺寸和文件名 token。
+- `ImageEditRecipe.CropTransform` 新增 90°/180°旋转、水平翻转、垂直翻转；`ImageEditRenderer` 在裁剪前应用同一变换，`ImageEditorView` 裁剪模式新增方向菜单和翻转按钮，保存后的图片作品正文会记录“方向”。

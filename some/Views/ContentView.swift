@@ -1816,6 +1816,7 @@ private struct WardrobeView: View {
     @State private var packingItems = ""
     @State private var packingWeather = ""
     @State private var packingNote = ""
+    @State private var isFetchingPackingWeather = false
     @State private var statusText: String?
 
     private let categories = ["上装", "下装", "连衣裙", "外套", "鞋履", "包包", "饰品", "其他"]
@@ -2338,6 +2339,26 @@ private struct WardrobeView: View {
             .background(Color.subtleSurface)
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
+            HStack(spacing: 8) {
+                Spacer()
+                Button {
+                    fetchPackingWeather()
+                } label: {
+                    Label(isFetchingPackingWeather ? "获取中" : "获取天气", systemImage: "cloud.sun")
+                        .font(.footnote.weight(.semibold))
+                        .frame(height: 32)
+                        .padding(.horizontal, 12)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.accentGreen)
+                .background(Color.greenTint)
+                .clipShape(Capsule())
+                .disabled(
+                    isFetchingPackingWeather
+                    || packingDestination.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                )
+            }
+
             actionRow(
                 buttonTitle: "保存打包",
                 systemImage: "checkmark.circle.fill",
@@ -2528,6 +2549,43 @@ private struct WardrobeView: View {
         packingWeather = suggestion.weather ?? packingWeather
         packingNote = suggestion.note ?? packingNote
         statusText = "已填入打包草稿"
+    }
+
+    private func fetchPackingWeather() {
+        let destination = packingDestination.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !destination.isEmpty else {
+            statusText = "请先填写目的地。"
+            return
+        }
+
+        isFetchingPackingWeather = true
+        statusText = "正在获取天气"
+        OpenMeteoWeatherService().fetchWeather(for: destination) { result in
+            DispatchQueue.main.async {
+                isFetchingPackingWeather = false
+                switch result {
+                case .success(let summary):
+                    packingWeather = summary.weatherText
+                    packingNote = mergePackingNote(existing: packingNote, weatherNote: summary.noteText)
+                    statusText = "已填入 \(summary.location.displayName) 天气"
+                case .failure(let error):
+                    statusText = (error as? LocalizedError)?.errorDescription ?? "天气获取失败。"
+                }
+            }
+        }
+    }
+
+    private func mergePackingNote(existing: String, weatherNote: String) -> String {
+        let trimmedExisting = existing.trimmingCharacters(in: .whitespacesAndNewlines)
+        let existingLines = trimmedExisting
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty && !$0.contains("天气来自 Open-Meteo") }
+
+        guard !existingLines.isEmpty else {
+            return weatherNote
+        }
+        return "\(existingLines.joined(separator: "\n"))\n\(weatherNote)"
     }
 
     private func metricStrip(title: String, metrics: [WardrobeInsightMetric]) -> some View {

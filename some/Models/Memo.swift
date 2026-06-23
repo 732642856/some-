@@ -736,6 +736,7 @@ struct ImageEditRecipe: Codable, Equatable {
     var layoutPreset: LayoutPreset
     var cropPreset: CropPreset
     var cropAdjustment: CropAdjustment
+    var cropTransform: CropTransform
     var border: Border
     var background: Background
     var subjectExtraction: SubjectExtraction
@@ -751,6 +752,7 @@ struct ImageEditRecipe: Codable, Equatable {
         layoutPreset: LayoutPreset = .manual,
         cropPreset: CropPreset = .original,
         cropAdjustment: CropAdjustment = CropAdjustment(),
+        cropTransform: CropTransform = CropTransform(),
         border: Border = Border(),
         background: Background = Background(),
         subjectExtraction: SubjectExtraction = SubjectExtraction(),
@@ -765,6 +767,7 @@ struct ImageEditRecipe: Codable, Equatable {
         self.layoutPreset = layoutPreset
         self.cropPreset = cropPreset
         self.cropAdjustment = cropAdjustment
+        self.cropTransform = cropTransform
         self.border = border
         self.background = background
         self.subjectExtraction = subjectExtraction
@@ -780,6 +783,9 @@ struct ImageEditRecipe: Codable, Equatable {
         }
         if cropAdjustment.isAdjusted {
             parts.append("自由裁剪")
+        }
+        if cropTransform.isAdjusted {
+            parts.append(cropTransform.title)
         }
         if border.width > 0 {
             parts.append("边框")
@@ -817,6 +823,7 @@ struct ImageEditRecipe: Codable, Equatable {
         case layoutPreset
         case cropPreset
         case cropAdjustment
+        case cropTransform
         case border
         case background
         case subjectExtraction
@@ -834,6 +841,7 @@ struct ImageEditRecipe: Codable, Equatable {
         layoutPreset = try container.decodeIfPresent(LayoutPreset.self, forKey: .layoutPreset) ?? .manual
         cropPreset = try container.decodeIfPresent(CropPreset.self, forKey: .cropPreset) ?? .original
         cropAdjustment = try container.decodeIfPresent(CropAdjustment.self, forKey: .cropAdjustment) ?? CropAdjustment()
+        cropTransform = try container.decodeIfPresent(CropTransform.self, forKey: .cropTransform) ?? CropTransform()
         border = try container.decodeIfPresent(Border.self, forKey: .border) ?? Border()
         background = try container.decodeIfPresent(Background.self, forKey: .background) ?? Background()
         subjectExtraction = try container.decodeIfPresent(SubjectExtraction.self, forKey: .subjectExtraction) ?? SubjectExtraction()
@@ -1129,6 +1137,79 @@ struct ImageEditRecipe: Codable, Equatable {
 
         private static func clamped(_ value: Double, lower: Double, upper: Double) -> Double {
             min(max(value, lower), upper)
+        }
+    }
+
+    struct CropTransform: Codable, Equatable {
+        var rotation: Rotation
+        var flipHorizontal: Bool
+        var flipVertical: Bool
+
+        init(
+            rotation: Rotation = .none,
+            flipHorizontal: Bool = false,
+            flipVertical: Bool = false
+        ) {
+            self.rotation = rotation
+            self.flipHorizontal = flipHorizontal
+            self.flipVertical = flipVertical
+        }
+
+        var isAdjusted: Bool {
+            rotation != .none || flipHorizontal || flipVertical
+        }
+
+        var title: String {
+            titleParts.joined(separator: " · ")
+        }
+
+        var filenameToken: String {
+            let token = tokenParts.joined(separator: "-")
+            return token.isEmpty ? "upright" : token
+        }
+
+        private var titleParts: [String] {
+            var parts: [String] = []
+            if rotation != .none {
+                parts.append(rotation.title)
+            }
+            if flipHorizontal {
+                parts.append("水平翻转")
+            }
+            if flipVertical {
+                parts.append("垂直翻转")
+            }
+            return parts
+        }
+
+        private var tokenParts: [String] {
+            var parts: [String] = []
+            if rotation != .none {
+                parts.append(rotation.rawValue)
+            }
+            if flipHorizontal {
+                parts.append("flipH")
+            }
+            if flipVertical {
+                parts.append("flipV")
+            }
+            return parts
+        }
+
+        enum Rotation: String, Codable, CaseIterable, Equatable {
+            case none
+            case left
+            case right
+            case half
+
+            var title: String {
+                switch self {
+                case .none: return "不旋转"
+                case .left: return "左旋"
+                case .right: return "右旋"
+                case .half: return "旋转180"
+                }
+            }
         }
     }
 

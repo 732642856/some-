@@ -386,6 +386,9 @@ final class MemoStore: ObservableObject {
         if renderedRecipe.cropAdjustment.isAdjusted {
             appendField("裁剪微调", value: "中心\(Int(renderedRecipe.cropAdjustment.x * 100))/\(Int(renderedRecipe.cropAdjustment.y * 100)) 缩放\(String(format: "%.1f", renderedRecipe.cropAdjustment.scale))x", to: &lines)
         }
+        if renderedRecipe.cropTransform.isAdjusted {
+            appendField("方向", value: renderedRecipe.cropTransform.title, to: &lines)
+        }
         if !renderedRecipe.cleanupPatches.isEmpty {
             appendField("授权清理", value: "\(renderedRecipe.cleanupPatches.count)处", to: &lines)
             let objectCleanupCount = renderedRecipe.cleanupPatches.filter { $0.style == .object }.count

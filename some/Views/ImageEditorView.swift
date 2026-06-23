@@ -15,6 +15,9 @@ struct ImageEditorView: View {
     @State private var cropX: Double = 0.5
     @State private var cropY: Double = 0.5
     @State private var cropScale: Double = 1
+    @State private var cropRotation: ImageEditRecipe.CropTransform.Rotation = .none
+    @State private var flipHorizontal = false
+    @State private var flipVertical = false
     @State private var borderWidth: Double = 18
     @State private var borderColorHex = "#FFFFFF"
     @State private var backgroundMode: ImageEditRecipe.Background.Mode = .original
@@ -79,6 +82,9 @@ struct ImageEditorView: View {
         .onChange(of: cropX) { _ in refreshPreview() }
         .onChange(of: cropY) { _ in refreshPreview() }
         .onChange(of: cropScale) { _ in refreshPreview() }
+        .onChange(of: cropRotation) { _ in refreshPreview() }
+        .onChange(of: flipHorizontal) { _ in refreshPreview() }
+        .onChange(of: flipVertical) { _ in refreshPreview() }
         .onChange(of: borderWidth) { _ in refreshPreview() }
         .onChange(of: borderColorHex) { _ in refreshPreview() }
         .onChange(of: backgroundMode) { _ in refreshPreview() }
@@ -110,7 +116,7 @@ struct ImageEditorView: View {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(Color.surface)
 
-                if editMode == .crop, let image = sourceImage ?? previewImage {
+                if editMode == .crop, let image = cropCanvasImage {
                     ImageCropSelectionCanvas(
                         image: image,
                         cropPreset: cropPreset,
@@ -262,6 +268,7 @@ struct ImageEditorView: View {
             layoutPreset: layoutPreset,
             cropPreset: cropPreset,
             cropAdjustment: ImageEditRecipe.CropAdjustment(x: cropX, y: cropY, scale: cropScale),
+            cropTransform: cropTransform,
             border: ImageEditRecipe.Border(colorHex: borderColorHex, width: borderWidth),
             background: ImageEditRecipe.Background(
                 mode: backgroundMode,
@@ -283,6 +290,21 @@ struct ImageEditorView: View {
             ],
             cleanupPatches: cleanupPatches
         )
+    }
+
+    private var cropTransform: ImageEditRecipe.CropTransform {
+        ImageEditRecipe.CropTransform(
+            rotation: cropRotation,
+            flipHorizontal: flipHorizontal,
+            flipVertical: flipVertical
+        )
+    }
+
+    private var cropCanvasImage: UIImage? {
+        guard let image = sourceImage ?? previewImage else {
+            return nil
+        }
+        return ImageEditRenderer.cropPreviewImage(sourceImage: image, transform: cropTransform)
     }
 
     private func applyLayoutPreset(_ preset: ImageEditRecipe.LayoutPreset) {
@@ -326,9 +348,40 @@ struct ImageEditorView: View {
                     cropX = 0.5
                     cropY = 0.5
                     cropScale = 1
+                    cropRotation = .none
+                    flipHorizontal = false
+                    flipVertical = false
                 }
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Color.accentGreen)
+            }
+
+            HStack(spacing: 10) {
+                Picker("方向", selection: $cropRotation) {
+                    ForEach(ImageEditRecipe.CropTransform.Rotation.allCases, id: \.self) { rotation in
+                        Text(rotation.title).tag(rotation)
+                    }
+                }
+                .pickerStyle(.menu)
+                .tint(Color.accentGreen)
+
+                Button {
+                    flipHorizontal.toggle()
+                } label: {
+                    Label("水平", systemImage: "arrow.left.and.right.righttriangle.left.righttriangle.right")
+                        .font(.caption.weight(.semibold))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(flipHorizontal ? Color.accentGreen : Color.secondaryText)
+
+                Button {
+                    flipVertical.toggle()
+                } label: {
+                    Label("垂直", systemImage: "arrow.up.and.down.righttriangle.up.righttriangle.down")
+                        .font(.caption.weight(.semibold))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(flipVertical ? Color.accentGreen : Color.secondaryText)
             }
 
             Slider(value: $cropScale, in: 1...3, step: 0.05) {

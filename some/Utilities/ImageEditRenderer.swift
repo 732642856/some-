@@ -18,12 +18,24 @@ enum ImageEditRenderer {
             return nil
         }
 
-        let cropped = crop(CGImage: normalized, preset: recipe.cropPreset, adjustment: recipe.cropAdjustment) ?? normalized
+        let transformed = applyCropTransform(recipe.cropTransform, to: normalized) ?? normalized
+        let cropped = crop(CGImage: transformed, preset: recipe.cropPreset, adjustment: recipe.cropAdjustment) ?? transformed
         let backgroundProcessed = applyBackground(recipe.background, to: cropped) ?? cropped
         let subjectProcessed = applySubjectExtraction(recipe.subjectExtraction, to: backgroundProcessed) ?? backgroundProcessed
         let cleaned = applyCleanupPatches(to: subjectProcessed, patches: recipe.cleanupPatches) ?? subjectProcessed
         let filtered = applyFilter(to: cleaned, filter: recipe.filter) ?? cleaned
         return drawDecorations(on: filtered, recipe: recipe)
+    }
+
+    static func cropPreviewImage(
+        sourceImage: UIImage,
+        transform: ImageEditRecipe.CropTransform
+    ) -> UIImage? {
+        guard let normalized = normalizedImage(sourceImage).cgImage,
+              let transformed = applyCropTransform(transform, to: normalized) else {
+            return normalizedImage(sourceImage)
+        }
+        return UIImage(cgImage: transformed, scale: sourceImage.scale, orientation: .up)
     }
 
     static func outputFilename(source: SharedAttachment, recipe: ImageEditRecipe) -> String {
@@ -34,6 +46,9 @@ enum ImageEditRenderer {
         }
         if recipe.cropAdjustment.isAdjusted {
             suffixParts.append("freecrop")
+        }
+        if recipe.cropTransform.isAdjusted {
+            suffixParts.append(recipe.cropTransform.filenameToken)
         }
         if recipe.cleanupPatches.contains(where: { $0.style == .object }) {
             suffixParts.append("objectcleanup")
@@ -106,6 +121,53 @@ enum ImageEditRenderer {
             height: cropHeight
         ).integral
         return image.cropping(to: rect)
+    }
+
+    private static func applyCropTransform(
+        _ transform: ImageEditRecipe.CropTransform,
+        to image: CGImage
+    ) -> CGImage? {
+        guard transform.isAdjusted else {
+            return image
+        }
+
+        let rotatedQuarterTurn = transform.rotation == .left || transform.rotation == .right
+        let size = CGSize(
+            width: rotatedQuarterTurn ? image.height : image.width,
+            height: rotatedQuarterTurn ? image.width : image.height
+        )
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
+        let rendered = renderer.image { context in
+            let cgContext = context.cgContext
+            cgContext.translateBy(x: size.width / 2, y: size.height / 2)
+
+            switch transform.rotation {
+            case .none:
+                break
+            case .left:
+                cgContext.rotate(by: -.pi / 2)
+            case .right:
+                cgContext.rotate(by: .pi / 2)
+            case .half:
+                cgContext.rotate(by: .pi)
+            }
+
+            cgContext.scaleBy(
+                x: transform.flipHorizontal ? -1 : 1,
+                y: transform.flipVertical ? -1 : 1
+            )
+
+            let drawRect = CGRect(
+                x: -CGFloat(image.width) / 2,
+                y: -CGFloat(image.height) / 2,
+                width: CGFloat(image.width),
+                height: CGFloat(image.height)
+            )
+            UIImage(cgImage: image).draw(in: drawRect)
+        }
+        return rendered.cgImage
     }
 
     private static func applyBackground(

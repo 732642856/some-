@@ -3988,6 +3988,47 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(suggestion?.note?.contains("天气参考：晴 热 30C") == true)
     }
 
+    func testOpenMeteoWeatherServiceBuildsRequestURLsAndSummary() throws {
+        let service = OpenMeteoWeatherService()
+
+        let geocodingURL = try service.geocodingURL(for: "厦门")
+        XCTAssertEqual(geocodingURL.host, "geocoding-api.open-meteo.com")
+        XCTAssertTrue(geocodingURL.absoluteString.contains("name=%E5%8E%A6%E9%97%A8"))
+        XCTAssertTrue(geocodingURL.absoluteString.contains("language=zh"))
+
+        let forecastURL = try service.forecastURL(latitude: 24.4798, longitude: 118.0894)
+        XCTAssertEqual(forecastURL.host, "api.open-meteo.com")
+        let forecastItems = URLComponents(url: forecastURL, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        XCTAssertTrue(forecastItems.contains(URLQueryItem(name: "latitude", value: "24.4798")))
+        XCTAssertTrue(forecastItems.contains(URLQueryItem(name: "longitude", value: "118.0894")))
+        XCTAssertTrue(forecastItems.contains(URLQueryItem(name: "current", value: "temperature_2m,weather_code")))
+        XCTAssertTrue(forecastItems.contains(URLQueryItem(name: "daily", value: "temperature_2m_max,temperature_2m_min,precipitation_probability_max")))
+
+        let geocodingData = Data("""
+        {
+          "results": [
+            { "name": "Xiamen", "latitude": 24.4798, "longitude": 118.0894, "country": "中国", "admin1": "福建省" }
+          ]
+        }
+        """.utf8)
+        let forecastData = Data("""
+        {
+          "current": { "temperature_2m": 29.4, "weather_code": 61 },
+          "daily": {
+            "temperature_2m_max": [32.2],
+            "temperature_2m_min": [25.8],
+            "precipitation_probability_max": [70]
+          }
+        }
+        """.utf8)
+
+        let location = try service.decodeLocation(from: geocodingData)
+        let summary = try service.decodeForecast(from: forecastData, location: location)
+        XCTAssertEqual(location.displayName, "Xiamen，福建省，中国")
+        XCTAssertEqual(summary.weatherText, "小雨 26-32C 降雨70%")
+        XCTAssertEqual(summary.noteText, "天气来自 Open-Meteo：Xiamen，福建省，中国。小雨 26-32C 降雨70%。")
+    }
+
     func testAddScrapbookPageCreatesStructuredMemoAndAsset() throws {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         let attachment = try SharedAttachmentStore.save(
@@ -4469,6 +4510,7 @@ final class SomeTests: XCTestCase {
             layoutPreset: .foodCard,
             cropPreset: .square,
             cropAdjustment: ImageEditRecipe.CropAdjustment(x: 0.42, y: 0.58, scale: 1.4),
+            cropTransform: ImageEditRecipe.CropTransform(rotation: .left, flipVertical: true),
             border: ImageEditRecipe.Border(colorHex: "#FFFFFF", width: 18),
             background: ImageEditRecipe.Background(mode: .softBlur, colorHex: "#DDEBF7", blurRadius: 18),
             subjectExtraction: ImageEditRecipe.SubjectExtraction(mode: .person),
@@ -4486,6 +4528,8 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(decoded.layoutPreset, .foodCard)
         XCTAssertEqual(decoded.cropPreset, .square)
         XCTAssertEqual(decoded.cropAdjustment.scale, 1.4, accuracy: 0.001)
+        XCTAssertEqual(decoded.cropTransform.rotation, .left)
+        XCTAssertTrue(decoded.cropTransform.flipVertical)
         XCTAssertEqual(decoded.background.mode, .softBlur)
         XCTAssertEqual(decoded.background.colorHex, "#DDEBF7")
         XCTAssertEqual(decoded.subjectExtraction.mode, .person)
@@ -4493,6 +4537,8 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(decoded.stickerOverlays.first?.text, "good")
         XCTAssertEqual(decoded.cleanupPatches.count, 1)
         XCTAssertTrue(decoded.summary.contains("自由裁剪"))
+        XCTAssertTrue(decoded.summary.contains("左旋"))
+        XCTAssertTrue(decoded.summary.contains("垂直翻转"))
         XCTAssertTrue(decoded.summary.contains("美食留白"))
         XCTAssertTrue(decoded.summary.contains("柔化背景"))
         XCTAssertTrue(decoded.summary.contains("人物抠图"))
@@ -4528,6 +4574,7 @@ final class SomeTests: XCTestCase {
             layoutPreset: .journalSticker,
             cropPreset: .square,
             cropAdjustment: ImageEditRecipe.CropAdjustment(x: 0.4, y: 0.45, scale: 1.3),
+            cropTransform: ImageEditRecipe.CropTransform(rotation: .right, flipHorizontal: true),
             border: ImageEditRecipe.Border(colorHex: "#F8DCE8", width: 6),
             background: ImageEditRecipe.Background(mode: .solid, colorHex: "#FDF8FA", inset: 0.08),
             subjectExtraction: ImageEditRecipe.SubjectExtraction(mode: .person),
@@ -4552,6 +4599,7 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(memo.text.contains("滤镜：鲜明"))
         XCTAssertTrue(memo.text.contains("裁剪：1:1"))
         XCTAssertTrue(memo.text.contains("裁剪微调："))
+        XCTAssertTrue(memo.text.contains("方向：右旋 · 水平翻转"))
         XCTAssertTrue(memo.text.contains("授权清理：1处"))
         XCTAssertTrue(memo.text.contains("背景：纯色背景"))
         XCTAssertTrue(memo.text.contains("主体：人物抠图"))
@@ -4579,6 +4627,7 @@ final class SomeTests: XCTestCase {
         let recipe = try XCTUnwrap(ImageEditRecipe.recipe(in: "图片编辑：旧图\n\(ImageEditRecipe.marker)\(encoded)"))
 
         XCTAssertEqual(recipe.cropAdjustment, ImageEditRecipe.CropAdjustment())
+        XCTAssertEqual(recipe.cropTransform, ImageEditRecipe.CropTransform())
         XCTAssertEqual(recipe.layoutPreset, .manual)
         XCTAssertEqual(recipe.background, ImageEditRecipe.Background())
         XCTAssertEqual(recipe.subjectExtraction, ImageEditRecipe.SubjectExtraction())
@@ -4634,6 +4683,47 @@ final class SomeTests: XCTestCase {
             ),
             recipe: recipe
         ).contains("freecrop"))
+    }
+
+    func testImageEditRendererAppliesCropTransformBeforeCropping() throws {
+        let source = testImage(size: CGSize(width: 120, height: 80))
+        let recipe = ImageEditRecipe(
+            sourceAttachmentPath: "source.png",
+            filter: .original,
+            cropPreset: .original,
+            cropTransform: ImageEditRecipe.CropTransform(rotation: .right, flipHorizontal: true)
+        )
+
+        let line = try XCTUnwrap(recipe.encodedLine())
+        let decoded = try XCTUnwrap(ImageEditRecipe.recipe(in: "图片编辑：旋转裁剪\n\(line)"))
+        let rendered = try XCTUnwrap(ImageEditRenderer.renderedImage(sourceImage: source, recipe: decoded))
+
+        XCTAssertEqual(decoded.cropTransform.rotation, .right)
+        XCTAssertTrue(decoded.cropTransform.flipHorizontal)
+        XCTAssertEqual(rendered.width, 80)
+        XCTAssertEqual(rendered.height, 120)
+        XCTAssertTrue(decoded.summary.contains("右旋"))
+        XCTAssertTrue(decoded.summary.contains("水平翻转"))
+        XCTAssertTrue(ImageEditRenderer.outputFilename(
+            source: SharedAttachment(
+                id: "source.png",
+                filename: "source.png",
+                relativePath: "source.png",
+                typeIdentifier: UTType.png.identifier,
+                byteCount: 0
+            ),
+            recipe: decoded
+        ).contains("right-flipH"))
+    }
+
+    func testImageEditRendererBuildsTransformedCropPreviewImage() throws {
+        let source = testImage(size: CGSize(width: 120, height: 80))
+        let transform = ImageEditRecipe.CropTransform(rotation: .right, flipVertical: true)
+
+        let preview = try XCTUnwrap(ImageEditRenderer.cropPreviewImage(sourceImage: source, transform: transform))
+
+        XCTAssertEqual(Int(preview.size.width), 80)
+        XCTAssertEqual(Int(preview.size.height), 120)
     }
 
     func testImageEditRendererAppliesAuthorizedCleanupPatch() throws {
