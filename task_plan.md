@@ -6,7 +6,7 @@
 
 ## 当前阶段
 
-阶段 31：截图/OCR 框选 UI，状态：in_progress
+阶段 31：截图/OCR 框选 UI，状态：complete
 
 备注：阶段 17 远端 CI 复验仍需继续。2026-06-23 最新 run `28003903915` 已确认 Build for simulator 通过，Run tests 仍在进行中；等待结果时继续推进不依赖外部服务的 P1 本地缺口。
 
@@ -43,7 +43,7 @@
 - 阶段 28：工作日志项目/日期/模板增强，状态：complete
 - 阶段 29：截图/OCR 区域识别底座，状态：complete
 - 阶段 30：媒体缩略图缓存维护，状态：complete
-- 阶段 31：截图/OCR 框选 UI，状态：in_progress
+- 阶段 31：截图/OCR 框选 UI，状态：complete
 
 ## 当前执行原则
 

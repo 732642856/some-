@@ -281,3 +281,12 @@
 - `VideoThumbnailGenerator` 新增 `CacheMaintenanceResult`、`preheatCache(for:)` 和 `pruneCache(keeping:)`，支持去重预热视频缩略图缓存，并清理不在保留集合里的 `.jpg` 缓存文件。
 - 新增测试覆盖缺失视频预热失败统计、重复 URL 去重，以及 prune 保留目标缓存、删除孤儿缓存的行为。
 - 完成阶段 30。本地验证通过：`git diff --check`、旧 Swift parser 覆盖 `VideoThumbnailGenerator.swift` / `SharedMemoStorage.swift` / `SomeTests.swift`。
+
+## 2026-06-23T13:38:00+08:00
+
+- 进入阶段 31：截图/OCR 框选 UI。开工前复查 Git 状态、OCR 底座、详情页附件/OCR/转写链路、图片附件展示和素材索引；工作区包含阶段 30 正向缓存维护碎片，继续保留并整合，不回滚。
+- 按用户要求补做开源检索：`SwiftUI image cropper MIT OCR selection` 未找到可直接复制模块；`benedom/SwiftyCrop` 为 MIT/SwiftUI/近期活跃，`guoyingtao/Mantis` 为 MIT/Swift/成熟裁剪库，但本阶段只需 OCR 区域矩形框，引入完整裁剪依赖会扩大工程风险。
+- `MemoDetailView` 图片附件区域新增“框选识别”入口，打开 `ImageTextRegionPickerView` 后可在图片上拖动选择区域、拖动右下角调整大小，并用当前浅粉/雾蓝风格展示遮罩和选区。
+- 区域 OCR 结果会追加回当前 memo；`ImageTextRecognizer.memoText` 新增 `includesAttachmentReference`，追加模式不重复写入同一附件引用。
+- 修复 `MemoAsset.imageTextAsset`，让普通图片记录后续追加“图片文字”段落时也能进入 `screenshot` 素材索引并支持 `has:ocr` 搜索。
+- 新增测试覆盖可追加区域 OCR 文本、追加后只保留一个附件引用、追加 OCR 后生成 `screenshot` 素材并能用 `has:ocr` 搜索。
