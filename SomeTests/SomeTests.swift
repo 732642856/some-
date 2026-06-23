@@ -1314,6 +1314,50 @@ final class SomeTests: XCTestCase {
         )
     }
 
+    func testWorkLogExporterBuildsTeamWeeklyReportDraft() {
+        let date = DateFormatters.wardrobeDay.date(from: "2026-06-24")!
+        let log = Memo(
+            text: """
+            工作日志：周报
+            范围：本周
+            项目：some
+            日期：2026-06-18~2026-06-24
+            模板：周报
+            进展：完成 AI 润色汇报
+            问题：等待 CI
+            下一步：继续细化团队模板
+            备注：覆盖团队同步场景
+            """,
+            createdAt: date,
+            updatedAt: date
+        )
+
+        let draft = WorkLogExporter.reportDraft(memos: [log], style: .teamWeekly)
+
+        XCTAssertEqual(
+            draft,
+            """
+            团队周报
+
+            项目：some
+            日期：2026-06-18~2026-06-24
+
+            本周成果：
+            1. 完成 AI 润色汇报
+
+            关键影响：
+            1. 覆盖团队同步场景
+
+            风险/需要协作：
+            1. 等待 CI
+
+            下周重点：
+            1. 继续细化团队模板
+
+            """
+        )
+    }
+
     func testWorkLogExporterBuildsActionReviewReportDraft() {
         let date = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
         let firstLog = Memo(

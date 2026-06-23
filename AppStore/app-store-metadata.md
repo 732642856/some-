@@ -54,13 +54,13 @@ some 是一款本地优先的个人素材库，适合记录灵感、摘录、待
 
 This app is a local-first memo and personal asset capture utility. It does not require login, ads, or analytics. Users can create text memos, attach local media, record audio, transcribe selected audio with the iOS Speech framework, organize content with inline hashtags, search, pin, edit, delete, and export their memos through the native iOS share sheet.
 
-The app includes optional BYOK AI features. Users can enter their own OpenAI API key in Settings. The key is stored in iOS Keychain. AI actions are user initiated and send only the text needed for the selected insight generation, semantic search, or related memo lookup request to OpenAI API. For semantic search, the app stores recently used memo embeddings in the local App Group `AICache` container to reduce repeated embedding requests. The local cache uses model names and SHA-256 text fingerprints as keys, does not store memo plaintext, is capped at 1,000 entries, and can be viewed and cleared in Settings.
+The app includes optional BYOK AI features. Users can enter their own OpenAI API key in Settings. The key is stored in iOS Keychain. AI actions are user initiated and send only the text needed for the selected insight generation, semantic search, related memo lookup, or work log polishing request to OpenAI API. For semantic search, the app stores recently used memo embeddings in the local App Group `AICache` container to reduce repeated embedding requests. The local cache uses model names and SHA-256 text fingerprints as keys, does not store memo plaintext, is capped at 1,000 entries, and can be viewed and cleared in Settings.
 
 No demo account is required.
 
 ## App Privacy 建议填写
 
-- Data Collected: Other User Content, used for App Functionality, not linked to user identity, not used for tracking. If optional OpenAI API features are enabled, user-initiated AI requests send the needed memo text or prompt to OpenAI API.
+- Data Collected: Other User Content, used for App Functionality, not linked to user identity, not used for tracking. If optional OpenAI API features are enabled, user-initiated AI requests send the needed memo text, prompt, search question, or work log draft to OpenAI API.
 - Permissions used when the user chooses the related feature: Camera, Microphone, Photo Library, Speech Recognition, Face ID, Notifications
 - Tracking: No
 - Third-party advertising: No

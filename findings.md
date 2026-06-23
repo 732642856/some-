@@ -72,6 +72,7 @@
 - 2026-06-24：阶段 72 开工前复查 flomo 快速捕捉/标签/回顾体验，并检索 `iOS notes app onboarding SwiftUI MIT`、`SwiftUI quick capture starter template notes app MIT`、`open source Swift note app onboarding privacy local first MIT`。开源结果多为完整示例 App 或通用 onboarding 页，不适合直接复制进 some 的快速输入卡片；本轮复用现有 `QuickCaptureView` 草稿、标签和工作日志模板，补轻量首次记录模板。
 - 2026-06-24：阶段 71 开工前检索 AI 本地缓存隐私政策/上架文案示例，并复查 `AppStore/privacy-policy.md`、`app-store-metadata.md`、`submission-checklist.md` 与 2026-06-20/21 旧快照；旧文案只覆盖可选 OpenAI API、附件/语音识别基础说明，未覆盖 App Group 本地 embedding 缓存、1000 条上限、文本指纹、不保存明文和设置页可清除。本轮只更新 App Store 文案，不引入代码。
 - 2026-06-24：阶段 73 开工前检索 `work report polish prompt no hallucination template open source`、`AI work report polish prompt preserve facts markdown`、`daily standup report polish prompt no hallucination`；未发现可直接复制进当前 Swift prompt composer 的开源模块。本轮只新增本地 prompt 组装器，要求不编造、保留项目名/日期/数字/风险/下一步和原有结构。
+- 2026-06-24：阶段 74 开工前检索 `team status report template markdown MIT`、`weekly progress report template markdown MIT`、`OKR weekly report markdown template open source`、`incident review action items report template markdown`，GitHub Search 精确查询没有返回可直接复制进当前 Swift 工作日志导出器的模块；本轮继续复用 `WorkLogExporter` 字段抽取，新增团队周报样式。
 - 2026-06-23：CI 失败复查：runs `28018991662` / `28019499635` 的 Build for simulator 均通过，Run tests 失败 annotation 指向 `appintentsmetadataprocessor --module-name ZIPFoundation`。根因是 Xcode 16.4 测试构建仍会对 Swift Package 跑 App Intents metadata processor；正式 build 需要继续验证 ZIPFoundation，测试阶段可临时移除 package 引用并用 `CI_DISABLE_ZIP_BACKUP` stub 跳过 ZIP 专属测试。
 - 2026-06-23：CI 收口复查：run `28022556308` 的 Build for simulator 已通过，Run tests annotation 只剩搜索日期解析相关 `XCTAssertTrue failed`。本地发现 `MemoSearchQueryParser.dateRange` 使用 Gregorian calendar 但未显式设置 calendar 自身时区，只在 `DateComponents` 设置 `TimeZone.current`；在 CI 模拟器时区下可能让月份/日期范围起点与测试预期漂移。
 - 2026-06-23：CI 收口复查：run `28031203527` 已越过 AppIntents metadata processor，转而暴露 `testWorkLogExporterBuildsShareableReportDraft` 的真实业务断言失败。根因是汇报稿按记录时间/输入顺序汇总时，日报可能排在项目汇报之前；修复方向是让 `WorkLogExporter.reportDraft` 按模板优先级排序，项目汇报优先于日报，并把测试改为完整文本等值断言。
@@ -79,7 +80,7 @@
 ## 当前缺口
 
 - 媒体预览：视频附件已有本地缩略图缓存、媒体元数据摘要、视频缩略图预热/清理和图片/音频/视频元数据摘要批量预热；后续需用真实长列表验证滚动性能，并按需要继续细化缓存淘汰策略。
-- 工作日志：已有勾选记录生成结构化日志 v8；支持按标签、素材类型、时间和关键词筛选来源记录，支持项目字段、日期范围和日报/周报/项目汇报/复盘模板，工作日志列表支持项目/模板/日期筛选，并可把当前结果导出为带本地汇报摘要的 Markdown、结构化 CSV、通用汇报稿、站会稿、项目简报、行动复盘或可选 AI 润色汇报；后续可补更细的团队模板。
+- 工作日志：已有勾选记录生成结构化日志 v9；支持按标签、素材类型、时间和关键词筛选来源记录，支持项目字段、日期范围和日报/周报/项目汇报/复盘模板，工作日志列表支持项目/模板/日期筛选，并可把当前结果导出为带本地汇报摘要的 Markdown、结构化 CSV、通用汇报稿、站会稿、项目简报、团队周报、行动复盘或可选 AI 润色汇报；后续可补组织自定义模板和真实团队格式偏好。
 - 快速记录：已有普通快速输入、首次记录模板、禅定专注记录 v2 和小组件快照 v1；专注模式提供大文本框、本地草稿、舒适/大字/紧凑文字偏好、实时字数/行数/标签统计和一键保存；小组件可查看今日/全部计数、最近记录并跳回记录/专注/详情；后续可补桌面快捷入口和更多禅定模式偏好。
 - AI 工作台：已有 API Key 驱动的洞察、语义搜索、相关记录，新增无 Key 可用的本地 AI 记忆档案与本地相关搜索；未配置 Key 时搜索/相关使用带权词项重叠评分，标签、完整词和中日韩片段有不同权重，并在结果卡片展示命中词，配置 Key 后继续使用 OpenAI embedding，且记录 embedding 会以模型名 + 文本 SHA-256 指纹为 key 缓存到 App Group 本地 `AICache`，跨启动复用并最多保留最近使用的 1000 条，不额外保存笔记明文；设置页可查看条数/大小并手动清除 AI 语义缓存。后续可考虑接 Apple NaturalLanguage、`fuse-swift` 或 `Ifrit` 提升质量。
 - 录音/语音：详情页音频附件已支持 Apple Speech 本机转写，并新增自动、普通话、英语、粤语、日语、韩语语言选择；语言偏好保存在本机 `AppStorage`，转写结果会在标题标注所选语言。

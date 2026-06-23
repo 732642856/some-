@@ -710,3 +710,10 @@
 - 进入并完成阶段 73：工作日志 AI 润色导出。开工前复查工作日志导出器、AI composer 和当前未提交测试碎片，发现 `WorkLogPolishComposer` 已有测试引用，继续补齐并记录。
 - 按 TDD 增加 `testWorkLogPolishPromptPreservesFactsAndStructure`，锁定目标读者、不要编造、保留项目名/日期/数字等约束。
 - `WorkLogPolishComposer.prompt` 生成中文工作日志汇报润色 prompt，只基于草稿润色，要求保留原小节结构和事实，信息不足时不补细节；工作日志导出菜单新增“AI 润色汇报”，配置 OpenAI Key 后会生成 txt 导出稿。
+
+## 2026-06-24T01:36:00+08:00
+
+- 进入并完成阶段 74：工作日志团队周报模板。阶段 73 已把 AI 润色接入导出菜单，本轮继续补团队协作场景的确定性导出模板。
+- 开工前通过 GitHub API 检索团队状态报告、周报、OKR 周报和事故复盘 Markdown 模板，精确查询没有返回可直接复制进当前 SwiftUI/iOS 工程的模块。
+- 按 TDD 增加 `testWorkLogExporterBuildsTeamWeeklyReportDraft`，锁定团队周报应输出项目/日期、本周成果、关键影响、风险/需要协作和下周重点。
+- `WorkLogExporter.ReportDraftStyle` 新增 `.teamWeekly`，工作日志导出菜单新增“团队周报”；README、隐私政策、App Store metadata 和上架清单同步补充工作日志 AI 润色会发送工作汇报草稿到 OpenAI API 的说明。

@@ -197,6 +197,7 @@ enum WorkLogExporter {
         case standard
         case standup
         case projectBrief
+        case teamWeekly
         case actionReview
     }
 
@@ -301,6 +302,18 @@ enum WorkLogExporter {
                 ],
                 from: fieldValues
             )
+        case .teamWeekly:
+            return styledReportDraft(
+                title: "团队周报",
+                inlineKeys: ["项目", "日期"],
+                sections: [
+                    ("本周成果", ["进展"]),
+                    ("关键影响", ["备注"]),
+                    ("风险/需要协作", ["问题", "风险"]),
+                    ("下周重点", ["下一步"])
+                ],
+                from: fieldValues
+            )
         case .actionReview:
             return styledReportDraft(
                 title: "行动复盘",
@@ -324,6 +337,8 @@ enum WorkLogExporter {
             return "站会同步\n\n暂无可汇总日志。\n"
         case .projectBrief:
             return "项目简报\n\n暂无可汇总日志。\n"
+        case .teamWeekly:
+            return "团队周报\n\n暂无可汇总日志。\n"
         case .actionReview:
             return "行动复盘\n\n暂无可汇总日志。\n"
         }

@@ -1561,6 +1561,8 @@ private struct WorkLogView: View {
             content = WorkLogExporter.reportDraft(memos: payload.memos, assets: payload.assets, style: .standup)
         case .projectBriefDraft:
             content = WorkLogExporter.reportDraft(memos: payload.memos, assets: payload.assets, style: .projectBrief)
+        case .teamWeeklyDraft:
+            content = WorkLogExporter.reportDraft(memos: payload.memos, assets: payload.assets, style: .teamWeekly)
         case .actionReviewDraft:
             content = WorkLogExporter.reportDraft(memos: payload.memos, assets: payload.assets, style: .actionReview)
         }
@@ -1746,6 +1748,7 @@ private enum WorkLogExportFormat: String, CaseIterable, Hashable {
     case reportDraft
     case standupDraft
     case projectBriefDraft
+    case teamWeeklyDraft
     case actionReviewDraft
 
     var title: String {
@@ -1755,6 +1758,7 @@ private enum WorkLogExportFormat: String, CaseIterable, Hashable {
         case .reportDraft: return "汇报稿"
         case .standupDraft: return "站会稿"
         case .projectBriefDraft: return "项目简报"
+        case .teamWeeklyDraft: return "团队周报"
         case .actionReviewDraft: return "行动复盘"
         }
     }
@@ -1763,7 +1767,7 @@ private enum WorkLogExportFormat: String, CaseIterable, Hashable {
         switch self {
         case .markdown: return "md"
         case .csv: return "csv"
-        case .reportDraft, .standupDraft, .projectBriefDraft, .actionReviewDraft: return "txt"
+        case .reportDraft, .standupDraft, .projectBriefDraft, .teamWeeklyDraft, .actionReviewDraft: return "txt"
         }
     }
 
@@ -1774,6 +1778,7 @@ private enum WorkLogExportFormat: String, CaseIterable, Hashable {
         case .reportDraft: return "text.quote"
         case .standupDraft: return "person.2.wave.2"
         case .projectBriefDraft: return "folder.badge.gearshape"
+        case .teamWeeklyDraft: return "person.3.sequence"
         case .actionReviewDraft: return "checklist"
         }
     }
