@@ -53,4 +53,4 @@
 - 电子衣橱：已完成衣橱洞察 v7，可从现有素材索引统计分类、颜色、季节、场景、材质、厚薄、未进入穿搭组合单品、常用单品、穿着次数、最近穿着和成本/次，并记录洗护状态、旅行打包清单、目的地、天气和行程天数；现在可根据最近穿着或打包清单天气生成天气穿搭、自动生成打包草稿，在炎热天气优先轻薄/透气材质，按行程天数扩展上装/下装和配件数量，用最新打包清单带出目的地/天气，用最新洗护状态提醒待清洗/送洗/待熨烫/待修补单品，并可安排本地系统通知。后续可接真实天气 API 和按目的地/天气更细化的数量规则。
 - 网页摘录：已有标题/description、正文清洗、段落评分、来源、摘录卡、重点候选、网页/OCR 统一摘录片段、快速输入片段勾选、摘录片段独立素材索引、`has:clip` 搜索和多链接批量网页摘录；截图/OCR 已补区域识别底座并正在接入完整框选 UI。
 - CI 测试稳定性：GitHub iPhone 16 Pro 模拟器默认图片 renderer scale 可能不是 1，像素尺寸测试必须显式设置 `UIGraphicsImageRendererFormat.scale = 1` 或断言比例；视频/媒体测试应使用真实保存文件，不应手工构造不存在的 `SharedAttachment`。App Intents 元数据训练在 CI 测试阶段可能触发 `extract.actionsdata` 解析失败，当前通过独立 DerivedData、测试阶段 `clean test`、`SWIFT_EMIT_LOC_STRINGS=NO`、条件编译和 `EXCLUDED_SOURCE_FILE_NAMES` 暂避，待远端复验。
-- 快速入口：`some://add?text=...` 和 `some://search?q=...` 已支持快捷指令/浏览器/其他 App 调起；后续可继续补 `some://open?id=...` 深链打开单条记录，但需要给 `ContentView` 的 `NavigationStack` 增加显式 path，属于更高触达面的导航改造。
+- 快速入口：`some://add?text=...`、`some://search?q=...` 和 `some://open?id=<记录UUID>` 已支持快捷指令/浏览器/其他 App 调起；`ContentView` 已使用显式 `NavigationStack` path 消费 `pendingOpenMemoID` 并打开单条记录详情。

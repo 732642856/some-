@@ -419,6 +419,16 @@
 - 同步完善阶段 39：打包建议标题优先使用最近打包清单目的地，例如“厦门 快速打包”。
 - 本地验证通过：`xcrun swiftc -parse some/Utilities/WorkLogSourceFilterEngine.swift SomeTests/SomeTests.swift`、`git diff --check`。
 
+## 2026-06-23T17:45:00+08:00
+
+- 进入阶段 42：导入/备份恢复页体验优化。开工前确认阶段 41 的 #99 远端 CI 已通过，工作区干净。
+- 复查 `SettingsView.ImportView`、`MemoStore.importJSON` / `importPlainText` / `MemoBackupPackage.importPackage`、App Store 自测清单和导入相关测试；当前导入页只给单行状态，普通用户难以区分完整备份、旧 JSON 和普通文本。
+- 按 TDD 增加 `ImportFeedback` 文案测试，覆盖完整备份恢复、普通文本导入和重复/空导入。
+- `ImportView` 新增导入说明区，明确 `.somebackup` 会恢复记录、历史版本和本地附件；普通文本按空行拆分，JSON 按旧备份格式导入。
+- 导入结果改为结构化反馈卡片：成功时说明下一步检查时间线/附件，0 条导入时解释可能已存在，失败时显示可理解的错误说明。
+- 整合未提交 URL Scheme 深链碎片：`some://open?id=<记录UUID>` 和 `some://open/<记录UUID>` 会清空搜索、回到时间线并通过 `ContentView` 的显式导航 path 打开记录详情；README 和发现记录已同步。
+- 本地验证通过：`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`。裸 `swiftc -parse SettingsView.swift` 仍被既有 `if let` shorthand 和 `await` parser 限制挡住，完整类型检查继续依赖远端 Xcode CI。
+
 ## 2026-06-23T17:26:59+08:00
 
 - 进入并完成阶段 41：图片编辑智能主体单实例点选。开工前复查 Git 状态、最新远端 CI、图片编辑模型/渲染器/UI/测试和当前缺口；发现 `SomeTests.swift` 已有单主体点选 RED 测试碎片，已保留并继续实现。

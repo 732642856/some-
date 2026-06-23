@@ -5,9 +5,10 @@ import UIKit
 struct ContentView: View {
     @EnvironmentObject private var store: MemoStore
     @State private var isShowingSettings = false
+    @State private var navigationPath: [UUID] = []
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ZStack {
                 Color.appBackground.ignoresSafeArea()
 
@@ -78,6 +79,14 @@ struct ContentView: View {
             }
             .sheet(isPresented: $isShowingSettings) {
                 SettingsView()
+            }
+            .onChange(of: store.pendingOpenMemoID) { id in
+                guard let id = id,
+                      store.memos.contains(where: { $0.id == id }) else {
+                    return
+                }
+                navigationPath = [id]
+                store.pendingOpenMemoID = nil
             }
         }
     }

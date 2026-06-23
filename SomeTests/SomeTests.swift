@@ -397,6 +397,28 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(store.activeCount, 2)
     }
 
+    func testImportFeedbackExplainsSuccessfulBackupRestore() {
+        let feedback = ImportFeedback.success(kind: .backup, count: 3)
+
+        XCTAssertEqual(feedback.title, "已恢复 3 条备份记录")
+        XCTAssertTrue(feedback.message.contains("附件"))
+        XCTAssertTrue(feedback.message.contains("时间线"))
+    }
+
+    func testImportFeedbackExplainsPlainTextImport() {
+        let feedback = ImportFeedback.success(kind: .plainText, count: 2)
+
+        XCTAssertEqual(feedback.title, "已导入 2 条文本记录")
+        XCTAssertTrue(feedback.message.contains("空行"))
+    }
+
+    func testImportFeedbackExplainsEmptyDuplicateImport() {
+        let feedback = ImportFeedback.success(kind: .json, count: 0)
+
+        XCTAssertEqual(feedback.title, "没有导入新记录")
+        XCTAssertTrue(feedback.message.contains("已经存在"))
+    }
+
     func testAddMemoTrimsIntentStyleInputAndKeepsTags() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         let memo = store.addMemo(text: "  快捷指令记录 #输入/系统  \n")
@@ -434,6 +456,42 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(store.recentSearches.first, "#项目 is:active")
         XCTAssertEqual(store.activeCount, 1)
         XCTAssertEqual(store.homeMode, .timeline)
+    }
+
+    func testURLSchemeOpenSelectsExistingMemoWithoutCreatingMemo() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let memo = store.addMemo(text: "需要打开的记录 #deeplink")!
+        store.searchText = "#deeplink"
+
+        let handled = store.handleURL(URL(string: "some://open?id=\(memo.id.uuidString)")!)
+
+        XCTAssertTrue(handled)
+        XCTAssertEqual(store.pendingOpenMemoID, memo.id)
+        XCTAssertEqual(store.searchText, "")
+        XCTAssertEqual(store.memos.count, 1)
+        XCTAssertEqual(store.homeMode, .timeline)
+    }
+
+    func testURLSchemeOpenSelectsExistingMemoFromPath() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let memo = store.addMemo(text: "路径深链记录")!
+
+        let handled = store.handleURL(URL(string: "some://open/\(memo.id.uuidString)")!)
+
+        XCTAssertTrue(handled)
+        XCTAssertEqual(store.pendingOpenMemoID, memo.id)
+        XCTAssertEqual(store.homeMode, .timeline)
+    }
+
+    func testURLSchemeOpenIgnoresMissingMemoID() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.addMemo(text: "已有记录")
+
+        let handled = store.handleURL(URL(string: "some://open?id=\(UUID().uuidString)")!)
+
+        XCTAssertFalse(handled)
+        XCTAssertNil(store.pendingOpenMemoID)
+        XCTAssertEqual(store.memos.count, 1)
     }
 
     func testURLSchemeIgnoresEmptyAndUnknownActions() {

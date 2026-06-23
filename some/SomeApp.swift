@@ -34,7 +34,7 @@ struct SomeApp: App {
                     await reminders.refreshAuthorizationStatus()
                 }
                 .onOpenURL { url in
-                    store.addMemo(from: url)
+                    store.handleURL(url)
                 }
                 .onChange(of: scenePhase) { newPhase in
                     if newPhase == .active {

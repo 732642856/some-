@@ -343,12 +343,14 @@ private struct ImportView: View {
     @EnvironmentObject private var store: MemoStore
     @Environment(\.dismiss) private var dismiss
     @State private var text = ""
-    @State private var resultMessage: String?
+    @State private var feedback: ImportFeedback?
     @State private var isShowingFileImporter = false
 
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 14) {
+                importGuide
+
                 Button {
                     isShowingFileImporter = true
                 } label: {
@@ -382,9 +384,25 @@ private struct ImportView: View {
                             .stroke(Color.border, lineWidth: 1)
                     )
 
-                Text(resultMessage ?? "可粘贴完整备份、旧版 JSON 备份，或用空行分隔多条普通文本。")
-                    .font(.footnote)
-                    .foregroundStyle(Color.secondaryText)
+                if let feedback = feedback {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Label(feedback.title, systemImage: feedback.systemImage)
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(feedback.isError ? Color.red : Color.accentGreen)
+
+                        Text(feedback.message)
+                            .font(.footnote)
+                            .foregroundStyle(Color.secondaryText)
+                    }
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .stroke(Color.border, lineWidth: 1)
+                    )
+                }
 
                 Spacer()
             }
@@ -415,6 +433,32 @@ private struct ImportView: View {
         }
     }
 
+    private var importGuide: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("完整备份", systemImage: "externaldrive")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.primaryText)
+            Text("选择 `.somebackup` 可恢复记录、历史版本和本地附件。")
+                .font(.footnote)
+                .foregroundStyle(Color.secondaryText)
+
+            Label("文本导入", systemImage: "doc.text")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.primaryText)
+            Text("粘贴普通文本时，用空行分隔多条记录；粘贴 JSON 时会按旧备份格式导入。")
+                .font(.footnote)
+                .foregroundStyle(Color.secondaryText)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.border, lineWidth: 1)
+        )
+    }
+
     private func importFile(_ result: Result<[URL], Error>) {
         do {
             guard let url = try result.get().first else {
@@ -423,7 +467,7 @@ private struct ImportView: View {
 
             if url.pathExtension.localizedCaseInsensitiveCompare(MemoBackupPackage.fileExtension) == .orderedSame {
                 let count = try MemoBackupPackage.importPackage(at: url, into: store)
-                resultMessage = "已导入 \(count) 条备份记录。"
+                feedback = .success(kind: .backup, count: count)
             } else {
                 let accessed = url.startAccessingSecurityScopedResource()
                 defer {
@@ -435,7 +479,7 @@ private struct ImportView: View {
                 importContent(content)
             }
         } catch {
-            resultMessage = "备份无法解析：\(error.localizedDescription)"
+            feedback = .failure(error)
         }
     }
 
@@ -453,16 +497,73 @@ private struct ImportView: View {
         if trimmed.first == "[" || trimmed.first == "{" {
             do {
                 let count = try store.importJSON(trimmed)
-                resultMessage = "已导入 \(count) 条备份记录。"
+                feedback = .success(kind: .json, count: count)
                 if count > 0 { text = "" }
             } catch {
-                resultMessage = "备份无法解析：\(error.localizedDescription)"
+                feedback = .failure(error)
             }
         } else {
             let count = store.importPlainText(trimmed)
-            resultMessage = "已导入 \(count) 条文本记录。"
+            feedback = .success(kind: .plainText, count: count)
             if count > 0 { text = "" }
         }
+    }
+}
+
+struct ImportFeedback: Equatable {
+    enum Kind {
+        case backup
+        case json
+        case plainText
+    }
+
+    var title: String
+    var message: String
+    var systemImage: String
+    var isError: Bool
+
+    static func success(kind: Kind, count: Int) -> ImportFeedback {
+        guard count > 0 else {
+            return ImportFeedback(
+                title: "没有导入新记录",
+                message: "这些记录可能已经存在，或备份里没有可恢复的新内容。",
+                systemImage: "checkmark.circle",
+                isError: false
+            )
+        }
+
+        switch kind {
+        case .backup:
+            return ImportFeedback(
+                title: "已恢复 \(count) 条备份记录",
+                message: "完整备份里的附件和历史版本会一起恢复；可回到时间线检查内容。",
+                systemImage: "checkmark.circle.fill",
+                isError: false
+            )
+        case .json:
+            return ImportFeedback(
+                title: "已导入 \(count) 条 JSON 记录",
+                message: "旧版 JSON 只包含记录正文；如果需要附件，请优先使用完整备份文件。",
+                systemImage: "checkmark.circle.fill",
+                isError: false
+            )
+        case .plainText:
+            return ImportFeedback(
+                title: "已导入 \(count) 条文本记录",
+                message: "普通文本会按空行拆成多条记录，标签会从正文里的 #标签 自动识别。",
+                systemImage: "checkmark.circle.fill",
+                isError: false
+            )
+        }
+    }
+
+    static func failure(_ error: Error) -> ImportFeedback {
+        ImportFeedback(
+            title: "导入失败",
+            message: "无法解析这个文件或文本：\(error.localizedDescription)",
+            systemImage: "exclamationmark.triangle",
+            isError: true
+        )
     }
 }
 

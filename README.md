@@ -56,7 +56,7 @@
 - 随机回顾与历史今天
 - 记录热力图与高频标签
 - 完整备份导出与导入：包含记录和本地附件
-- URL Scheme：`some://add?text=...` 快速保存，`some://search?q=...` 快速打开搜索
+- URL Scheme：`some://add?text=...` 快速保存，`some://search?q=...` 快速打开搜索，`some://open?id=<记录UUID>` 深链打开单条记录
 - 可选 OpenAI API Key，保存在 iOS Keychain
 - AI 洞察：周期复盘、困惑破局、自我觉察、主题研究、写作灵感
 - AI 自然语言语义搜索

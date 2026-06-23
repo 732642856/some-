@@ -56,6 +56,7 @@ final class MemoStore: ObservableObject {
     @Published var searchText: String = ""
     @Published var selectedTag: String? = nil
     @Published var homeMode: MemoHomeMode = .timeline
+    @Published var pendingOpenMemoID: UUID?
     @Published private(set) var reviewMemo: Memo?
     @Published private(set) var revisionsByMemoID: [UUID: [MemoRevision]] = [:]
     @Published private(set) var assets: [MemoAsset] = []
@@ -1277,6 +1278,8 @@ final class MemoStore: ObservableObject {
             return addMemo(from: components)
         case "search", "find":
             return applySearch(from: components)
+        case "open":
+            return openMemo(from: components)
         default:
             return addMemo(from: components)
         }
@@ -1534,7 +1537,7 @@ final class MemoStore: ObservableObject {
 
     private func urlAction(in components: URLComponents) -> String {
         if let host = components.host?.lowercased(),
-           ["add", "new", "memo", "capture", "search", "find"].contains(host) {
+           ["add", "new", "memo", "capture", "search", "find", "open"].contains(host) {
             return host
         }
 
@@ -1573,6 +1576,31 @@ final class MemoStore: ObservableObject {
         return true
     }
 
+    private func openMemo(from components: URLComponents) -> Bool {
+        guard let id = memoID(from: components),
+              memos.contains(where: { $0.id == id }) else {
+            return false
+        }
+
+        selectedTag = nil
+        searchText = ""
+        homeMode = .timeline
+        pendingOpenMemoID = id
+        return true
+    }
+
+    private func memoID(from components: URLComponents) -> UUID? {
+        if let rawID = urlQueryValue(named: ["id", "memo", "memoID", "memoId"], in: components),
+           let id = UUID(uuidString: rawID) {
+            return id
+        }
+
+        let pathParts = components.path
+            .split(separator: "/")
+            .map(String.init)
+        return pathParts.compactMap(UUID.init(uuidString:)).first
+    }
+
     private func urlQueryValue(named names: [String], in components: URLComponents) -> String? {
         components.queryItems?
             .first { item in names.contains { $0.caseInsensitiveCompare(item.name) == .orderedSame } }?
@@ -1581,7 +1609,7 @@ final class MemoStore: ObservableObject {
 
     private func fallbackURLMemoText(in components: URLComponents) -> String? {
         if let host = components.host,
-           !["add", "new", "memo", "capture", "search", "find"].contains(host.lowercased()) {
+           !["add", "new", "memo", "capture", "search", "find", "open"].contains(host.lowercased()) {
             return host
         }
 
