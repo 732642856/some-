@@ -35,7 +35,9 @@ enum ImageEditRenderer {
         if recipe.cropAdjustment.isAdjusted {
             suffixParts.append("freecrop")
         }
-        if !recipe.cleanupPatches.isEmpty {
+        if recipe.cleanupPatches.contains(where: { $0.style == .object }) {
+            suffixParts.append("objectcleanup")
+        } else if !recipe.cleanupPatches.isEmpty {
             suffixParts.append("cleanup")
         }
         if recipe.background.mode != .original {
@@ -189,7 +191,7 @@ enum ImageEditRenderer {
         let size = CGSize(width: image.width, height: image.height)
         let rect = CGRect(origin: .zero, size: size)
         let maxPatchRadius = patches
-            .map { max(8, normalized($0.radius) * min(size.width, size.height)) }
+            .map { max(8, normalized($0.radius) * min(size.width, size.height) * radiusScale(for: $0)) }
             .max() ?? 18
         guard let blurred = blurredImage(from: image, radius: maxPatchRadius * 0.28) else {
             return image
@@ -346,7 +348,7 @@ enum ImageEditRenderer {
         imageRect: CGRect,
         canvasSize: CGSize
     ) {
-        let radius = max(8, normalized(patch.radius) * min(canvasSize.width, canvasSize.height))
+        let radius = max(8, normalized(patch.radius) * min(canvasSize.width, canvasSize.height) * radiusScale(for: patch))
         let center = CGPoint(
             x: normalized(patch.x) * canvasSize.width,
             y: normalized(patch.y) * canvasSize.height
@@ -358,17 +360,24 @@ enum ImageEditRenderer {
             height: radius * 2
         )
         let softness = max(0.2, normalized(patch.softness))
+        let steps = patch.style == .object ? 12 : 8
+        let baseAlpha: CGFloat = patch.style == .object ? 0.08 : 0.04
+        let maxAlpha: CGFloat = patch.style == .object ? 0.42 : 0.2
 
-        for index in 0..<8 {
-            let progress = CGFloat(index + 1) / 8
+        for index in 0..<steps {
+            let progress = CGFloat(index + 1) / CGFloat(steps)
             let inset = radius * (1 - progress)
-            let alpha = min(0.2, 0.04 + 0.035 * progress) * softness
+            let alpha = min(maxAlpha, baseAlpha + 0.045 * progress) * softness
             let ellipse = UIBezierPath(ovalIn: patchRect.insetBy(dx: inset, dy: inset))
             UIGraphicsGetCurrentContext()?.saveGState()
             ellipse.addClip()
             blurredImage.draw(in: imageRect, blendMode: .normal, alpha: alpha)
             UIGraphicsGetCurrentContext()?.restoreGState()
         }
+    }
+
+    private static func radiusScale(for patch: ImageEditRecipe.CleanupPatch) -> CGFloat {
+        patch.style == .object ? 1.35 : 1
     }
 
     private static func applyFilter(to image: CGImage, filter: ImageEditRecipe.Filter) -> CGImage? {

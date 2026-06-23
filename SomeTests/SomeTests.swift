@@ -3501,6 +3501,46 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(recipe.summary.contains("清理1"))
     }
 
+    func testImageEditRecipeSupportsObjectCleanupPatch() throws {
+        let recipe = ImageEditRecipe(
+            sourceAttachmentPath: "source.png",
+            filter: .original,
+            cleanupPatches: [
+                ImageEditRecipe.CleanupPatch(x: 0.42, y: 0.58, radius: 0.14, softness: 0.9, style: .object)
+            ]
+        )
+        let line = try XCTUnwrap(recipe.encodedLine())
+        let decoded = try XCTUnwrap(ImageEditRecipe.recipe(in: "图片编辑：对象清理\n\(line)"))
+        let patch = try XCTUnwrap(decoded.cleanupPatches.first)
+
+        XCTAssertEqual(patch.style, .object)
+        XCTAssertEqual(patch.x, 0.42, accuracy: 0.001)
+        XCTAssertEqual(patch.y, 0.58, accuracy: 0.001)
+        XCTAssertTrue(decoded.summary.contains("对象清理1"))
+        XCTAssertTrue(ImageEditRenderer.outputFilename(
+            source: SharedAttachment(
+                id: "source.png",
+                filename: "source.png",
+                relativePath: "source.png",
+                typeIdentifier: UTType.png.identifier,
+                byteCount: 0
+            ),
+            recipe: decoded
+        ).contains("objectcleanup"))
+    }
+
+    func testImageEditRecipeDecodesLegacyCleanupPatchAsSoftBlend() throws {
+        let json = """
+        {"version":1,"sourceAttachmentPath":"source.jpg","filter":"fresh","cropPreset":"square","border":{"colorHex":"#FFFFFF","width":0},"textOverlays":[],"stickerOverlays":[],"cleanupPatches":[{"id":"11111111-1111-1111-1111-111111111111","x":0.4,"y":0.6,"radius":0.12,"softness":0.7}]}
+        """
+        let encoded = try XCTUnwrap(json.data(using: .utf8)?.base64EncodedString())
+        let recipe = try XCTUnwrap(ImageEditRecipe.recipe(in: "图片编辑：旧清理\n\(ImageEditRecipe.marker)\(encoded)"))
+        let patch = try XCTUnwrap(recipe.cleanupPatches.first)
+
+        XCTAssertEqual(patch.style, .softBlend)
+        XCTAssertTrue(recipe.summary.contains("清理1"))
+    }
+
     func testImageEditRendererAppliesBackgroundCanvas() throws {
         let source = testImage(size: CGSize(width: 100, height: 80))
         let recipe = ImageEditRecipe(
@@ -3652,6 +3692,37 @@ final class SomeTests: XCTestCase {
         let decoded = try XCTUnwrap(ImageEditRecipe.recipe(in: memo.text))
         XCTAssertEqual(try XCTUnwrap(decoded.subjectExtraction.selectionX), 0.72, accuracy: 0.001)
         XCTAssertEqual(try XCTUnwrap(decoded.subjectExtraction.selectionY), 0.24, accuracy: 0.001)
+    }
+
+    func testAddImageEditRecordsObjectCleanupPatch() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let sourceData = try XCTUnwrap(testImage(size: CGSize(width: 64, height: 64)).pngData())
+        let sourceAttachment = try SharedAttachmentStore.save(
+            data: sourceData,
+            suggestedFilename: "cleanup-object-\(UUID().uuidString).png",
+            typeIdentifier: UTType.png.identifier
+        )
+        defer { SharedAttachmentStore.delete(sourceAttachment) }
+
+        let recipe = ImageEditRecipe(
+            sourceAttachmentPath: sourceAttachment.relativePath,
+            filter: .original,
+            cleanupPatches: [
+                ImageEditRecipe.CleanupPatch(x: 0.5, y: 0.5, radius: 0.16, softness: 1, style: .object)
+            ]
+        )
+
+        let memo = try XCTUnwrap(store.addImageEdit(
+            title: "桌面对象清理",
+            sourceAttachment: sourceAttachment,
+            recipe: recipe
+        ))
+        let attachments = SharedAttachmentStore.attachments(in: memo.text)
+        defer { attachments.forEach { SharedAttachmentStore.delete($0) } }
+
+        XCTAssertTrue(memo.text.contains("授权清理：1处"))
+        XCTAssertTrue(memo.text.contains("对象清理：1处"))
+        XCTAssertEqual(ImageEditRecipe.recipe(in: memo.text)?.cleanupPatches.first?.style, .object)
     }
 
     func testAddWebClipCreatesMemoAndWebClipAsset() {

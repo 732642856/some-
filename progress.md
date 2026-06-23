@@ -419,6 +419,24 @@
 - 同步完善阶段 39：打包建议标题优先使用最近打包清单目的地，例如“厦门 快速打包”。
 - 本地验证通过：`xcrun swiftc -parse some/Utilities/WorkLogSourceFilterEngine.swift SomeTests/SomeTests.swift`、`git diff --check`。
 
+## 2026-06-23T17:26:59+08:00
+
+- 进入并完成阶段 41：图片编辑智能主体单实例点选。开工前复查 Git 状态、最新远端 CI、图片编辑模型/渲染器/UI/测试和当前缺口；发现 `SomeTests.swift` 已有单主体点选 RED 测试碎片，已保留并继续实现。
+- 按用户要求检索 `VNGenerateForegroundInstanceMaskRequest selected instance Swift GitHub MIT`、`Swift foreground instance mask point selection GitHub MIT`、`iOS object cutout selected instance point Swift MIT`、`Vision foreground instance mask select point Swift`，未找到可直接复制的 Swift/MIT 模块；一次 GitHub API 查询触发 rate limit。本轮复用 Apple Vision 的 `VNInstanceMaskObservation.instanceMask` 和既有图片编辑管线。
+- `ImageEditRecipe.SubjectExtraction` 新增可选归一化选点 `selectionX` / `selectionY`、`hasSelectionPoint` 和记录用标题；旧 JSON 没有选点时继续按原有“人物抠图/智能主体”解码。
+- `ImageEditRenderer` 在 iOS 17+ 智能主体模式下，会优先读取实例标签图中点选位置的实例编号，并只对该实例调用 `generateMaskedImage`；点在背景或识别失败时回退为全部前景主体。
+- `ImageEditorView` 新增“主体”编辑模式和点选画布，选择“智能主体”后可点选单个对象，保存时记录主体点选坐标；切回非对象模式会清空旧坐标。
+- 新增测试覆盖点选坐标编解码、摘要/文件名标记和图片编辑记录正文“主体：智能主体（单主体 x/y）”。
+- 本地验证通过：`xcrun swiftc -parse some/Models/Memo.swift some/Stores/MemoStore.swift some/Utilities/ImageEditRenderer.swift some/Views/ImageEditorView.swift SomeTests/SomeTests.swift`、`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`。远端基线 `cde609d` 和 `f53ee7d` GitHub Actions 均已通过。
+
+## 2026-06-23T17:42:28+08:00
+
+- 进入并完成阶段 42：工作日志 CSV 导出与格式选择。开工前复查 Git 状态、远端 CI、`WorkLogExporter`、工作日志列表 UI 和现有导出测试。
+- 按用户要求检索 `Swift CSV export MIT library`、`Swift CSV writer MIT GitHub`、`SwiftUI export CSV share sheet GitHub MIT`、`Swift work log csv exporter MIT GitHub`；通用 MIT CSV 包存在，但当前只需要少量工作日志字段导出，不引入 SPM 依赖，采用项目内最小 CSV 转义。
+- 按 TDD 增加 `testWorkLogExporterBuildsCSVWithEscapedFields`，覆盖普通记录排除、固定表头、逗号和双引号转义。
+- `WorkLogExporter` 新增 `csv(memos:assets:)`，输出标题、创建时间、范围、项目、日期、模板、进展、问题和下一步字段；工作日志导出按钮改为 Markdown / CSV 菜单，分别生成 `.md` 或 `.csv` 并复用系统分享表。
+- 本地验证通过：`xcrun swiftc -parse some/Utilities/WorkLogSourceFilterEngine.swift SomeTests/SomeTests.swift`、`git diff --check`。本机 Swift 5.4 解析 `ContentView.swift` 仍被既有 `await` 语法挡住，完整 UI 类型检查继续依赖 GitHub Actions。
+
 ## 2026-06-23T17:45:00+08:00
 
 - 进入阶段 43：导入/备份恢复页体验优化。开工前确认阶段 41 的 #99 远端 CI 已通过，工作区干净。
@@ -438,20 +456,12 @@
 - 新增测试覆盖：打开已有记录不会创建新 memo、缺失记录 ID 会被忽略、query/path 两种 UUID 解析路径可用。
 - 本地验证通过：`xcrun swiftc -parse some/Stores/MemoStore.swift SomeTests/SomeTests.swift`、`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`。远端 iOS CI #102 已通过 Build for simulator 和 Run tests。
 
-## 2026-06-23T17:26:59+08:00
+## 2026-06-23T18:05:00+08:00
 
-- 进入并完成阶段 41：图片编辑智能主体单实例点选。开工前复查 Git 状态、最新远端 CI、图片编辑模型/渲染器/UI/测试和当前缺口；发现 `SomeTests.swift` 已有单主体点选 RED 测试碎片，已保留并继续实现。
-- 按用户要求检索 `VNGenerateForegroundInstanceMaskRequest selected instance Swift GitHub MIT`、`Swift foreground instance mask point selection GitHub MIT`、`iOS object cutout selected instance point Swift MIT`、`Vision foreground instance mask select point Swift`，未找到可直接复制的 Swift/MIT 模块；一次 GitHub API 查询触发 rate limit。本轮复用 Apple Vision 的 `VNInstanceMaskObservation.instanceMask` 和既有图片编辑管线。
-- `ImageEditRecipe.SubjectExtraction` 新增可选归一化选点 `selectionX` / `selectionY`、`hasSelectionPoint` 和记录用标题；旧 JSON 没有选点时继续按原有“人物抠图/智能主体”解码。
-- `ImageEditRenderer` 在 iOS 17+ 智能主体模式下，会优先读取实例标签图中点选位置的实例编号，并只对该实例调用 `generateMaskedImage`；点在背景或识别失败时回退为全部前景主体。
-- `ImageEditorView` 新增“主体”编辑模式和点选画布，选择“智能主体”后可点选单个对象，保存时记录主体点选坐标；切回非对象模式会清空旧坐标。
-- 新增测试覆盖点选坐标编解码、摘要/文件名标记和图片编辑记录正文“主体：智能主体（单主体 x/y）”。
-- 本地验证通过：`xcrun swiftc -parse some/Models/Memo.swift some/Stores/MemoStore.swift some/Utilities/ImageEditRenderer.swift some/Views/ImageEditorView.swift SomeTests/SomeTests.swift`、`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`。远端基线 `cde609d` 和 `f53ee7d` GitHub Actions 均已通过。
-
-## 2026-06-23T17:42:28+08:00
-
-- 进入并完成阶段 42：工作日志 CSV 导出与格式选择。开工前复查 Git 状态、远端 CI、`WorkLogExporter`、工作日志列表 UI 和现有导出测试。
-- 按用户要求检索 `Swift CSV export MIT library`、`Swift CSV writer MIT GitHub`、`SwiftUI export CSV share sheet GitHub MIT`、`Swift work log csv exporter MIT GitHub`；通用 MIT CSV 包存在，但当前只需要少量工作日志字段导出，不引入 SPM 依赖，采用项目内最小 CSV 转义。
-- 按 TDD 增加 `testWorkLogExporterBuildsCSVWithEscapedFields`，覆盖普通记录排除、固定表头、逗号和双引号转义。
-- `WorkLogExporter` 新增 `csv(memos:assets:)`，输出标题、创建时间、范围、项目、日期、模板、进展、问题和下一步字段；工作日志导出按钮改为 Markdown / CSV 菜单，分别生成 `.md` 或 `.csv` 并复用系统分享表。
-- 本地验证通过：`xcrun swiftc -parse some/Utilities/WorkLogSourceFilterEngine.swift SomeTests/SomeTests.swift`、`git diff --check`。本机 Swift 5.4 解析 `ContentView.swift` 仍被既有 `await` 语法挡住，完整 UI 类型检查继续依赖 GitHub Actions。
+- 进入并完成阶段 45：图片编辑对象清理样式。开工前复查 Git 状态、图片编辑配方、渲染器、编辑器、保存正文和本地遗留 RED 测试碎片。
+- 按用户要求检索 `Swift image object removal inpainting MIT GitHub`、`iOS image inpainting object removal Swift MIT`、`Core Image object removal cleanup patch Swift MIT`、`SwiftUI photo editor object removal MIT GitHub`，GitHub API 均返回 0 个可直接复制的 Swift/MIT 模块；本轮不引入深度补全或水印移除能力。
+- 保留并补完 `SomeTests.swift` 中的 RED 测试：对象清理样式可编码/解码，旧清理 JSON 默认 `softBlend`，对象清理进入输出文件名和图片编辑记录正文。
+- `ImageEditRecipe.CleanupPatch` 新增向后兼容的 `style`，支持 `softBlend` 和 `object`；摘要会分别显示“清理N”和“对象清理N”。
+- `ImageEditRenderer` 对对象清理使用独立 `objectcleanup` 文件名后缀，并提高贴片半径与过渡强度；普通柔和修补保持旧行为。
+- `ImageEditorView` 的授权清理区新增“柔和修补 / 对象清理”分段选择，画布用不同颜色标记清理点；`MemoStore.addImageEdit` 会额外写入“对象清理：N处”。
+- 本地验证通过：`xcrun swiftc -parse some/Models/Memo.swift some/Stores/MemoStore.swift some/Utilities/ImageEditRenderer.swift some/Views/ImageEditorView.swift SomeTests/SomeTests.swift`、`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`。完整构建和 XCTest 继续以 GitHub Actions 为准。

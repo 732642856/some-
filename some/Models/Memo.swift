@@ -706,7 +706,14 @@ struct ImageEditRecipe: Codable, Equatable {
             parts.append("贴纸\(stickerOverlays.count)")
         }
         if !cleanupPatches.isEmpty {
-            parts.append("清理\(cleanupPatches.count)")
+            let objectCleanupCount = cleanupPatches.filter { $0.style == .object }.count
+            if objectCleanupCount > 0 {
+                parts.append("对象清理\(objectCleanupCount)")
+            }
+            let softBlendCount = cleanupPatches.count - objectCleanupCount
+            if softBlendCount > 0 {
+                parts.append("清理\(softBlendCount)")
+            }
         }
         return parts.joined(separator: " · ")
     }
@@ -1133,19 +1140,53 @@ struct ImageEditRecipe: Codable, Equatable {
         var y: Double
         var radius: Double
         var softness: Double
+        var style: Style
 
         init(
             id: UUID = UUID(),
             x: Double = 0.5,
             y: Double = 0.5,
             radius: Double = 0.08,
-            softness: Double = 0.7
+            softness: Double = 0.7,
+            style: Style = .softBlend
         ) {
             self.id = id
             self.x = x
             self.y = y
             self.radius = radius
             self.softness = softness
+            self.style = style
+        }
+
+        enum Style: String, Codable, CaseIterable, Hashable {
+            case softBlend
+            case object
+
+            var title: String {
+                switch self {
+                case .softBlend: return "柔和修补"
+                case .object: return "对象清理"
+                }
+            }
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case x
+            case y
+            case radius
+            case softness
+            case style
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+            x = try container.decodeIfPresent(Double.self, forKey: .x) ?? 0.5
+            y = try container.decodeIfPresent(Double.self, forKey: .y) ?? 0.5
+            radius = try container.decodeIfPresent(Double.self, forKey: .radius) ?? 0.08
+            softness = try container.decodeIfPresent(Double.self, forKey: .softness) ?? 0.7
+            style = try container.decodeIfPresent(Style.self, forKey: .style) ?? .softBlend
         }
     }
 }

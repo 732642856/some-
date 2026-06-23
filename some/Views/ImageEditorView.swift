@@ -28,6 +28,7 @@ struct ImageEditorView: View {
     @State private var cleanupX: Double = 0.5
     @State private var cleanupY: Double = 0.5
     @State private var cleanupRadius: Double = 0.08
+    @State private var cleanupStyle: ImageEditRecipe.CleanupPatch.Style = .softBlend
     @State private var cleanupPatches: [ImageEditRecipe.CleanupPatch] = []
     @State private var cleanupAuthorized = false
     @State private var caption = ""
@@ -131,6 +132,7 @@ struct ImageEditorView: View {
                         cleanupX: $cleanupX,
                         cleanupY: $cleanupY,
                         cleanupRadius: cleanupRadius,
+                        cleanupStyle: cleanupStyle,
                         patches: cleanupPatches
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
@@ -356,7 +358,7 @@ struct ImageEditorView: View {
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(Color.secondaryText)
                 Spacer()
-                Text("\(cleanupPatches.count)处")
+                Text(cleanupCountText)
                     .font(.caption)
                     .foregroundStyle(Color.tertiaryText)
             }
@@ -365,6 +367,18 @@ struct ImageEditorView: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Color.secondaryText)
                 .tint(Color.accentGreen)
+
+            Picker("类型", selection: $cleanupStyle) {
+                ForEach(ImageEditRecipe.CleanupPatch.Style.allCases, id: \.self) { style in
+                    Text(style.title).tag(style)
+                }
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: cleanupStyle) { style in
+                if style == .object, cleanupRadius < 0.12 {
+                    cleanupRadius = 0.12
+                }
+            }
 
             HStack(spacing: 8) {
                 Slider(value: $cleanupX, in: 0...1, step: 0.01) {
@@ -395,7 +409,8 @@ struct ImageEditorView: View {
                         ImageEditRecipe.CleanupPatch(
                             x: cleanupX,
                             y: cleanupY,
-                            radius: cleanupRadius
+                            radius: cleanupRadius,
+                            style: cleanupStyle
                         )
                     )
                 } label: {
@@ -420,6 +435,14 @@ struct ImageEditorView: View {
         .padding(10)
         .background(Color.subtleSurface)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private var cleanupCountText: String {
+        let objectCount = cleanupPatches.filter { $0.style == .object }.count
+        guard objectCount > 0 else {
+            return "\(cleanupPatches.count)处"
+        }
+        return "\(cleanupPatches.count)处 · 对象\(objectCount)"
     }
 
     private var backgroundControls: some View {
@@ -822,6 +845,7 @@ private struct ImageCleanupSelectionCanvas: View {
     @Binding var cleanupX: Double
     @Binding var cleanupY: Double
     let cleanupRadius: Double
+    let cleanupStyle: ImageEditRecipe.CleanupPatch.Style
     let patches: [ImageEditRecipe.CleanupPatch]
 
     var body: some View {
@@ -840,7 +864,8 @@ private struct ImageCleanupSelectionCanvas: View {
                         y: patch.y,
                         radius: patch.radius,
                         imageRect: imageRect,
-                        color: Color.accentGreen.opacity(0.52)
+                        style: patch.style,
+                        color: cleanupColor(for: patch.style).opacity(0.52)
                     )
                 }
 
@@ -849,7 +874,8 @@ private struct ImageCleanupSelectionCanvas: View {
                     y: cleanupY,
                     radius: cleanupRadius,
                     imageRect: imageRect,
-                    color: Color.white.opacity(0.7)
+                    style: cleanupStyle,
+                    color: cleanupColor(for: cleanupStyle).opacity(0.72)
                 )
             }
             .contentShape(Rectangle())
@@ -868,9 +894,10 @@ private struct ImageCleanupSelectionCanvas: View {
         y: Double,
         radius: Double,
         imageRect: CGRect,
+        style: ImageEditRecipe.CleanupPatch.Style,
         color: Color
     ) -> some View {
-        let diameter = max(20, min(imageRect.width, imageRect.height) * CGFloat(radius) * 2)
+        let diameter = max(20, min(imageRect.width, imageRect.height) * CGFloat(radius) * 2 * markerScale(for: style))
         return Circle()
             .stroke(color, lineWidth: 2)
             .background(Circle().fill(color.opacity(0.16)))
@@ -881,6 +908,17 @@ private struct ImageCleanupSelectionCanvas: View {
             )
             .shadow(color: Color.black.opacity(0.24), radius: 5, x: 0, y: 2)
             .allowsHitTesting(false)
+    }
+
+    private func cleanupColor(for style: ImageEditRecipe.CleanupPatch.Style) -> Color {
+        switch style {
+        case .softBlend: return Color.accentGreen
+        case .object: return Color.accentGold
+        }
+    }
+
+    private func markerScale(for style: ImageEditRecipe.CleanupPatch.Style) -> CGFloat {
+        style == .object ? 1.35 : 1
     }
 }
 
