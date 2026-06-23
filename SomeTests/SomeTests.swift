@@ -308,6 +308,42 @@ final class SomeTests: XCTestCase {
         XCTAssertFalse(SharedAttachmentStore.exists(attachment))
     }
 
+    func testBackupArchiveSummaryCountsMemosRevisionsAttachmentsAndBytes() {
+        let archive = MemoBackupArchive(
+            version: 1,
+            exportedAt: Date(timeIntervalSince1970: 0),
+            memos: [
+                Memo(text: "第一条 #备份", tags: ["备份"]),
+                Memo(text: "第二条", tags: [])
+            ],
+            attachments: [
+                MemoBackupAttachment(
+                    filename: "photo.png",
+                    relativePath: "photo.png",
+                    typeIdentifier: UTType.png.identifier,
+                    byteCount: 1_536
+                ),
+                MemoBackupAttachment(
+                    filename: "note.txt",
+                    relativePath: "note.txt",
+                    typeIdentifier: UTType.plainText.identifier,
+                    byteCount: 512
+                )
+            ],
+            revisions: [
+                MemoRevision(memoID: UUID(), text: "旧版本", tags: [])
+            ]
+        )
+
+        let summary = MemoBackupSummary(archive: archive)
+
+        XCTAssertEqual(summary.memoCount, 2)
+        XCTAssertEqual(summary.revisionCount, 1)
+        XCTAssertEqual(summary.attachmentCount, 2)
+        XCTAssertEqual(summary.attachmentByteCount, 2_048)
+        XCTAssertEqual(summary.displayText, "2 条记录 · 1 条历史版本 · 2 个附件 · 2 KB")
+    }
+
     func testSharedAttachmentMediaTypeFlags() {
         let image = SharedAttachment(id: "a", filename: "a.jpg", relativePath: "a.jpg", typeIdentifier: UTType.jpeg.identifier, byteCount: 1)
         let video = SharedAttachment(id: "b", filename: "b.mov", relativePath: "b.mov", typeIdentifier: UTType.movie.identifier, byteCount: 1)
@@ -398,11 +434,19 @@ final class SomeTests: XCTestCase {
     }
 
     func testImportFeedbackExplainsSuccessfulBackupRestore() {
-        let feedback = ImportFeedback.success(kind: .backup, count: 3)
+        let summary = MemoBackupSummary(
+            memoCount: 3,
+            revisionCount: 2,
+            attachmentCount: 4,
+            attachmentByteCount: 12_288
+        )
+
+        let feedback = ImportFeedback.success(kind: .backup, count: 3, summary: summary)
 
         XCTAssertEqual(feedback.title, "已恢复 3 条备份记录")
         XCTAssertTrue(feedback.message.contains("附件"))
         XCTAssertTrue(feedback.message.contains("时间线"))
+        XCTAssertTrue(feedback.message.contains("3 条记录 · 2 条历史版本 · 4 个附件 · 12 KB"))
     }
 
     func testImportFeedbackExplainsPlainTextImport() {
@@ -3241,7 +3285,8 @@ final class SomeTests: XCTestCase {
             height: 180,
             imageCropX: 0.62,
             imageCropY: 0.38,
-            imageCropScale: 1.7
+            imageCropScale: 1.7,
+            imageFilter: .fresh
         )
         let data = try JSONEncoder.memoEncoder.encode(layer)
         let decoded = try JSONDecoder.memoDecoder.decode(ScrapbookLayer.self, from: data)
@@ -3249,6 +3294,7 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(decoded.imageCropX, 0.62, accuracy: 0.0001)
         XCTAssertEqual(decoded.imageCropY, 0.38, accuracy: 0.0001)
         XCTAssertEqual(decoded.imageCropScale, 1.7, accuracy: 0.0001)
+        XCTAssertEqual(decoded.imageFilter, .fresh)
 
         let legacyData = Data("""
         {"id":"11111111-1111-1111-1111-111111111111","kind":"image","title":"旧图","attachmentPath":"old.png","x":100,"y":120,"width":220,"height":180,"rotation":0,"scale":1}
@@ -3258,6 +3304,7 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(legacy.imageCropX, 0.5, accuracy: 0.0001)
         XCTAssertEqual(legacy.imageCropY, 0.5, accuracy: 0.0001)
         XCTAssertEqual(legacy.imageCropScale, 1, accuracy: 0.0001)
+        XCTAssertEqual(legacy.imageFilter, .original)
     }
 
     func testUpdateScrapbookLayoutPersistsThroughStore() throws {
@@ -3331,6 +3378,43 @@ final class SomeTests: XCTestCase {
         let data = try XCTUnwrap(ScrapbookRenderer.pngData(layout: layout))
 
         XCTAssertEqual(Array(data.prefix(4)), [0x89, 0x50, 0x4E, 0x47])
+    }
+
+    func testScrapbookRendererAppliesImageLayerFilterAndBorder() throws {
+        let source = testImage(size: CGSize(width: 80, height: 80))
+        let attachment = try SharedAttachmentStore.save(
+            data: try XCTUnwrap(source.pngData()),
+            suggestedFilename: "scrapbook-filter-\(UUID().uuidString).png",
+            typeIdentifier: UTType.png.identifier
+        )
+        defer { SharedAttachmentStore.delete(attachment) }
+
+        let baseLayer = ScrapbookLayer(
+            kind: .image,
+            title: "晚餐",
+            attachmentPath: attachment.relativePath,
+            x: 50,
+            y: 50,
+            width: 80,
+            height: 80,
+            imageFilter: .original
+        )
+        let filteredLayer = ScrapbookLayer(
+            kind: .image,
+            title: "晚餐",
+            attachmentPath: attachment.relativePath,
+            x: 50,
+            y: 50,
+            width: 80,
+            height: 80,
+            borderColorHex: "#FFFFFF",
+            borderWidth: 8,
+            imageFilter: .vivid
+        )
+        let base = ScrapbookRenderer.image(for: ScrapbookPageLayout(canvasWidth: 100, canvasHeight: 100, layers: [baseLayer]))
+        let filtered = ScrapbookRenderer.image(for: ScrapbookPageLayout(canvasWidth: 100, canvasHeight: 100, layers: [filteredLayer]))
+
+        XCTAssertNotEqual(base.pngData(), filtered.pngData())
     }
 
     func testScrapbookRendererExportsPDFData() throws {

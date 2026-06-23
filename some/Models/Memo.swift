@@ -415,6 +415,7 @@ struct ScrapbookLayer: Identifiable, Codable, Equatable {
     var imageCropX: Double
     var imageCropY: Double
     var imageCropScale: Double
+    var imageFilter: ImageFilter
 
     init(
         id: UUID = UUID(),
@@ -438,7 +439,8 @@ struct ScrapbookLayer: Identifiable, Codable, Equatable {
         shadowOpacity: Double? = nil,
         imageCropX: Double = 0.5,
         imageCropY: Double = 0.5,
-        imageCropScale: Double = 1
+        imageCropScale: Double = 1,
+        imageFilter: ImageFilter = .original
     ) {
         self.id = id
         self.kind = kind
@@ -462,6 +464,7 @@ struct ScrapbookLayer: Identifiable, Codable, Equatable {
         self.imageCropX = Self.clamped(imageCropX, lower: 0, upper: 1)
         self.imageCropY = Self.clamped(imageCropY, lower: 0, upper: 1)
         self.imageCropScale = Self.clamped(imageCropScale, lower: 1, upper: 3)
+        self.imageFilter = imageFilter
     }
 
     enum Kind: String, Codable, Equatable {
@@ -470,6 +473,24 @@ struct ScrapbookLayer: Identifiable, Codable, Equatable {
         case sticker
         case border
         case shape
+    }
+
+    enum ImageFilter: String, Codable, CaseIterable, Equatable {
+        case original
+        case fresh
+        case warm
+        case mono
+        case vivid
+
+        var title: String {
+            switch self {
+            case .original: return "原图"
+            case .fresh: return "清新"
+            case .warm: return "暖食"
+            case .mono: return "胶片"
+            case .vivid: return "鲜明"
+            }
+        }
     }
 
     enum CodingKeys: String, CodingKey {
@@ -495,6 +516,7 @@ struct ScrapbookLayer: Identifiable, Codable, Equatable {
         case imageCropX
         case imageCropY
         case imageCropScale
+        case imageFilter
     }
 
     init(from decoder: Decoder) throws {
@@ -521,6 +543,7 @@ struct ScrapbookLayer: Identifiable, Codable, Equatable {
         imageCropX = Self.clamped(try container.decodeIfPresent(Double.self, forKey: .imageCropX) ?? 0.5, lower: 0, upper: 1)
         imageCropY = Self.clamped(try container.decodeIfPresent(Double.self, forKey: .imageCropY) ?? 0.5, lower: 0, upper: 1)
         imageCropScale = Self.clamped(try container.decodeIfPresent(Double.self, forKey: .imageCropScale) ?? 1, lower: 1, upper: 3)
+        imageFilter = try container.decodeIfPresent(ImageFilter.self, forKey: .imageFilter) ?? .original
     }
 
     private static func clamped(_ value: Double, lower: Double, upper: Double) -> Double {

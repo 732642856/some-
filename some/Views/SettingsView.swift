@@ -467,7 +467,7 @@ private struct ImportView: View {
 
             if url.pathExtension.localizedCaseInsensitiveCompare(MemoBackupPackage.fileExtension) == .orderedSame {
                 let count = try MemoBackupPackage.importPackage(at: url, into: store)
-                feedback = .success(kind: .backup, count: count)
+                feedback = .success(kind: .backup, count: count, summary: nil)
             } else {
                 let accessed = url.startAccessingSecurityScopedResource()
                 defer {
@@ -496,8 +496,9 @@ private struct ImportView: View {
 
         if trimmed.first == "[" || trimmed.first == "{" {
             do {
+                let archive = try? JSONDecoder.memoDecoder.decode(MemoBackupArchive.self, from: Data(trimmed.utf8))
                 let count = try store.importJSON(trimmed)
-                feedback = .success(kind: .json, count: count)
+                feedback = .success(kind: .json, count: count, summary: archive.map(MemoBackupSummary.init))
                 if count > 0 { text = "" }
             } catch {
                 feedback = .failure(error)
@@ -522,7 +523,7 @@ struct ImportFeedback: Equatable {
     var systemImage: String
     var isError: Bool
 
-    static func success(kind: Kind, count: Int) -> ImportFeedback {
+    static func success(kind: Kind, count: Int, summary: MemoBackupSummary? = nil) -> ImportFeedback {
         guard count > 0 else {
             return ImportFeedback(
                 title: "没有导入新记录",
@@ -536,7 +537,7 @@ struct ImportFeedback: Equatable {
         case .backup:
             return ImportFeedback(
                 title: "已恢复 \(count) 条备份记录",
-                message: "完整备份里的附件和历史版本会一起恢复；可回到时间线检查内容。",
+                message: backupMessage(summary: summary),
                 systemImage: "checkmark.circle.fill",
                 isError: false
             )
@@ -555,6 +556,14 @@ struct ImportFeedback: Equatable {
                 isError: false
             )
         }
+    }
+
+    private static func backupMessage(summary: MemoBackupSummary?) -> String {
+        let base = "完整备份里的附件和历史版本会一起恢复；可回到时间线检查内容。"
+        guard let summary = summary else {
+            return base
+        }
+        return "\(base)\n备份摘要：\(summary.displayText)。"
     }
 
     static func failure(_ error: Error) -> ImportFeedback {

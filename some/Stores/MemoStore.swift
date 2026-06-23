@@ -1067,7 +1067,8 @@ final class MemoStore: ObservableObject {
                 filename: attachment.filename,
                 relativePath: attachment.relativePath,
                 typeIdentifier: attachment.typeIdentifier,
-                base64Data: base64Data
+                base64Data: base64Data,
+                byteCount: attachment.byteCount
             )
         }
         return MemoBackupArchive(

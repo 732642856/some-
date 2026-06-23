@@ -1,6 +1,8 @@
 import SwiftUI
 import UniformTypeIdentifiers
 import UIKit
+import CoreImage
+import CoreImage.CIFilterBuiltins
 
 struct ScrapbookEditorView: View {
     @EnvironmentObject private var store: MemoStore
@@ -232,6 +234,12 @@ struct ScrapbookEditorView: View {
 
             if layer.wrappedValue.kind == .image {
                 imageCompositionControls(layer: layer)
+                imageFilterControls(layer: layer)
+                colorSwatches(
+                    title: "相框颜色",
+                    values: ScrapbookStyleCatalog.borderColorHexes,
+                    selection: borderColorBinding(for: layer)
+                )
             }
 
             VStack(alignment: .leading, spacing: 8) {
@@ -395,6 +403,22 @@ struct ScrapbookEditorView: View {
         }
     }
 
+    private func imageFilterControls(layer: Binding<ScrapbookLayer>) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            controlLabel("照片滤镜")
+            FlowLayout(spacing: 8) {
+                ForEach(ScrapbookLayer.ImageFilter.allCases, id: \.self) { filter in
+                    presetChip(
+                        title: filter.title,
+                        isSelected: layer.wrappedValue.imageFilter == filter
+                    ) {
+                        layer.wrappedValue.imageFilter = filter
+                    }
+                }
+            }
+        }
+    }
+
     private func colorSwatches(title: String, values: [String], selection: Binding<String>) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             controlLabel(title)
@@ -439,6 +463,13 @@ struct ScrapbookEditorView: View {
                 Slider(value: borderWidthBinding(for: layer), in: 1...24)
                     .tint(Color.accentGreen)
                     .accessibilityLabel("花边线宽")
+            }
+
+            if layer.wrappedValue.kind == .image {
+                controlLabel("相框线宽")
+                Slider(value: imageBorderWidthBinding(for: layer), in: 0...28)
+                    .tint(Color.accentGreen)
+                    .accessibilityLabel("相框线宽")
             }
         }
     }
@@ -551,6 +582,13 @@ struct ScrapbookEditorView: View {
         )
     }
 
+    private func imageBorderWidthBinding(for layer: Binding<ScrapbookLayer>) -> Binding<Double> {
+        Binding(
+            get: { layer.wrappedValue.borderWidth ?? 0 },
+            set: { layer.wrappedValue.borderWidth = min(max($0, 0), 28) }
+        )
+    }
+
     private func addTextLayer() {
         let layer = ScrapbookLayer(
             kind: .text,
@@ -637,7 +675,9 @@ struct ScrapbookEditorView: View {
             width: min(760, layout.canvasWidth * 0.72),
             height: min(620, layout.canvasHeight * 0.44),
             cornerRadius: 24,
-            shadowOpacity: 0.12
+            shadowOpacity: 0.12,
+            borderColorHex: "#FFFFFF",
+            borderWidth: 0
         )
         layout.layers.append(layer)
         selectedLayerID = layer.id
@@ -768,20 +808,22 @@ private struct EditableScrapbookLayerView: View {
                let url = SharedAttachmentStore.url(for: attachment(relativePath: attachmentPath)),
                let image = UIImage(contentsOfFile: url.path) {
                 GeometryReader { proxy in
+                    let previewImage = filteredImage(image, filter: layer.imageFilter)
                     let drawRect = imageDrawRect(
-                        imageSize: image.size,
+                        imageSize: previewImage.size,
                         viewSize: proxy.size,
                         cropX: layer.imageCropX,
                         cropY: layer.imageCropY,
                         cropScale: layer.imageCropScale
                     )
 
-                    Image(uiImage: image)
+                    Image(uiImage: previewImage)
                         .resizable()
                         .frame(width: drawRect.width, height: drawRect.height)
                         .offset(x: drawRect.minX, y: drawRect.minY)
                 }
                 .clipShape(RoundedRectangle(cornerRadius: CGFloat(layer.cornerRadius ?? 0) * canvasScale, style: .continuous))
+                .overlay(imageBorderOverlay)
             } else {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(Color.greenTint)
@@ -823,6 +865,14 @@ private struct EditableScrapbookLayerView: View {
                         .frame(width: 12, height: 12)
                         .offset(x: 6, y: -6)
                 }
+        }
+    }
+
+    @ViewBuilder
+    private var imageBorderOverlay: some View {
+        if layer.kind == .image, let width = layer.borderWidth, width > 0 {
+            RoundedRectangle(cornerRadius: CGFloat(layer.cornerRadius ?? 0) * canvasScale, style: .continuous)
+                .stroke(color(hex: layer.borderColorHex) ?? Color.white, lineWidth: CGFloat(width) * canvasScale)
         }
     }
 
@@ -906,6 +956,56 @@ private struct EditableScrapbookLayerView: View {
             width: drawSize.width,
             height: drawSize.height
         )
+    }
+
+    private func filteredImage(_ image: UIImage, filter: ScrapbookLayer.ImageFilter) -> UIImage {
+        guard filter != .original,
+              let cgImage = image.cgImage,
+              let filtered = filteredCGImage(cgImage, filter: filter) else {
+            return image
+        }
+
+        return UIImage(cgImage: filtered, scale: image.scale, orientation: image.imageOrientation)
+    }
+
+    private func filteredCGImage(_ image: CGImage, filter: ScrapbookLayer.ImageFilter) -> CGImage? {
+        let input = CIImage(cgImage: image)
+        let output: CIImage?
+
+        switch filter {
+        case .original:
+            output = input
+        case .fresh:
+            let controls = CIFilter.colorControls()
+            controls.inputImage = input
+            controls.saturation = 1.08
+            controls.brightness = 0.04
+            controls.contrast = 0.96
+            output = controls.outputImage
+        case .warm:
+            let temperature = CIFilter.temperatureAndTint()
+            temperature.inputImage = input
+            temperature.neutral = CIVector(x: 6500, y: 0)
+            temperature.targetNeutral = CIVector(x: 5200, y: 0)
+            output = temperature.outputImage
+        case .mono:
+            let mono = CIFilter.photoEffectMono()
+            mono.inputImage = input
+            output = mono.outputImage
+        case .vivid:
+            let controls = CIFilter.colorControls()
+            controls.inputImage = input
+            controls.saturation = 1.25
+            controls.brightness = 0.02
+            controls.contrast = 1.08
+            output = controls.outputImage
+        }
+
+        guard let output = output else {
+            return nil
+        }
+
+        return CIContext(options: nil).createCGImage(output, from: output.extent)
     }
 
     private func color(hex: String?) -> Color? {

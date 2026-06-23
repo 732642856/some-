@@ -123,7 +123,8 @@ enum MemoBackupPackage {
                 filename: attachment.filename,
                 relativePath: safeRelativePath,
                 typeIdentifier: attachment.typeIdentifier,
-                base64Data: data.base64EncodedString()
+                base64Data: data.base64EncodedString(),
+                byteCount: data.count
             )
         }
 
