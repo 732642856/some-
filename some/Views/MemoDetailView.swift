@@ -451,10 +451,10 @@ struct MemoDetailView: View {
 
         transcribingAttachmentID = attachment.id
         transcriptionStatusText = "正在请求语音识别..."
+        let language = transcriptionLanguage
 
         Task {
             do {
-                let language = transcriptionLanguage
                 let transcript = try await AudioTranscriber.transcribe(fileURL: url, language: language)
                 let appendedText = AudioTranscriber.memoText(for: attachment, transcript: transcript, language: language)
                 await MainActor.run {
