@@ -659,7 +659,7 @@
 ## 2026-06-23T23:58:00+08:00
 
 - 继续主动推进阶段 66：AI embedding 缓存与行动复盘导出。开工前重新加载 Superpowers，复查 Git 状态、计划文件、AI 搜索代码、工作日志导出器和旧 Codex 目录。
-- 跨目录审计 `/Users/wuyongnaren/Documents/Codex/2026-06-20/some-flomo-app-app-store-1` 与 `/Users/wuyongnaren/Documents/Codex/2026-06-21/some-flomo-app-app-store-1`：2026-06-21 嵌套仓库仅有早期 3 个提交，当前主仓库已包含其所有跟踪文件；2026-06-20 为更早快照，没有当前主仓库缺失的功能文件。
+- 跨目录审计 `/Users/wuyongnaren/Documents/Codex/2026-06-20/some-flomo-app-app-store-1/work/some` 与 `/Users/wuyongnaren/Documents/Codex/2026-06-21/some-flomo-app-app-store-1/work/some`：2026-06-21 嵌套仓库仅有早期 3 个提交，当前主仓库已包含其所有跟踪文件；2026-06-20 为更早快照，没有当前主仓库缺失的功能文件。
 - 按用户要求补做开源检索：Swift/OpenAI embedding cache、语义搜索缓存、工作日志行动复盘模板方向未找到可直接复制进当前 SwiftUI/iOS 工程的成熟 MIT 模块；本轮继续复用项目内 `SemanticSearchEngine` 和 `WorkLogExporter`。
 - 按 TDD 增加 `testSemanticEmbeddingCacheReusesRepeatedInputs`，实现 `SemanticEmbeddingCache`，对同一模型和同一 memo 文本在本次运行内复用记录 embedding；查询文本仍每次请求，避免把临时问题长期缓存。
 - 发现并保留并行/遗留的 `testWorkLogExporterBuildsActionReviewReportDraft` 正向测试，补 `ReportDraftStyle.actionReview` 和工作日志导出菜单“行动复盘”，不回滚其他窗口留下的改动。
