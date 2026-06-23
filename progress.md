@@ -418,3 +418,22 @@
 - `WorkLogExporter.markdown` 现在会在正文列表前生成本地汇报摘要，并对多条日志的字段去重合并；原始日志正文仍完整保留。
 - 同步完善阶段 39：打包建议标题优先使用最近打包清单目的地，例如“厦门 快速打包”。
 - 本地验证通过：`xcrun swiftc -parse some/Utilities/WorkLogSourceFilterEngine.swift SomeTests/SomeTests.swift`、`git diff --check`。
+
+## 2026-06-23T17:46:00+08:00
+
+- 进入并完成阶段 41：图片编辑智能主体单实例点选。开工前复查 Git 状态、图片编辑配方、渲染器、UI 和测试边界。
+- 按用户要求检索 `VNGenerateForegroundInstanceMaskRequest selected instance Swift GitHub MIT`、`Swift foreground instance mask point selection GitHub MIT`、`iOS object cutout selected instance point Swift MIT`、`Vision foreground instance mask select point Swift`；未找到可直接复制的 Swift/MIT 单实例点选模块，本轮继续复用 Apple Vision 与项目现有渲染管线。
+- 按 TDD 增加单主体配方和保存正文测试；`ImageEditRecipe.SubjectExtraction` 现在可保存归一化选择点，摘要显示“单主体”，输出文件名带 `selectedsubject`。
+- 图片编辑器新增“主体”模式和点选画布；选择“智能主体”后可点选单个主体，也可切回全部主体。保存的图片编辑 memo 会记录“智能主体（单主体 x/y）”。
+- `ImageEditRenderer` 在 iOS 17+ 使用 `VNInstanceMaskObservation.instanceMask` 查找点选位置对应实例，优先只导出该实例；点到背景或系统不支持时回退全部智能主体。
+- 本地验证通过：`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse some/Models/Memo.swift some/Utilities/ImageEditRenderer.swift some/Views/ImageEditorView.swift some/Stores/MemoStore.swift SomeTests/SomeTests.swift`、`git diff --check`。
+
+## 2026-06-23T17:26:59+08:00
+
+- 进入并完成阶段 41：图片编辑智能主体单实例点选。开工前复查 Git 状态、最新远端 CI、图片编辑模型/渲染器/UI/测试和当前缺口；发现 `SomeTests.swift` 已有单主体点选 RED 测试碎片，已保留并继续实现。
+- 按用户要求检索 `VNGenerateForegroundInstanceMaskRequest selected instance Swift GitHub MIT`、`Swift foreground instance mask point selection GitHub MIT`、`iOS object cutout selected instance point Swift MIT`、`Vision foreground instance mask select point Swift`，未找到可直接复制的 Swift/MIT 模块；一次 GitHub API 查询触发 rate limit。本轮复用 Apple Vision 的 `VNInstanceMaskObservation.instanceMask` 和既有图片编辑管线。
+- `ImageEditRecipe.SubjectExtraction` 新增可选归一化选点 `selectionX` / `selectionY`、`hasSelectionPoint` 和记录用标题；旧 JSON 没有选点时继续按原有“人物抠图/智能主体”解码。
+- `ImageEditRenderer` 在 iOS 17+ 智能主体模式下，会优先读取实例标签图中点选位置的实例编号，并只对该实例调用 `generateMaskedImage`；点在背景或识别失败时回退为全部前景主体。
+- `ImageEditorView` 新增“主体”编辑模式和点选画布，选择“智能主体”后可点选单个对象，保存时记录主体点选坐标；切回非对象模式会清空旧坐标。
+- 新增测试覆盖点选坐标编解码、摘要/文件名标记和图片编辑记录正文“主体：智能主体（单主体 x/y）”。
+- 本地验证通过：`xcrun swiftc -parse some/Models/Memo.swift some/Stores/MemoStore.swift some/Utilities/ImageEditRenderer.swift some/Views/ImageEditorView.swift SomeTests/SomeTests.swift`、`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`。远端基线 `cde609d` 和 `f53ee7d` GitHub Actions 均已通过。

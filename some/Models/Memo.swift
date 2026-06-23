@@ -697,7 +697,7 @@ struct ImageEditRecipe: Codable, Equatable {
             parts.append(background.mode.title)
         }
         if subjectExtraction.mode != .none {
-            parts.append(subjectExtraction.mode.title)
+            parts.append(subjectExtraction.hasSelectionPoint ? "单主体" : subjectExtraction.mode.title)
         }
         if !textOverlays.isEmpty {
             parts.append("文字\(textOverlays.count)")
@@ -1036,9 +1036,33 @@ struct ImageEditRecipe: Codable, Equatable {
 
     struct SubjectExtraction: Codable, Equatable {
         var mode: Mode
+        var selectionX: Double?
+        var selectionY: Double?
 
-        init(mode: Mode = .none) {
+        init(mode: Mode = .none, selectionX: Double? = nil, selectionY: Double? = nil) {
             self.mode = mode
+            self.selectionX = Self.normalizedSelection(selectionX)
+            self.selectionY = Self.normalizedSelection(selectionY)
+        }
+
+        var hasSelectionPoint: Bool {
+            mode == .object && selectionX != nil && selectionY != nil
+        }
+
+        var title: String {
+            guard hasSelectionPoint,
+                  let selectionX = selectionX,
+                  let selectionY = selectionY else {
+                return mode.title
+            }
+            return "\(mode.title)（单主体 \(Int(selectionX * 100))/\(Int(selectionY * 100))）"
+        }
+
+        private static func normalizedSelection(_ value: Double?) -> Double? {
+            guard let value = value, value.isFinite else {
+                return nil
+            }
+            return min(max(value, 0), 1)
         }
 
         enum Mode: String, Codable, CaseIterable, Equatable {

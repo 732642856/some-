@@ -23,6 +23,8 @@ struct ImageEditorView: View {
     @State private var backgroundInset: Double = 0.06
     @State private var backgroundCornerRadius: Double = 28
     @State private var subjectExtractionMode: ImageEditRecipe.SubjectExtraction.Mode = .none
+    @State private var subjectSelectionX: Double?
+    @State private var subjectSelectionY: Double?
     @State private var cleanupX: Double = 0.5
     @State private var cleanupY: Double = 0.5
     @State private var cleanupRadius: Double = 0.08
@@ -83,7 +85,15 @@ struct ImageEditorView: View {
         .onChange(of: backgroundBlurRadius) { _ in refreshPreview() }
         .onChange(of: backgroundInset) { _ in refreshPreview() }
         .onChange(of: backgroundCornerRadius) { _ in refreshPreview() }
-        .onChange(of: subjectExtractionMode) { _ in refreshPreview() }
+        .onChange(of: subjectExtractionMode) { mode in
+            if mode != .object {
+                subjectSelectionX = nil
+                subjectSelectionY = nil
+            }
+            refreshPreview()
+        }
+        .onChange(of: subjectSelectionX) { _ in refreshPreview() }
+        .onChange(of: subjectSelectionY) { _ in refreshPreview() }
         .onChange(of: cleanupPatches) { _ in refreshPreview() }
         .onChange(of: caption) { _ in refreshPreview() }
         .onChange(of: sticker) { _ in refreshPreview() }
@@ -106,6 +116,13 @@ struct ImageEditorView: View {
                         cropX: $cropX,
                         cropY: $cropY,
                         cropScale: $cropScale
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                } else if editMode == .subject, let image = sourceImage ?? previewImage {
+                    ImageSubjectSelectionCanvas(
+                        image: image,
+                        selectionX: $subjectSelectionX,
+                        selectionY: $subjectSelectionY
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 } else if editMode == .cleanup, let image = previewImage {
@@ -251,7 +268,11 @@ struct ImageEditorView: View {
                 cornerRadius: backgroundCornerRadius,
                 inset: backgroundInset
             ),
-            subjectExtraction: ImageEditRecipe.SubjectExtraction(mode: subjectExtractionMode),
+            subjectExtraction: ImageEditRecipe.SubjectExtraction(
+                mode: subjectExtractionMode,
+                selectionX: subjectSelectionX,
+                selectionY: subjectSelectionY
+            ),
             textOverlays: caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? [] : [
                 layoutPreset.textOverlay(text: caption.trimmingCharacters(in: .whitespacesAndNewlines))
             ],
@@ -278,6 +299,8 @@ struct ImageEditorView: View {
         backgroundInset = preset.background.inset
         backgroundCornerRadius = preset.background.cornerRadius
         subjectExtractionMode = .none
+        subjectSelectionX = nil
+        subjectSelectionY = nil
         if caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
            let defaultCaption = preset.defaultCaption {
             caption = defaultCaption
@@ -466,6 +489,43 @@ struct ImageEditorView: View {
                 }
             }
             .pickerStyle(.segmented)
+
+            if subjectExtractionMode == .object {
+                HStack(spacing: 10) {
+                    Button {
+                        editMode = .subject
+                        if subjectSelectionX == nil || subjectSelectionY == nil {
+                            subjectSelectionX = 0.5
+                            subjectSelectionY = 0.5
+                        }
+                    } label: {
+                        Label("点选主体", systemImage: "scope")
+                            .font(.caption.weight(.semibold))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.accentGreen)
+
+                    Button {
+                        subjectSelectionX = nil
+                        subjectSelectionY = nil
+                    } label: {
+                        Label("全部主体", systemImage: "rectangle.3.group")
+                            .font(.caption.weight(.semibold))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.secondaryText)
+                    .disabled(subjectSelectionX == nil || subjectSelectionY == nil)
+
+                    Spacer()
+
+                    if let subjectSelectionX = subjectSelectionX,
+                       let subjectSelectionY = subjectSelectionY {
+                        Text("\(Int(subjectSelectionX * 100))/\(Int(subjectSelectionY * 100))")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(Color.tertiaryText)
+                    }
+                }
+            }
         }
         .padding(10)
         .background(Color.subtleSurface)
@@ -528,12 +588,14 @@ struct ImageEditorView: View {
 
 private enum ImageEditorMode: String, CaseIterable, Hashable {
     case crop
+    case subject
     case cleanup
     case decorate
 
     var title: String {
         switch self {
         case .crop: return "裁剪"
+        case .subject: return "主体"
         case .cleanup: return "清理"
         case .decorate: return "修饰"
         }
@@ -700,6 +762,58 @@ private struct ImageCropSelectionCanvas: View {
         let originY = min(max(centerY - height / 2, imageRect.minY), imageRect.maxY - height)
 
         return CGRect(x: originX, y: originY, width: width, height: height)
+    }
+}
+
+private struct ImageSubjectSelectionCanvas: View {
+    let image: UIImage
+    @Binding var selectionX: Double?
+    @Binding var selectionY: Double?
+
+    var body: some View {
+        GeometryReader { proxy in
+            let imageRect = aspectFitRect(imageSize: image.size, containerSize: proxy.size)
+
+            ZStack {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+
+                if let selectionX = selectionX,
+                   let selectionY = selectionY {
+                    subjectMarker(x: selectionX, y: selectionY, imageRect: imageRect)
+                }
+            }
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        selectionX = clamped(Double((value.location.x - imageRect.minX) / max(imageRect.width, 1)))
+                        selectionY = clamped(Double((value.location.y - imageRect.minY) / max(imageRect.height, 1)))
+                    }
+            )
+        }
+    }
+
+    private func subjectMarker(x: Double, y: Double, imageRect: CGRect) -> some View {
+        ZStack {
+            Circle()
+                .fill(Color.accentGold.opacity(0.22))
+                .frame(width: 48, height: 48)
+            Circle()
+                .stroke(Color.white, lineWidth: 3)
+                .frame(width: 30, height: 30)
+            Circle()
+                .fill(Color.accentGold)
+                .frame(width: 10, height: 10)
+        }
+        .position(
+            x: imageRect.minX + CGFloat(clamped(x)) * imageRect.width,
+            y: imageRect.minY + CGFloat(clamped(y)) * imageRect.height
+        )
+        .shadow(color: Color.black.opacity(0.28), radius: 6, x: 0, y: 2)
+        .allowsHitTesting(false)
     }
 }
 

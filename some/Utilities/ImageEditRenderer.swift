@@ -42,7 +42,7 @@ enum ImageEditRenderer {
             suffixParts.append("background")
         }
         if recipe.subjectExtraction.mode != .none {
-            suffixParts.append("subject")
+            suffixParts.append(recipe.subjectExtraction.hasSelectionPoint ? "selectedsubject" : "subject")
         }
         let suffix = suffixParts
             .filter { !$0.isEmpty && $0 != "original" }
@@ -224,7 +224,7 @@ enum ImageEditRenderer {
         case .person:
             return personSubjectImage(from: image)
         case .object:
-            return foregroundSubjectImage(from: image)
+            return foregroundSubjectImage(from: image, selection: subjectExtraction)
         }
     }
 
@@ -259,7 +259,7 @@ enum ImageEditRenderer {
         return context.createCGImage(output, from: input.extent)
     }
 
-    private static func foregroundSubjectImage(from image: CGImage) -> CGImage? {
+    private static func foregroundSubjectImage(from image: CGImage, selection: ImageEditRecipe.SubjectExtraction) -> CGImage? {
         guard #available(iOS 17.0, macOS 14.0, *) else {
             return image
         }
@@ -269,8 +269,9 @@ enum ImageEditRenderer {
         guard (try? handler.perform([request])) != nil,
               let observation = request.results?.first,
               !observation.allInstances.isEmpty,
+              let selectedInstances = selectedForegroundInstances(in: observation, selection: selection),
               let maskedBuffer = try? observation.generateMaskedImage(
-                  ofInstances: observation.allInstances,
+                  ofInstances: selectedInstances,
                   from: handler,
                   croppedToInstancesExtent: false
               ) else {
@@ -279,6 +280,53 @@ enum ImageEditRenderer {
 
         let output = CIImage(cvPixelBuffer: maskedBuffer)
         return context.createCGImage(output, from: output.extent)
+    }
+
+    @available(iOS 17.0, macOS 14.0, *)
+    private static func selectedForegroundInstances(
+        in observation: VNInstanceMaskObservation,
+        selection: ImageEditRecipe.SubjectExtraction
+    ) -> IndexSet? {
+        guard selection.mode == .object,
+              let selectionX = selection.selectionX,
+              let selectionY = selection.selectionY else {
+            return observation.allInstances
+        }
+
+        let instanceMask = observation.instanceMask
+        let imageX = Int((selectionX * Double(CVPixelBufferGetWidth(instanceMask) - 1)).rounded())
+        let imageY = Int((selectionY * Double(CVPixelBufferGetHeight(instanceMask) - 1)).rounded())
+        guard let instanceIndex = foregroundInstanceIndex(atX: imageX, y: imageY, in: instanceMask),
+              observation.allInstances.contains(instanceIndex) else {
+            return observation.allInstances
+        }
+        return IndexSet(integer: instanceIndex)
+    }
+
+    private static func foregroundInstanceIndex(atX x: Int, y: Int, in pixelBuffer: CVPixelBuffer) -> Int? {
+        CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
+
+        guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else {
+            return nil
+        }
+
+        let width = CVPixelBufferGetWidth(pixelBuffer)
+        let height = CVPixelBufferGetHeight(pixelBuffer)
+        guard width > 0, height > 0 else {
+            return nil
+        }
+
+        let clampedX = min(max(x, 0), width - 1)
+        let clampedY = min(max(y, 0), height - 1)
+        let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
+        let pixelFormat = CVPixelBufferGetPixelFormatType(pixelBuffer)
+        guard pixelFormat == kCVPixelFormatType_OneComponent8 else {
+            return nil
+        }
+        let row = baseAddress.advanced(by: clampedY * bytesPerRow)
+        let value = row.assumingMemoryBound(to: UInt8.self)[clampedX]
+        return value > 0 ? Int(value) : nil
     }
 
     private static func blurredImage(from image: CGImage, radius: CGFloat) -> CGImage? {
