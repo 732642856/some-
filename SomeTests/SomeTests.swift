@@ -2815,6 +2815,38 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(suggestion?.note?.contains("按 3 天行程") == true)
     }
 
+    func testWardrobePackingSuggestionsPreferLatestPackingDestinationAndWeather() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let wornDate = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+        store.addWardrobeItem(name: "亚麻衬衫", category: "上装", colors: ["白"], seasons: ["夏"], scenes: ["旅行"], materials: ["亚麻"], thickness: "轻薄")
+        store.addWardrobeItem(name: "防晒衫", category: "外套", colors: ["米"], seasons: ["夏"], scenes: ["旅行"], materials: ["棉"], thickness: "轻薄")
+        store.addWardrobeItem(name: "牛仔短裤", category: "下装", colors: ["蓝"], seasons: ["夏"], scenes: ["旅行"])
+        store.addWearLog(
+            itemNames: ["防晒衫"],
+            date: wornDate,
+            scenes: ["旅行"],
+            weather: "多云 22C"
+        )
+        store.addPackingList(
+            title: "厦门海边",
+            destination: "厦门",
+            dateRange: "7/1-7/3",
+            tripDays: 3,
+            itemNames: ["亚麻衬衫"],
+            weather: "晴 热 30C",
+            note: "海边"
+        )
+
+        let insights = WardrobeInsightEngine.insights(for: store.assets)
+        let suggestion = insights.packingSuggestions.first { $0.id == "packing-weather" }
+
+        XCTAssertEqual(suggestion?.destination, "厦门")
+        XCTAssertEqual(suggestion?.weather, "晴 热 30C")
+        XCTAssertTrue(suggestion?.itemNames.contains("亚麻衬衫") == true)
+        XCTAssertTrue(suggestion?.note?.contains("目的地参考：厦门") == true)
+        XCTAssertTrue(suggestion?.note?.contains("天气参考：晴 热 30C") == true)
+    }
+
     func testAddScrapbookPageCreatesStructuredMemoAndAsset() throws {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         let attachment = try SharedAttachmentStore.save(

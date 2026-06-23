@@ -401,3 +401,11 @@
 - 收束本地正向碎片：`WorkLogExporter` 进入 `WorkLogSourceFilterEngine.swift`，支持按工作日志素材排序导出 Markdown；工作日志页新增导出当前筛选结果按钮，并复用 `ShareSheet` / `ExportedDocument`。
 - 图片编辑裁剪手势碎片同步纳入：`ImageEditRecipe.CropAdjustment` 统一处理拖拽、缩放和边界夹取，渲染器与裁剪画布共用同一套夹取规则；新增测试覆盖拖拽/缩放边界。
 - 本地验证通过：`git diff --check`、`xcrun swiftc -parse some/Models/Memo.swift some/Utilities/ImageEditRenderer.swift some/Utilities/WorkLogSourceFilterEngine.swift some/Views/ImageEditorView.swift SomeTests/SomeTests.swift`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`。本机旧 Swift parser 单独解析 `ContentView.swift` / `SettingsView.swift` 时仍被既有 async/await 与 `if let` shorthand 语法挡住，完整构建继续以 GitHub Actions 的 Xcode 16.4 为准。
+
+## 2026-06-23T17:18:00+08:00
+
+- 进入并完成阶段 39：衣橱打包建议优先使用最近行程目的地与天气。开工前复查 Git 状态、CI run、衣橱引擎、衣橱 UI、打包清单测试和当前缺口。
+- 按用户要求检索 `SwiftUI weather outfit recommendation MIT iOS`、`Swift wardrobe weather API outfit planner MIT`、`iOS WeatherKit SwiftUI outfit recommendation GitHub MIT`、`SwiftUI packing list weather recommendation MIT`，未找到可直接复制进当前 SwiftUI 工程的成熟 MIT 模块；本轮不接真实天气 API、也不需要外部密钥。
+- 按 TDD 增加 `testWardrobePackingSuggestionsPreferLatestPackingDestinationAndWeather`，锁定最近打包清单的目的地、天气和天数应优先进入自动打包建议。
+- `WardrobeInsightEngine` 的打包建议现在优先使用最近打包清单的 `destination` / `weather` / `tripDays`，并在说明中写入“目的地参考”和“天气参考”；没有打包清单天气时仍回退最近穿着天气。
+- 本地验证通过：`xcrun swiftc -parse some/Utilities/WardrobeInsightEngine.swift SomeTests/SomeTests.swift`、`git diff --check`。

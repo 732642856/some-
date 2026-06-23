@@ -501,10 +501,12 @@ enum WardrobeInsightEngine {
         guard !availableItems.isEmpty else { return [] }
 
         var suggestions: [WardrobePackingSuggestion] = []
-        let weather = wearLogs.first(where: { $0.weather?.isEmpty == false })?.weather
+        let latestPackingContext = packingLists.first
+        let weather = latestPackingContext?.weather ?? wearLogs.first(where: { $0.weather?.isEmpty == false })?.weather
         let season = seasonStats.first?.label
         let scene = sceneStats.first?.label ?? "旅行"
-        let tripDays = packingLists.first(where: { ($0.tripDays ?? 0) > 0 })?.tripDays
+        let tripDays = latestPackingContext?.tripDays
+            ?? packingLists.first(where: { ($0.tripDays ?? 0) > 0 })?.tripDays
         let weatherItems = weather.map { weatherValue in
             availableItems
                 .filter { weatherScore($0, weather: weatherValue) > 0 }
@@ -533,10 +535,11 @@ enum WardrobeInsightEngine {
                 WardrobePackingSuggestion(
                     id: "packing-weather",
                     title: "\(scene) 快速打包",
-                    destination: nil,
+                    destination: latestPackingContext?.destination,
                     weather: weather,
                     itemNames: selectedItemNames,
                     note: packingNote(
+                        destination: latestPackingContext?.destination,
                         weather: weather,
                         season: season,
                         scene: scene,
@@ -798,10 +801,20 @@ enum WardrobeInsightEngine {
         return "thermometer.medium"
     }
 
-    private static func packingNote(weather: String?, season: String?, scene: String, tripDays: Int? = nil, items: [WardrobeItemInsight] = []) -> String {
+    private static func packingNote(
+        destination: String? = nil,
+        weather: String?,
+        season: String?,
+        scene: String,
+        tripDays: Int? = nil,
+        items: [WardrobeItemInsight] = []
+    ) -> String {
         var parts = ["按 \(scene) 场景生成，已避开待洗待修单品。"]
         if let tripDays = tripDays, tripDays > 1 {
             parts.append("按 \(tripDays) 天行程扩展上装和下装数量。")
+        }
+        if let destination = destination, !destination.isEmpty {
+            parts.append("目的地参考：\(destination)。")
         }
         if let weather = weather, !weather.isEmpty {
             parts.append("天气参考：\(weather)。")
