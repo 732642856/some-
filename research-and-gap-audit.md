@@ -1,6 +1,6 @@
 # 地毯式探索与功能差距审计
 
-日期：2026-06-20，更新：2026-06-22
+日期：2026-06-20，更新：2026-06-24
 
 ## 本地碎片盘点
 
@@ -29,6 +29,12 @@
 
 结论：此前确实遗漏了 `2026-06-20/wo/outputs/some` 这个旧输出目录的文档记录；本轮已经纳入碎片清单。实际代码比对显示，当前主仓库是几个旧 some 目录的功能超集，未发现需要从旧目录补回的独有新功能。
 
+2026-06-24 复查：
+
+- 重新在 `/Users/wuyongnaren/Documents` 下搜索 `some.xcodeproj`、`SomeTests.swift`、`task_plan.md`、`findings.md` 和 `research-and-gap-audit.md`，命中当前主仓库、2026-06-20/21 旧 some 工程、`2026-06-20/wo/outputs/some` 旧输出目录，以及无关的星轨/印度占星项目计划文件。
+- 对 `/Users/wuyongnaren/Documents/Codex/2026-06-20/some-flomo-app-app-store-1/work/some`、`/Users/wuyongnaren/Documents/Codex/2026-06-20/wo/outputs/some`、`/Users/wuyongnaren/Documents/Codex/2026-06-21/some-flomo-app-app-store-1/work/some` 与当前主仓库执行排除 `.git` / Xcode 用户数据的 `diff -qr`。旧目录只包含约 34/34/37 个 Swift、文档和工程配置文件，当前主仓库约 78 个同类文件；差异主要是当前主仓库新增 Share Extension、Widget、App Intents、SQLite、素材索引、媒体/手帐/图片编辑/衣橱/工作日志/AI 缓存等后续能力。
+- 本轮未发现旧目录存在当前主仓库缺失的独有新功能文件；如果后续工作树出现未提交碎片，应先读 diff、接管并验证，不直接回滚。
+
 ## 当前代码资产盘点
 
 当前仓库的主要代码模块：
@@ -46,7 +52,7 @@
 - 测试：`SomeTests/SomeTests.swift`
 - 发布/说明文档：`README.md`、`AppStore/`、`docs/`、`verification.md`
 
-当前明显缺口：已有 `MemoAsset` 索引表作为素材入口，已补图片 OCR、音频本机转写、视频按需缩略图、图片编辑 v2 和衣橱洞察 v1；但还没有独立媒体资产表、网页摘录实体表、完整手势裁剪器/抠图管线、音视频长内容处理、穿着日历/成本/天气推荐模型。这些缺口已提升为下一轮优先级。
+当前明显缺口：已有 `MemoAsset` 索引表作为素材入口，图片 OCR、音频本机转写、视频缩略图缓存、媒体元数据预热、网页摘录片段、图片编辑、手帐、衣橱、工作日志、Widget、Share Extension、URL Scheme 和本地/可选联网 AI 已覆盖主要自用闭环；后续缺口转为真实长列表/真机验证、独立实体关系、完整裁剪器、复杂对象修复、真实天气 API、长音频/视频理解、更多团队汇报模板、公开 API/MCP 和同步。
 
 ## 开工前强制审计流程
 
@@ -207,11 +213,11 @@ OpenAI 接口依据 2026-06-20 官方 API 文档接入：文本生成使用 Resp
 
 P0：
 
-- 用完整 Xcode 编译运行，修掉真实编译错误
-- 增加基础单元测试：继续补 SQLite 迁移边界、Share Extension 端保存流程、App Group 真机验证
-- 在 Apple Developer / Xcode Signing & Capabilities 中为主 App 和 Share Extension 配好同一个 App Group
-- 设计统一素材模型：文字、图片、截图、音频、视频、链接、网页摘录、衣橱单品都不能继续只塞进 memo 正文
-- 设计本地媒体存储与备份策略：原图、编辑版本、缩略图、音视频、抠图透明图、手帐页面导出都要可追踪、可恢复
+- 用完整 Xcode 16 编译运行和 XCTest 复验，修掉真实编译错误
+- 真机/模拟器验证 App Group、Share Extension、Widget、URL Scheme、FTS 搜索、AI cache 清理、备份恢复和系统分享导出
+- 继续补 SQLite 迁移边界、Share Extension 保存流程、App Group 路径和备份恢复的单元测试
+- 明确下一轮是否要把 `MemoAsset` 从派生索引升级为独立素材实体表；当前正文内可迁移结构已能覆盖自用闭环，真正 schema 重构需单独设计与迁移
+- 对真实长列表和大备份做性能/空间验证，特别是视频缩略图、媒体元数据、AI embedding cache、手帐导出和图片编辑版本
 
 P1：
 
