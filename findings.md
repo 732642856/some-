@@ -34,6 +34,7 @@
 - 2026-06-23：阶段 25 开工前复查手帐图层模型、`ScrapbookRenderer`、附件解析、手帐首页和图片编辑缺口。多图拼贴选择复用现有 `ScrapbookPageLayout` / `ScrapbookRenderer`，因为手帐已经具备多图片图层、PNG 导出、可迁移 JSON 和后续编辑器入口；本轮新增拼贴创建入口而不是重复建立第二套画布模型。
 - 2026-06-23：本轮恢复后尝试查询 GitHub Actions 最新状态时，联网审批服务返回 503 并拒绝升级命令；按安全规则不绕路重复同一外部查询。随后补做摘录片段索引前的开源对标：`usememos/memos` 是 MIT 的 memo 服务端/前端项目，适合继续参考数据所有权与 Markdown 记录思路，但 Go/TypeScript 架构不能直接复制进当前 SwiftUI 本地素材索引；Simplenote iOS、Joplin、Zettlr 等项目许可证或技术栈也不适合直接搬源码。本轮继续复用 some 现有 `MemoAsset` / SQLite 索引。
 - 2026-06-23：阶段 27 开工前复查 `QuickCaptureView`、`MemoStore.addWebClip`、`LinkExtractor.urls` 和网页摘录相关测试；现状是输入卡片可以识别多个 URL 但只会摘录第一个 URL。由于外部检索审批刚返回 503，本轮不重复联网查询，沿用此前 SwiftSoup/ReadabilityKit/usememos 等对标结论，继续复用 some 现有 `WebClipExtractor`、`ClipFragmentExtractor` 与结构化 memo。
+- 2026-06-23：阶段 31 开工前检索 OCR 框选/SwiftUI 裁剪候选。`SwiftUI image cropper MIT OCR selection` 返回 0；`benedom/SwiftyCrop` 为 MIT、SwiftUI、2026-04 有推送，适合作为后续完整 SwiftUI 裁剪器候选；`guoyingtao/Mantis` 为 MIT、Swift、成熟图片裁剪库，适合作为后续完整自由裁剪/图片编辑依赖候选。本轮只需要 OCR 区域矩形框，不引入完整裁剪依赖，先复用 some 现有 SwiftUI、UIKit 和 `ImageTextRegion` 自建轻量框选入口。
 
 ## 当前缺口
 
@@ -42,5 +43,5 @@
 - 电子手帐：已有图层 JSON、预览、详情页拖拽/缩放/旋转、独立编辑器图层新增/复制/删除/层级调整、图片素材追加、画布底色、字体/贴纸/花边预设、颜色/字号/圆角/线宽编辑、PNG/PDF 导出和保存回原 memo；后续缺真实图片排版长页性能、PDF 分享表细化和真机手势验证。
 - 图片编辑：已完成素材库图片编辑入口、预设比例裁剪、可调裁剪中心/缩放、背景柔化/纯色画布、授权图片瑕疵清理贴片、Core Image 滤镜、边框、文字、贴纸、版式模板/导出预设、多图拼贴 MVP、输出 PNG 附件、`imageEdit` / `scrapbookPage` 素材索引和相关搜索；完整手势裁剪器、人物/物体抠图、对象级修复和更自由的多图拼贴编辑仍待补。
 - 电子衣橱：已完成衣橱洞察 v4，可从现有素材索引统计分类、颜色、季节、场景、未进入穿搭组合单品、常用单品、穿着次数、最近穿着和成本/次，并记录洗护状态与旅行打包清单；现在可根据最近穿着天气生成天气穿搭、自动生成打包草稿，并用最新洗护状态提醒待清洗/送洗/待熨烫/待修补单品。后续可接真实天气 API、行程天数、材质/厚薄字段和本地通知提醒。
-- 网页摘录：已有标题/description、正文清洗、段落评分、来源、摘录卡、重点候选、网页/OCR 统一摘录片段、快速输入片段勾选、摘录片段独立素材索引、`has:clip` 搜索和多链接批量网页摘录；截图/OCR 已补区域识别底座，后续再做完整框选 UI。
+- 网页摘录：已有标题/description、正文清洗、段落评分、来源、摘录卡、重点候选、网页/OCR 统一摘录片段、快速输入片段勾选、摘录片段独立素材索引、`has:clip` 搜索和多链接批量网页摘录；截图/OCR 已补区域识别底座并正在接入完整框选 UI。
 - CI 测试稳定性：GitHub iPhone 16 Pro 模拟器默认图片 renderer scale 可能不是 1，像素尺寸测试必须显式设置 `UIGraphicsImageRendererFormat.scale = 1` 或断言比例；视频/媒体测试应使用真实保存文件，不应手工构造不存在的 `SharedAttachment`。App Intents 元数据训练在 CI 测试阶段可能触发 `extract.actionsdata` 解析失败，当前通过独立 DerivedData、测试阶段 `clean test`、`SWIFT_EMIT_LOC_STRINGS=NO`、条件编译和 `EXCLUDED_SOURCE_FILE_NAMES` 暂避，待远端复验。
