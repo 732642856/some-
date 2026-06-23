@@ -1083,8 +1083,14 @@ private struct WorkLogView: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Color.tertiaryText)
 
-                Button {
-                    exportFilteredWorkLogs()
+                Menu {
+                    ForEach(WorkLogExportFormat.allCases, id: \.self) { format in
+                        Button {
+                            exportFilteredWorkLogs(format: format)
+                        } label: {
+                            Label(format.title, systemImage: format.systemImage)
+                        }
+                    }
                 } label: {
                     Image(systemName: "square.and.arrow.up")
                         .frame(width: 34, height: 30)
@@ -1335,24 +1341,27 @@ private struct WorkLogView: View {
         )
     }
 
-    private func exportFilteredWorkLogs() {
+    private func exportFilteredWorkLogs(format: WorkLogExportFormat = .markdown) {
         let records = filteredWorkLogRecords
         let selectedMemoIDs = Set(records.map(\.memo.id))
         let selectedMemos = store.memos.filter { selectedMemoIDs.contains($0.id) }
         let selectedAssetIDs = Set(records.map(\.asset.id))
         let selectedAssets = store.assets.filter { selectedAssetIDs.contains($0.id) }
-        let markdown = WorkLogExporter.markdown(
-            memos: selectedMemos,
-            assets: selectedAssets
-        )
+        let content: String
+        switch format {
+        case .markdown:
+            content = WorkLogExporter.markdown(memos: selectedMemos, assets: selectedAssets)
+        case .csv:
+            content = WorkLogExporter.csv(memos: selectedMemos, assets: selectedAssets)
+        }
 
         do {
             exportedWorkLog = try ExportedDocument(
                 prefix: "some-worklog",
-                fileExtension: "md",
-                content: markdown
+                fileExtension: format.fileExtension,
+                content: content
             )
-            statusText = "已准备导出工作日志"
+            statusText = "已准备导出\(format.title)"
         } catch {
             statusText = "导出失败：\(error.localizedDescription)"
         }
@@ -1494,6 +1503,32 @@ private struct WorkLogRecord: Identifiable {
             return (String(label), String(value))
         }
         return nil
+    }
+}
+
+private enum WorkLogExportFormat: String, CaseIterable, Hashable {
+    case markdown
+    case csv
+
+    var title: String {
+        switch self {
+        case .markdown: return "Markdown"
+        case .csv: return "CSV"
+        }
+    }
+
+    var fileExtension: String {
+        switch self {
+        case .markdown: return "md"
+        case .csv: return "csv"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .markdown: return "doc.text"
+        case .csv: return "tablecells"
+        }
     }
 }
 

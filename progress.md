@@ -428,3 +428,11 @@
 - `ImageEditorView` 新增“主体”编辑模式和点选画布，选择“智能主体”后可点选单个对象，保存时记录主体点选坐标；切回非对象模式会清空旧坐标。
 - 新增测试覆盖点选坐标编解码、摘要/文件名标记和图片编辑记录正文“主体：智能主体（单主体 x/y）”。
 - 本地验证通过：`xcrun swiftc -parse some/Models/Memo.swift some/Stores/MemoStore.swift some/Utilities/ImageEditRenderer.swift some/Views/ImageEditorView.swift SomeTests/SomeTests.swift`、`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`。远端基线 `cde609d` 和 `f53ee7d` GitHub Actions 均已通过。
+
+## 2026-06-23T17:42:28+08:00
+
+- 进入并完成阶段 42：工作日志 CSV 导出与格式选择。开工前复查 Git 状态、远端 CI、`WorkLogExporter`、工作日志列表 UI 和现有导出测试。
+- 按用户要求检索 `Swift CSV export MIT library`、`Swift CSV writer MIT GitHub`、`SwiftUI export CSV share sheet GitHub MIT`、`Swift work log csv exporter MIT GitHub`；通用 MIT CSV 包存在，但当前只需要少量工作日志字段导出，不引入 SPM 依赖，采用项目内最小 CSV 转义。
+- 按 TDD 增加 `testWorkLogExporterBuildsCSVWithEscapedFields`，覆盖普通记录排除、固定表头、逗号和双引号转义。
+- `WorkLogExporter` 新增 `csv(memos:assets:)`，输出标题、创建时间、范围、项目、日期、模板、进展、问题和下一步字段；工作日志导出按钮改为 Markdown / CSV 菜单，分别生成 `.md` 或 `.csv` 并复用系统分享表。
+- 本地验证通过：`xcrun swiftc -parse some/Utilities/WorkLogSourceFilterEngine.swift SomeTests/SomeTests.swift`、`git diff --check`。本机 Swift 5.4 解析 `ContentView.swift` 仍被既有 `await` 语法挡住，完整 UI 类型检查继续依赖 GitHub Actions。

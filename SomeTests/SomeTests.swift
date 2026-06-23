@@ -915,6 +915,34 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(markdown.contains("- 下一步：观察复验、继续打包建议"))
     }
 
+    func testWorkLogExporterBuildsCSVWithEscapedFields() {
+        let date = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+        let log = Memo(
+            text: """
+            工作日志：日报
+            范围：今日
+            项目：some, iOS
+            日期：2026-06-23
+            模板：日报
+            进展：完成 "CSV" 导出
+            问题：等待 CI
+            下一步：复验
+            """,
+            createdAt: date,
+            updatedAt: date
+        )
+        let plainMemo = Memo(text: "普通记录", createdAt: date, updatedAt: date)
+        let csv = WorkLogExporter.csv(memos: [plainMemo, log])
+        let lines = csv.components(separatedBy: "\n")
+
+        XCTAssertEqual(lines.first, "标题,创建时间,范围,项目,日期,模板,进展,问题,下一步")
+        XCTAssertEqual(lines.count, 3)
+        XCTAssertTrue(lines[1].hasPrefix("日报,\(DateFormatters.export.string(from: date)),今日,"))
+        XCTAssertTrue(lines[1].contains("\"some, iOS\""))
+        XCTAssertTrue(lines[1].contains("\"完成 \"\"CSV\"\" 导出\""))
+        XCTAssertFalse(csv.contains("普通记录"))
+    }
+
     func testSearchCanExcludeContentTypes() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "资料带链接 https://example.com/a")

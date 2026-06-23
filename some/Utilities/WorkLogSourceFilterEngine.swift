@@ -224,6 +224,33 @@ enum WorkLogExporter {
         return "# 工作日志导出\n\n共 \(records.count) 条日志\n\n\(summary)\n\n---\n\n\(body)\n"
     }
 
+    static func csv(
+        memos: [Memo],
+        assets: [MemoAsset]? = nil
+    ) -> String {
+        let resolvedAssets = assets ?? memos.flatMap { MemoAsset.assets(in: $0) }
+        let records = workLogRecords(from: memos, assets: resolvedAssets)
+        let header = ["标题", "创建时间", "范围", "项目", "日期", "模板", "进展", "问题", "下一步"]
+        let rows = records.map { record -> [String] in
+            let fields = fields(in: record.asset.summary, fallbackText: record.memo.text)
+            return [
+                headingTitle(record.asset.title),
+                DateFormatters.export.string(from: record.memo.createdAt),
+                fields["范围"] ?? "",
+                fields["项目"] ?? "",
+                fields["日期"] ?? "",
+                fields["模板"] ?? "",
+                fields["进展"] ?? "",
+                fields["问题"] ?? "",
+                fields["下一步"] ?? ""
+            ]
+        }
+
+        return ([header] + rows)
+            .map { $0.map(csvField).joined(separator: ",") }
+            .joined(separator: "\n") + "\n"
+    }
+
     private static func workLogRecords(
         from memos: [Memo],
         assets: [MemoAsset]
@@ -343,5 +370,16 @@ enum WorkLogExporter {
             .replacingOccurrences(of: "\n", with: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? "未命名工作日志" : trimmed
+    }
+
+    private static func csvField(_ value: String) -> String {
+        let escaped = value.replacingOccurrences(of: "\"", with: "\"\"")
+        if escaped.contains(",")
+            || escaped.contains("\"")
+            || escaped.contains("\n")
+            || escaped.contains("\r") {
+            return "\"\(escaped)\""
+        }
+        return escaped
     }
 }
