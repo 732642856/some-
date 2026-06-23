@@ -1314,6 +1314,69 @@ final class SomeTests: XCTestCase {
         )
     }
 
+    func testWorkLogExporterBuildsActionReviewReportDraft() {
+        let date = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+        let firstLog = Memo(
+            text: """
+            工作日志：日报
+            范围：今日
+            项目：some
+            日期：2026-06-23
+            模板：日报
+            进展：完成连续扫描入口
+            问题：CI API rate limit
+            下一步：复验远端构建
+            备注：扫描 OCR 保持本机处理
+            """,
+            createdAt: date,
+            updatedAt: date
+        )
+        let secondLog = Memo(
+            text: """
+            工作日志：复盘
+            范围：复盘
+            项目：some
+            日期：2026-06-23
+            模板：复盘
+            进展：修正本地搜索命中解释
+            风险：真机扫描权限待验
+            下一步：补行动复盘模板
+            备注：优先处理工作日志闭环
+            """,
+            createdAt: date,
+            updatedAt: date
+        )
+
+        let draft = WorkLogExporter.reportDraft(memos: [firstLog, secondLog], style: .actionReview)
+
+        XCTAssertEqual(
+            draft,
+            """
+            行动复盘
+
+            项目：some
+            日期：2026-06-23
+
+            已完成：
+            1. 完成连续扫描入口
+            2. 修正本地搜索命中解释
+
+            待跟进：
+            1. 复验远端构建
+            2. 补行动复盘模板
+
+            风险/卡点：
+            1. CI API rate limit
+            2. 真机扫描权限待验
+
+            记录要点：
+            1. 扫描 OCR 保持本机处理
+            2. 优先处理工作日志闭环
+
+            """
+        )
+    }
+
     func testSearchCanExcludeContentTypes() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "资料带链接 https://example.com/a")
@@ -1805,6 +1868,24 @@ final class SomeTests: XCTestCase {
 
         XCTAssertEqual(results.first?.memo.id, tagged.id)
         XCTAssertEqual(results.first?.matchedTerms, ["#产品", "路线"])
+    }
+
+    func testSemanticEmbeddingCacheReusesRepeatedInputs() throws {
+        var cache = SemanticEmbeddingCache()
+        let inputs = [" 产品路线 ", "用户反馈", "用户反馈"]
+
+        let firstLookup = cache.lookup(inputs: inputs, modelID: "text-embedding-3-small")
+
+        XCTAssertEqual(firstLookup.missingInputs, ["产品路线", "用户反馈"])
+        XCTAssertEqual(firstLookup.embeddings.count, 3)
+        XCTAssertTrue(firstLookup.embeddings.allSatisfy { $0 == nil })
+
+        try cache.store([[1, 0], [0, 1]], for: firstLookup.missingRequests)
+
+        let secondLookup = cache.lookup(inputs: inputs, modelID: "text-embedding-3-small")
+
+        XCTAssertTrue(secondLookup.missingInputs.isEmpty)
+        XCTAssertEqual(secondLookup.embeddings, [[1, 0], [0, 1], [0, 1]])
     }
 
     func testInsightPromptKeepsProvidedMemoContent() {

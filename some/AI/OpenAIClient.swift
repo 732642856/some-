@@ -50,7 +50,7 @@ struct OpenAIClient {
         responsesModel.isEmpty ? "gpt-4o-mini" : responsesModel
     }
 
-    private var normalizedEmbeddingModel: String {
+    var normalizedEmbeddingModel: String {
         embeddingModel.isEmpty ? "text-embedding-3-small" : embeddingModel
     }
 

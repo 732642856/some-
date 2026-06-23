@@ -18,7 +18,98 @@ struct SemanticMemoResult: Identifiable, Equatable {
     }
 }
 
+struct SemanticEmbeddingCache: Sendable {
+    private var storage: [Key: [Double]] = [:]
+
+    mutating func lookup(inputs: [String], modelID: String) -> Lookup {
+        let requests = inputs.map { input in
+            Request(input: normalizedInput(input), modelID: normalizedModelID(modelID))
+        }
+        var missingRequests: [Request] = []
+        var seenMissing = Set<Request>()
+        let embeddings = requests.map { request -> [Double]? in
+            guard let embedding = storage[Key(request: request)] else {
+                if !request.input.isEmpty, seenMissing.insert(request).inserted {
+                    missingRequests.append(request)
+                }
+                return nil
+            }
+            return embedding
+        }
+
+        return Lookup(
+            embeddings: embeddings,
+            missingRequests: missingRequests
+        )
+    }
+
+    mutating func store(_ embeddings: [[Double]], for requests: [Request]) throws {
+        guard embeddings.count == requests.count else {
+            throw AIError.invalidResponse
+        }
+
+        zip(requests, embeddings).forEach { request, embedding in
+            storage[Key(request: request)] = embedding
+        }
+    }
+
+    mutating func removeAll() {
+        storage.removeAll()
+    }
+
+    struct Lookup: Sendable {
+        let embeddings: [[Double]?]
+        let missingRequests: [Request]
+
+        var missingInputs: [String] {
+            missingRequests.map(\.input)
+        }
+    }
+
+    struct Request: Hashable, Sendable {
+        let input: String
+        let modelID: String
+    }
+
+    private struct Key: Hashable, Sendable {
+        let input: String
+        let modelID: String
+
+        init(request: Request) {
+            input = request.input
+            modelID = request.modelID
+        }
+    }
+
+    private func normalizedInput(_ input: String) -> String {
+        input.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func normalizedModelID(_ modelID: String) -> String {
+        let trimmed = modelID.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "text-embedding-3-small" : trimmed
+    }
+}
+
+private actor SemanticEmbeddingCacheStore {
+    private var cache = SemanticEmbeddingCache()
+
+    func lookup(inputs: [String], modelID: String) -> SemanticEmbeddingCache.Lookup {
+        cache.lookup(inputs: inputs, modelID: modelID)
+    }
+
+    func store(_ embeddings: [[Double]], for requests: [SemanticEmbeddingCache.Request]) throws {
+        try cache.store(embeddings, for: requests)
+    }
+
+    func removeAll() {
+        cache.removeAll()
+    }
+}
+
 enum SemanticSearchEngine {
+    private static let embeddingCacheStore = SemanticEmbeddingCacheStore()
+
     static func localSearch(
         query: String,
         memos: [Memo],
@@ -88,16 +179,18 @@ enum SemanticSearchEngine {
             return []
         }
 
-        let embeddings = try await client.embed([trimmed] + candidates.map(\.text))
-        guard let queryEmbedding = embeddings.first else {
-            throw AIError.invalidResponse
-        }
+        let embeddings = try await cachedSearchEmbeddings(
+            query: trimmed,
+            candidateTexts: candidates.map(\.text),
+            modelID: client.normalizedEmbeddingModel,
+            client: client
+        )
 
-        return zip(candidates, embeddings.dropFirst())
+        return zip(candidates, embeddings.candidates)
             .map { memo, embedding in
                 SemanticMemoResult(
                     memo: memo,
-                    score: cosineSimilarity(queryEmbedding, embedding)
+                    score: cosineSimilarity(embeddings.query, embedding)
                 )
             }
             .sorted { lhs, rhs in
@@ -108,6 +201,10 @@ enum SemanticSearchEngine {
             }
             .prefix(limit)
             .map { $0 }
+    }
+
+    static func clearEmbeddingCache() async {
+        await embeddingCacheStore.removeAll()
     }
 
     static func cosineSimilarity(_ lhs: [Double], _ rhs: [Double]) -> Double {
@@ -215,5 +312,33 @@ enum SemanticSearchEngine {
             }
             return lhs.weight > rhs.weight
         }
+    }
+
+    private static func cachedSearchEmbeddings(
+        query: String,
+        candidateTexts: [String],
+        modelID: String,
+        client: OpenAIClient
+    ) async throws -> (query: [Double], candidates: [[Double]]) {
+        var lookup = await embeddingCacheStore.lookup(inputs: candidateTexts, modelID: modelID)
+        let fetchedEmbeddings = try await client.embed([query] + lookup.missingInputs)
+        guard let queryEmbedding = fetchedEmbeddings.first else {
+            throw AIError.invalidResponse
+        }
+
+        let fetchedCandidateEmbeddings = Array(fetchedEmbeddings.dropFirst())
+        if !lookup.missingRequests.isEmpty {
+            try await embeddingCacheStore.store(
+                fetchedCandidateEmbeddings,
+                for: lookup.missingRequests
+            )
+            lookup = await embeddingCacheStore.lookup(inputs: candidateTexts, modelID: modelID)
+        }
+
+        let embeddings = lookup.embeddings.compactMap { $0 }
+        guard embeddings.count == candidateTexts.count else {
+            throw AIError.invalidResponse
+        }
+        return (queryEmbedding, embeddings)
     }
 }

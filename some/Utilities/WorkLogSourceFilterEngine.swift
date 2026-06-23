@@ -197,6 +197,7 @@ enum WorkLogExporter {
         case standard
         case standup
         case projectBrief
+        case actionReview
     }
 
     static func markdown(
@@ -300,6 +301,18 @@ enum WorkLogExporter {
                 ],
                 from: fieldValues
             )
+        case .actionReview:
+            return styledReportDraft(
+                title: "行动复盘",
+                inlineKeys: ["项目", "日期"],
+                sections: [
+                    ("已完成", ["进展"]),
+                    ("待跟进", ["下一步"]),
+                    ("风险/卡点", ["问题", "风险"]),
+                    ("记录要点", ["备注"])
+                ],
+                from: fieldValues
+            )
         }
     }
 
@@ -311,6 +324,8 @@ enum WorkLogExporter {
             return "站会同步\n\n暂无可汇总日志。\n"
         case .projectBrief:
             return "项目简报\n\n暂无可汇总日志。\n"
+        case .actionReview:
+            return "行动复盘\n\n暂无可汇总日志。\n"
         }
     }
 

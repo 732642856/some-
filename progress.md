@@ -655,3 +655,11 @@
 - 按 TDD 增加 `testLocalSemanticSearchWeightsTagsAndReportsMatchedTerms`，锁定标签命中权重优先于普通文本片段，并要求结果返回 `matchedTerms`。
 - `SemanticMemoResult` 新增向后兼容的 `matchedTerms`；本地搜索改为标签、完整词和中日韩片段加权评分，英文不再用二字片段误匹配；AI 结果卡片显示最多 4 个命中词。
 - 进入并完成阶段 65：连续扫描与扫描页 OCR。快速输入新增 `doc.viewfinder` 扫描按钮，调用系统 `VNDocumentCameraViewController`；扫描完成后逐页保存 JPEG 附件、运行本机 OCR，并写入“扫描文字/扫描页：第 N 页”记录，素材摘要会过滤页码元数据。
+
+## 2026-06-23T23:58:00+08:00
+
+- 继续主动推进阶段 66：AI embedding 缓存与行动复盘导出。开工前重新加载 Superpowers，复查 Git 状态、计划文件、AI 搜索代码、工作日志导出器和旧 Codex 目录。
+- 跨目录审计 `/Users/wuyongnaren/Documents/Codex/2026-06-20/some-flomo-app-app-store-1` 与 `/Users/wuyongnaren/Documents/Codex/2026-06-21/some-flomo-app-app-store-1`：2026-06-21 嵌套仓库仅有早期 3 个提交，当前主仓库已包含其所有跟踪文件；2026-06-20 为更早快照，没有当前主仓库缺失的功能文件。
+- 按用户要求补做开源检索：Swift/OpenAI embedding cache、语义搜索缓存、工作日志行动复盘模板方向未找到可直接复制进当前 SwiftUI/iOS 工程的成熟 MIT 模块；本轮继续复用项目内 `SemanticSearchEngine` 和 `WorkLogExporter`。
+- 按 TDD 增加 `testSemanticEmbeddingCacheReusesRepeatedInputs`，实现 `SemanticEmbeddingCache`，对同一模型和同一 memo 文本在本次运行内复用记录 embedding；查询文本仍每次请求，避免把临时问题长期缓存。
+- 发现并保留并行/遗留的 `testWorkLogExporterBuildsActionReviewReportDraft` 正向测试，补 `ReportDraftStyle.actionReview` 和工作日志导出菜单“行动复盘”，不回滚其他窗口留下的改动。
