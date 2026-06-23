@@ -11,6 +11,10 @@ enum MemoBackupPackage {
     static func importPackage(at packageURL: URL, into store: MemoStore) throws -> Int {
         throw MemoBackupPackageError.zipBackupDisabledInCITests
     }
+
+    static func summary(at packageURL: URL) throws -> MemoBackupSummary {
+        throw MemoBackupPackageError.zipBackupDisabledInCITests
+    }
 }
 
 private enum MemoBackupPackageError: LocalizedError {
@@ -83,16 +87,7 @@ enum MemoBackupPackage {
         }
 
         let zip = try Archive(url: packageURL, accessMode: .read)
-        guard let manifestEntry = zip[manifestFilename] else {
-            throw MemoBackupPackageError.missingManifest
-        }
-
-        var manifestData = Data()
-        _ = try zip.extract(manifestEntry) { chunk in
-            manifestData.append(chunk)
-        }
-
-        let archive = try JSONDecoder.memoDecoder.decode(MemoBackupArchive.self, from: manifestData)
+        let archive = try readManifestArchive(from: zip)
         let temporaryDirectory = FileManager.default.temporaryDirectory
             .appendingPathComponent("some-import-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(
@@ -136,6 +131,32 @@ enum MemoBackupPackage {
             revisions: archive.revisions
         )
         return try store.importBackupArchive(hydratedArchive)
+    }
+
+    static func summary(at packageURL: URL) throws -> MemoBackupSummary {
+        let accessed = packageURL.startAccessingSecurityScopedResource()
+        defer {
+            if accessed {
+                packageURL.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        let zip = try Archive(url: packageURL, accessMode: .read)
+        let archive = try readManifestArchive(from: zip)
+        return MemoBackupSummary(archive: archive)
+    }
+
+    private static func readManifestArchive(from zip: Archive) throws -> MemoBackupArchive {
+        guard let manifestEntry = zip[manifestFilename] else {
+            throw MemoBackupPackageError.missingManifest
+        }
+
+        var manifestData = Data()
+        _ = try zip.extract(manifestEntry) { chunk in
+            manifestData.append(chunk)
+        }
+
+        return try JSONDecoder.memoDecoder.decode(MemoBackupArchive.self, from: manifestData)
     }
 
     private static func sharedAttachment(from attachment: MemoBackupAttachment) -> SharedAttachment {

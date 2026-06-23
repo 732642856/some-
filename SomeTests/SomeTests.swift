@@ -89,6 +89,35 @@ final class SomeTests: XCTestCase {
         SharedAttachmentStore.delete(restoredAttachments[0])
     }
 
+    func testBackupPackageSummaryReadsManifestWithoutImporting() throws {
+        #if CI_DISABLE_ZIP_BACKUP
+        throw XCTSkip("ZIP package backup is disabled in CI test builds.")
+        #else
+        let source = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let attachment = try SharedAttachmentStore.save(
+            data: Data("zip package summary".utf8),
+            suggestedFilename: "zip-summary-\(UUID().uuidString).txt",
+            typeIdentifier: UTType.plainText.identifier
+        )
+        defer { SharedAttachmentStore.delete(attachment) }
+
+        source.addMemo(text: "ZIP 摘要 #导出\n\n\(attachment.referenceLine)")
+        guard let memo = source.memos.first else {
+            return XCTFail("Expected memo")
+        }
+        XCTAssertTrue(source.update(memo, text: "ZIP 摘要第二版 #导出\n\n\(attachment.referenceLine)"))
+        let packageURL = try MemoBackupPackage.export(from: source)
+        defer { try? FileManager.default.removeItem(at: packageURL) }
+
+        let summary = try MemoBackupPackage.summary(at: packageURL)
+
+        XCTAssertEqual(summary.memoCount, 1)
+        XCTAssertEqual(summary.revisionCount, 1)
+        XCTAssertEqual(summary.attachmentCount, 1)
+        XCTAssertEqual(summary.attachmentByteCount, Data("zip package summary".utf8).count)
+        #endif
+    }
+
     func testBackupArchiveRoundTripRestoresRevisionsAndTheirAttachments() throws {
         let source = MemoStore(filename: "test-\(UUID().uuidString).json")
         let attachment = try SharedAttachmentStore.save(
@@ -602,9 +631,10 @@ final class SomeTests: XCTestCase {
 
     func testSearchQueryParserExtractsDateFilters() {
         let query = MemoSearchQueryParser.parse("created:2026-06 updated:>=2026-06-22 复盘")
-        let calendar = Calendar(identifier: .gregorian)
-        let juneStart = calendar.date(from: DateComponents(timeZone: .current, year: 2026, month: 6, day: 1))
-        let june22Start = calendar.date(from: DateComponents(timeZone: .current, year: 2026, month: 6, day: 22))
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone.current
+        let juneStart = calendar.date(from: DateComponents(calendar: calendar, timeZone: .current, year: 2026, month: 6, day: 1))
+        let june22Start = calendar.date(from: DateComponents(calendar: calendar, timeZone: .current, year: 2026, month: 6, day: 22))
 
         XCTAssertEqual(query.textTerms, ["复盘"])
         XCTAssertEqual(query.dateFilters.count, 2)

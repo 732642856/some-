@@ -531,3 +531,18 @@
 - `ScrapbookRenderer` 导出路径和 `ScrapbookEditorView` 预览路径共用 `ScrapbookImageFilterRenderer`，避免预览与 PNG/PDF 导出滤镜漂移；图片相框会在预览和导出中保持一致。
 - 修复阶段 52 的 Swift 编译风险：`Memo.swift` 显式导入 `CoreGraphics`，并把滤镜 helper 私有方法从 `cgImage` 改名为 `renderedCGImage`，避免与局部 `cgImage` 变量同名导致 CI 编译歧义。
 - 本地验证通过：`xcrun swiftc -parse some/Models/Memo.swift some/Models/MemoBackupArchive.swift some/Utilities/ScrapbookRenderer.swift some/Views/ScrapbookEditorView.swift SomeTests/SomeTests.swift`、`xcrun swiftc -parse -D CI_DISABLE_ZIP_BACKUP some/Utilities/MemoBackupPackage.swift SomeTests/SomeTests.swift`、`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`、两个 GitHub workflow 的 Ruby YAML 解析。远端 GitHub API run/check-runs 查询目前返回 unauthenticated rate limit，需后续继续低频复验。
+
+## 2026-06-23T19:39:19+08:00
+
+- 回到远端 CI 收口：run `28022556308` 的 Build for simulator 已通过，Run tests 失败 annotation 只剩一个 `XCTAssertTrue failed`，位置集中在搜索日期解析测试附近。
+- 复查未提交碎片时发现 `SomeTests.swift` 已有正向修改：把日期解析断言从只看 `Calendar.current` 的月份/日期，改为完整比较 Gregorian 当前时区下的起始日期；本轮保留该修复方向。
+- 根因判断：生产代码创建 `Calendar(identifier: .gregorian)` 后只在 `DateComponents` 上设置 `TimeZone.current`，但 calendar 自身仍可能使用默认时区，导致 CI 模拟器上日期范围起点/测试预期出现漂移。
+- 修复：`MemoSearchQueryParser.dateRange` 显式把 Gregorian calendar 的 `timeZone` 设为 `TimeZone.current`，使 `created:2026-06`、`updated:>=2026-06-22` 的 start/end 语义稳定。
+
+## 2026-06-23T19:55:00+08:00
+
+- 进入阶段 53：`.somebackup` 清单摘要与日期 CI 收口。开工前重新复查 Git 状态、全量文件清单、规划/发现/进度/验证记录、`MemoBackupPackage`、`MemoBackupArchive`、`SettingsView.ImportView` 和导入反馈相关测试；工作区中出现的 `MemoSearchQuery` / 文档变更判断为远端 CI 正向修复碎片，已纳入当前验证范围，不回滚。
+- 按用户要求补做联网/开源检索：`Swift ZIPFoundation read manifest entry Data ZIP archive summary`、`SwiftUI iOS backup import restore summary .zip notes app MIT GitHub`、`GitHub ZIPFoundation Swift read entry extract data Archive accessMode read`、`GitHub SwiftUI notes backup export restore MIT ZIPFoundation` 未发现可直接复制到当前 SwiftUI 本地备份 UI 的完整 MIT 模块；继续复用已接入的 MIT `ZIPFoundation`。
+- 按 TDD 增加 `testBackupPackageSummaryReadsManifestWithoutImporting`，要求 `.somebackup` 可只读 manifest 生成 `MemoBackupSummary`，覆盖记录数、历史版本数、附件数和附件字节数。受本机旧工具链限制，`swiftc -typecheck` 先因缺 ZIPFoundation 模块失败，无法本地跑到缺失 API 红灯；已记录该环境限制，并保持测试先于生产实现。
+- `MemoBackupPackage.summary(at:)` 现在只读 ZIP 包 `manifest.json` 并返回 `MemoBackupSummary`；`importPackage` 和 `summary` 共用 manifest 解析 helper，避免导入路径和预览路径漂移。`CI_DISABLE_ZIP_BACKUP` stub 同步增加 `summary(at:)`，CI 测试构建移除 ZIPFoundation 时仍可解析。
+- `SettingsView.ImportView.importFile` 在选择 `.somebackup` 后先读取 summary 再执行恢复，恢复成功反馈会显示完整备份摘要，不再只给通用“附件和历史版本会一起恢复”文案。

@@ -296,7 +296,8 @@ enum MemoSearchQueryParser {
             return nil
         }
 
-        let calendar = Calendar(identifier: .gregorian)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone.current
         var components = DateComponents()
         components.calendar = calendar
         components.timeZone = TimeZone.current

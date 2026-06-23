@@ -466,8 +466,9 @@ private struct ImportView: View {
             }
 
             if url.pathExtension.localizedCaseInsensitiveCompare(MemoBackupPackage.fileExtension) == .orderedSame {
+                let summary = try MemoBackupPackage.summary(at: url)
                 let count = try MemoBackupPackage.importPackage(at: url, into: store)
-                feedback = .success(kind: .backup, count: count, summary: nil)
+                feedback = .success(kind: .backup, count: count, summary: summary)
             } else {
                 let accessed = url.startAccessingSecurityScopedResource()
                 defer {
