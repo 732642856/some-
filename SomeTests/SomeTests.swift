@@ -639,14 +639,14 @@ final class SomeTests: XCTestCase {
         let query = MemoSearchQueryParser.parse("has:项目汇报 has:复盘日志")
 
         XCTAssertEqual(query.requiredContentFilters, [.workLog])
-        XCTAssertTrue(query.textTerms.isEmpty)
+        XCTAssertEqual(query.textTerms, [])
     }
 
     func testSearchQueryParserKeepsUnknownContentFiltersAsText() {
         let query = MemoSearchQueryParser.parse("has:unknown 资料")
 
         XCTAssertEqual(query.textTerms, ["has:unknown", "资料"])
-        XCTAssertTrue(query.requiredContentFilters.isEmpty)
+        XCTAssertEqual(query.requiredContentFilters, [])
     }
 
     func testSearchQueryParserExtractsDateFilters() {
@@ -671,7 +671,7 @@ final class SomeTests: XCTestCase {
         let query = MemoSearchQueryParser.parse("created:2026-02-31 updated:soon")
 
         XCTAssertEqual(query.textTerms, ["created:2026-02-31", "updated:soon"])
-        XCTAssertTrue(query.dateFilters.isEmpty)
+        XCTAssertEqual(query.dateFilters, [])
     }
 
     func testSearchCanFilterByTagAndPinnedState() {

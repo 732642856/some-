@@ -561,3 +561,4 @@
 - 将搜索日期解析的测试断言从闭包式 `XCTAssertTrue` 改为先取出 created/updated filter，再逐项 `XCTNotNil` / `XCTEqual`，让下一次 CI annotation 能直接暴露 operation 或 start 日期差异。
 - `MemoSearchQueryParser.dateRange` 抽出 `localGregorianCalendar()`，测试 helper `makeDate` 也改为同样先设置 Gregorian calendar 的 `timeZone` 再调用 `calendar.date(from:)`，进一步消除 `DateComponents.date` 的隐式 calendar 差异。
 - 扩大 `.github/workflows/ios-ci.yml` 的测试失败摘要 grep 范围，失败时会附带更多前后相邻 passed/failed test case，避免 GitHub 页面只显示孤立断言。
+- 远端 run `28028932398` 仍只暴露一个裸 `XCTAssertTrue failed`，但页面已显示内容类型、日期、搜索索引等相关测试通过。继续把 parser 近邻测试中的裸布尔断言改为 `XCTEqual`，并让 CI 失败摘要额外输出失败前最近 320 条 test case 行。
