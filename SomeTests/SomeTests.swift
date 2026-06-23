@@ -1930,6 +1930,29 @@ final class SomeTests: XCTestCase {
         XCTAssertFalse(storedJSON.contains("用户反馈"))
     }
 
+    func testSemanticEmbeddingCachePrunesLeastRecentlyUsedEntries() throws {
+        var cache = SemanticEmbeddingCache(maxEntryCount: 2)
+
+        let first = cache.lookup(inputs: ["第一条"], modelID: "text-embedding-3-small")
+        try cache.store([[1, 0]], for: first.missingRequests)
+        let second = cache.lookup(inputs: ["第二条"], modelID: "text-embedding-3-small")
+        try cache.store([[0, 1]], for: second.missingRequests)
+        _ = cache.lookup(inputs: ["第一条"], modelID: "text-embedding-3-small")
+        let third = cache.lookup(inputs: ["第三条"], modelID: "text-embedding-3-small")
+        try cache.store([[1, 1]], for: third.missingRequests)
+
+        let lookup = cache.lookup(
+            inputs: ["第一条", "第二条", "第三条"],
+            modelID: "text-embedding-3-small"
+        )
+
+        XCTAssertEqual(lookup.missingInputs, ["第二条"])
+        XCTAssertEqual(lookup.embeddings[0], [1, 0])
+        XCTAssertNil(lookup.embeddings[1])
+        XCTAssertEqual(lookup.embeddings[2], [1, 1])
+        XCTAssertEqual(cache.snapshot().entries.count, 2)
+    }
+
     func testInsightPromptKeepsProvidedMemoContent() {
         let memo = Memo(
             text: "下午整理产品灵感 #产品",

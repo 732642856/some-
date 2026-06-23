@@ -20,10 +20,15 @@ struct SemanticMemoResult: Identifiable, Equatable {
 }
 
 struct SemanticEmbeddingCache: Sendable {
-    private var storage: [String: [Double]] = [:]
+    private var storage: [String: Entry] = [:]
+    private var accessCounter = 0
+    private let maxEntryCount: Int
 
-    init(snapshot: Snapshot = Snapshot()) {
+    init(snapshot: Snapshot = Snapshot(), maxEntryCount: Int = 1_000) {
         storage = snapshot.entries
+        accessCounter = snapshot.entries.values.map(\.lastAccessedAt).max() ?? 0
+        self.maxEntryCount = max(1, maxEntryCount)
+        pruneIfNeeded()
     }
 
     mutating func lookup(inputs: [String], modelID: String) -> Lookup {
@@ -38,14 +43,18 @@ struct SemanticEmbeddingCache: Sendable {
         }
         var missingRequests: [Request] = []
         var seenMissing = Set<Request>()
-        let embeddings = requests.map { request -> [Double]? in
-            guard let embedding = storage[request.cacheKey] else {
+        var embeddings: [[Double]?] = []
+        requests.forEach { request in
+            guard var entry = storage[request.cacheKey] else {
                 if !request.input.isEmpty, seenMissing.insert(request).inserted {
                     missingRequests.append(request)
                 }
-                return nil
+                embeddings.append(nil)
+                return
             }
-            return embedding
+            entry.lastAccessedAt = nextAccessCounter()
+            storage[request.cacheKey] = entry
+            embeddings.append(entry.embedding)
         }
 
         return Lookup(
@@ -60,8 +69,12 @@ struct SemanticEmbeddingCache: Sendable {
         }
 
         zip(requests, embeddings).forEach { request, embedding in
-            storage[request.cacheKey] = embedding
+            storage[request.cacheKey] = Entry(
+                embedding: embedding,
+                lastAccessedAt: nextAccessCounter()
+            )
         }
+        pruneIfNeeded()
     }
 
     func snapshot() -> Snapshot {
@@ -73,7 +86,32 @@ struct SemanticEmbeddingCache: Sendable {
     }
 
     struct Snapshot: Codable, Equatable, Sendable {
-        var entries: [String: [Double]] = [:]
+        var entries: [String: Entry]
+
+        init(entries: [String: Entry] = [:]) {
+            self.entries = entries
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            if let entries = try? container.decode([String: Entry].self, forKey: .entries) {
+                self.entries = entries
+                return
+            }
+            let legacyEntries = try container.decode([String: [Double]].self, forKey: .entries)
+            entries = legacyEntries.mapValues { embedding in
+                Entry(embedding: embedding, lastAccessedAt: 0)
+            }
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case entries
+        }
+    }
+
+    struct Entry: Codable, Equatable, Sendable {
+        let embedding: [Double]
+        var lastAccessedAt: Int
     }
 
     struct Lookup: Sendable {
@@ -105,6 +143,28 @@ struct SemanticEmbeddingCache: Sendable {
         let digest = SHA256.hash(data: Data(payload.utf8))
         let fingerprint = digest.map { String(format: "%02x", $0) }.joined()
         return "\(modelID)#\(fingerprint)"
+    }
+
+    private mutating func nextAccessCounter() -> Int {
+        accessCounter += 1
+        return accessCounter
+    }
+
+    private mutating func pruneIfNeeded() {
+        guard storage.count > maxEntryCount else { return }
+        let overflowCount = storage.count - maxEntryCount
+        let entriesToRemove = storage
+            .sorted { lhs, rhs in
+                if lhs.value.lastAccessedAt == rhs.value.lastAccessedAt {
+                    return lhs.key < rhs.key
+                }
+                return lhs.value.lastAccessedAt < rhs.value.lastAccessedAt
+            }
+            .prefix(overflowCount)
+
+        entriesToRemove.forEach { entry in
+            storage.removeValue(forKey: entry.key)
+        }
     }
 }
 

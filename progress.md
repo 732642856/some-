@@ -670,3 +670,10 @@
 - 按 TDD 增加 `testSemanticEmbeddingCacheSnapshotRestoresWithoutPersistingRawInputs` 和 `testSemanticEmbeddingDiskCacheRoundTripsSnapshot`，先用聚焦 typecheck 探针确认缺少 `snapshot` / `SemanticEmbeddingDiskCache` 的红灯。
 - `SemanticEmbeddingCache` 的内部 key 从原文改为模型名 + SHA-256 指纹，支持 `Snapshot` 导出/恢复；新增 `SemanticEmbeddingDiskCache`，把缓存写入 App Group `AICache/semantic-embeddings.json`。
 - 语义搜索 actor 初始化时加载本地缓存，成功获取缺失记录 embedding 后写回磁盘；`clearEmbeddingCache()` 同步清理内存和磁盘文件。查询文本仍不缓存，只缓存记录文本 embedding，降低临时搜索词长期留存风险。
+
+## 2026-06-24T00:31:00+08:00
+
+- 进入并完成阶段 68：AI embedding 缓存容量裁剪。阶段 67 已能跨启动复用，但缺少长期增长边界，因此继续主动推进本地 LRU 上限。
+- 按 TDD 增加 `testSemanticEmbeddingCachePrunesLeastRecentlyUsedEntries`，先用红灯探针确认 `SemanticEmbeddingCache(maxEntryCount:)` 不存在。
+- `SemanticEmbeddingCache.Snapshot` 从旧的 `[key: vector]` 兼容升级为 `[key: Entry]`，新增 `lastAccessedAt` 访问序号；lookup 命中会刷新访问序号，store 后自动裁剪到默认 1000 条。
+- 新实现兼容阶段 67 已写出的旧 JSON 缓存格式，旧条目读取后可继续命中并在后续访问/写入时升级。

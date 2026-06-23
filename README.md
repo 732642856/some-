@@ -62,8 +62,8 @@
 - 可选 OpenAI API Key，保存在 iOS Keychain
 - AI 洞察：周期复盘、困惑破局、自我觉察、主题研究、写作灵感
 - 本地 AI 记忆档案：不需要 API Key，可从设备内记录提炼主题、任务和工作线索，并保存为普通记录
-- AI 自然语言语义搜索：未配置 Key 时走本地带权相关搜索并显示命中词，配置 Key 后走 OpenAI embedding，并在本机 App Group 缓存记录 embedding 以减少重复请求
-- AI 相关记录查找：未配置 Key 时可用本地带权相关度和命中词解释，配置 Key 后走 OpenAI embedding，并跨启动复用同一批记录 embedding
+- AI 自然语言语义搜索：未配置 Key 时走本地带权相关搜索并显示命中词，配置 Key 后走 OpenAI embedding，并在本机 App Group 缓存最近使用的记录 embedding 以减少重复请求
+- AI 相关记录查找：未配置 Key 时可用本地带权相关度和命中词解释，配置 Key 后走 OpenAI embedding，并跨启动复用最近使用的记录 embedding
 - 隐私锁：支持 Face ID / Touch ID / 设备密码解锁
 - 每日回顾提醒：本地通知，可设置提醒时间
 - 链接识别：卡片显示链接，详情页可直接打开
@@ -129,7 +129,7 @@
 
 ## 技术说明
 
-当前版本不接入账号、云同步、广告或第三方分析。笔记内容默认以 SQLite 保存在用户设备本地；启用 App Group 后，主 App 与 Share Extension 会共用同一个本地 SQLite 数据库，小组件只读取主 App 写入 App Group 的轻量快照 JSON。Markdown 导出和完整备份导出由用户主动触发系统分享表。视频缩略图通过 Apple AVFoundation 在本机生成并缓存到 App Group 本地 `ThumbnailCache` 目录；媒体元数据摘要也在本机读取，不上传原视频、音频或图片。配置 OpenAI Key 后，AI 语义搜索会把记录 embedding 缓存到 App Group 本地 `AICache` 目录，缓存 key 使用模型名和文本 SHA-256 指纹，不额外保存笔记明文。
+当前版本不接入账号、云同步、广告或第三方分析。笔记内容默认以 SQLite 保存在用户设备本地；启用 App Group 后，主 App 与 Share Extension 会共用同一个本地 SQLite 数据库，小组件只读取主 App 写入 App Group 的轻量快照 JSON。Markdown 导出和完整备份导出由用户主动触发系统分享表。视频缩略图通过 Apple AVFoundation 在本机生成并缓存到 App Group 本地 `ThumbnailCache` 目录；媒体元数据摘要也在本机读取，不上传原视频、音频或图片。配置 OpenAI Key 后，AI 语义搜索会把最近使用的记录 embedding 缓存到 App Group 本地 `AICache` 目录，缓存 key 使用模型名和文本 SHA-256 指纹，最多保留 1000 条，不额外保存笔记明文。
 
 附件当前保存在 App Group 的本地 `Attachments` 目录，memo 正文只保存轻量引用。删除或编辑 memo 时，只会删除已不再被任何 memo 引用的本地附件文件，避免多个 memo 共用同一附件时误删。
 
