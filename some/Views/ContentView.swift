@@ -1357,6 +1357,8 @@ private struct WardrobeView: View {
     @State private var itemColors = ""
     @State private var itemSeasons = ""
     @State private var itemScenes = ""
+    @State private var itemMaterials = ""
+    @State private var itemThickness = ""
     @State private var itemPrice = ""
     @State private var selectedPhotoAssetID: UUID?
     @State private var outfitTitle = ""
@@ -1375,6 +1377,7 @@ private struct WardrobeView: View {
     @State private var packingTitle = ""
     @State private var packingDestination = ""
     @State private var packingDates = ""
+    @State private var packingTripDays = ""
     @State private var packingItems = ""
     @State private var packingWeather = ""
     @State private var packingNote = ""
@@ -1670,6 +1673,15 @@ private struct WardrobeView: View {
                 .background(Color.subtleSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
+            HStack(spacing: 8) {
+                TextField("材质：棉、亚麻", text: $itemMaterials)
+                TextField("厚薄：轻薄、保暖", text: $itemThickness)
+            }
+            .textFieldStyle(.plain)
+            .padding(10)
+            .background(Color.subtleSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
             TextField("价格：399", text: $itemPrice)
                 .textFieldStyle(.plain)
                 .padding(10)
@@ -1875,6 +1887,13 @@ private struct WardrobeView: View {
                 .background(Color.subtleSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
+            TextField("天数：3", text: $packingTripDays)
+                .textFieldStyle(.plain)
+                .keyboardType(.numberPad)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
             HStack(spacing: 8) {
                 TextField("天气：多云 18-25C", text: $packingWeather)
                 TextField("备注：带伞", text: $packingNote)
@@ -1959,6 +1978,8 @@ private struct WardrobeView: View {
             colors: splitValues(itemColors),
             seasons: splitValues(itemSeasons),
             scenes: splitValues(itemScenes),
+            materials: splitValues(itemMaterials),
+            thickness: itemThickness,
             purchasePrice: itemPrice,
             attachment: selectedPhotoAttachment()
         ) != nil else {
@@ -1970,6 +1991,8 @@ private struct WardrobeView: View {
         itemColors = ""
         itemSeasons = ""
         itemScenes = ""
+        itemMaterials = ""
+        itemThickness = ""
         itemPrice = ""
         selectedPhotoAssetID = nil
         statusText = "已保存单品"
@@ -2036,6 +2059,7 @@ private struct WardrobeView: View {
             title: packingTitle,
             destination: packingDestination,
             dateRange: packingDates,
+            tripDays: parsedTripDays,
             itemNames: splitValues(packingItems),
             weather: packingWeather,
             note: packingNote
@@ -2047,6 +2071,7 @@ private struct WardrobeView: View {
         packingTitle = ""
         packingDestination = ""
         packingDates = ""
+        packingTripDays = ""
         packingItems = ""
         packingWeather = ""
         packingNote = ""
@@ -2119,6 +2144,15 @@ private struct WardrobeView: View {
             .components(separatedBy: CharacterSet(charactersIn: "、,，/ "))
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
+    }
+
+    private var parsedTripDays: Int? {
+        let digits = packingTripDays.filter { $0.isNumber }
+        guard let value = Int(digits), value > 0 else {
+            return nil
+        }
+
+        return value
     }
 
     private func selectedPhotoAttachment() -> SharedAttachment? {

@@ -353,3 +353,9 @@
 - `MemoStore.addWardrobeItem` 支持写入“材质”“厚薄”，`addPackingList` 支持写入“天数”；旧调用保持默认参数向后兼容。
 - `WardrobeInsightEngine` 解析衣橱材质和厚薄；炎热/晴天的天气穿搭与打包建议会提高轻薄、棉麻等透气材质单品权重，并在打包说明中提示“优先轻薄、透气材质”。
 - 本地验证通过：`git diff --check`、`.github/workflows/ios-ci.yml` YAML 解析、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、旧 Swift parser 覆盖 `MemoStore.swift` / `WardrobeInsightEngine.swift` / `SomeTests.swift`。
+
+## 2026-06-23T16:22:00+08:00
+
+- 补齐衣橱增强的 UI 入口：衣橱单品表单新增“材质”“厚薄”，打包清单表单新增“天数”。
+- 保存后会把这些字段传入已实现的结构化存储与洞察逻辑，并清空表单状态。
+- 本地验证通过：`git diff --check`、`.github/workflows/ios-ci.yml` YAML 解析、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、旧 Swift parser 覆盖 `ContentView.swift`。
