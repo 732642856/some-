@@ -1375,21 +1375,21 @@ extension MemoAsset {
             )
         }
 
-        if let imageText = imageTextAsset(in: visibleText),
-           let attachment = SharedAttachmentStore.attachments(in: memo.text).first(where: \.isImage) {
+        let imageAttachments = SharedAttachmentStore.attachments(in: memo.text).filter(\.isImage)
+        for imageText in imageTextAssets(in: visibleText, attachments: imageAttachments) {
             append(
                 kind: .screenshot,
                 title: imageText.title,
                 summary: imageText.summary,
-                uri: "\(SharedAttachmentStore.referenceScheme)://\(SharedAttachmentStore.encodedReferencePath(attachment.relativePath))",
-                typeIdentifier: attachment.typeIdentifier,
-                byteCount: attachment.byteCount,
-                stableKey: "image-text:\(attachment.relativePath)"
+                uri: "\(SharedAttachmentStore.referenceScheme)://\(SharedAttachmentStore.encodedReferencePath(imageText.attachment.relativePath))",
+                typeIdentifier: imageText.attachment.typeIdentifier,
+                byteCount: imageText.attachment.byteCount,
+                stableKey: "image-text:\(imageText.attachment.relativePath):\(imageText.summary)"
             )
         }
 
         if let wardrobeItem = wardrobeItemAsset(in: visibleText),
-           let attachment = SharedAttachmentStore.attachments(in: memo.text).first(where: \.isImage) {
+           let attachment = imageAttachments.first {
             append(
                 kind: .wardrobeItem,
                 title: wardrobeItem.title,
@@ -1544,25 +1544,47 @@ extension MemoAsset {
         return .attachment
     }
 
-    private static func imageTextAsset(in text: String) -> (title: String, summary: String)? {
-        let lines = text
-            .components(separatedBy: .newlines)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-        let prefixes = ["图片文字：", "图片文字:", "截图文字：", "截图文字:"]
-        guard let titleIndex = lines.firstIndex(where: { line in
-            prefixes.contains { line.hasPrefix($0) }
-        }) else {
-            return nil
+    private static func imageTextAssets(
+        in text: String,
+        attachments: [SharedAttachment]
+    ) -> [(title: String, summary: String, attachment: SharedAttachment)] {
+        imageTextBlocks(in: text).compactMap { block in
+            let matchedAttachment = block.attachments.first(where: \.isImage)
+                ?? attachments.first { attachment in
+                    attachment.displayName == block.title || attachment.relativePath == block.title
+                }
+                ?? attachments.first
+            guard let attachment = matchedAttachment else {
+                return nil
+            }
+            return (block.title, block.summary, attachment)
         }
-        let firstLine = lines[titleIndex]
-        guard let prefix = prefixes.first(where: { firstLine.hasPrefix($0) }) else {
-            return nil
+    }
+
+    private static func imageTextBlocks(in text: String) -> [(title: String, summary: String, attachments: [SharedAttachment])] {
+        let rawLines = text.components(separatedBy: .newlines)
+        let titleIndices = rawLines.indices.filter { index in
+            let line = rawLines[index].trimmingCharacters(in: .whitespacesAndNewlines)
+            return imageTextTitlePrefix(in: line) != nil
         }
 
+        return titleIndices.enumerated().compactMap { offset, start in
+            let end = offset + 1 < titleIndices.count ? titleIndices[offset + 1] : rawLines.endIndex
+            return imageTextBlock(in: Array(rawLines[start..<end]))
+        }
+    }
+
+    private static func imageTextBlock(in rawLines: [String]) -> (title: String, summary: String, attachments: [SharedAttachment])? {
+        let lines = rawLines.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        let prefixes = ["图片文字：", "图片文字:", "截图文字：", "截图文字:"]
+        guard let firstLine = lines.first,
+              let prefix = prefixes.first(where: { firstLine.hasPrefix($0) }) else {
+            return nil
+        }
         let rawTitle = String(firstLine.dropFirst(prefix.count))
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let title = rawTitle.isEmpty ? "图片文字" : rawTitle
-        let textStartIndex = lines[titleIndex...].firstIndex { line in
+        let textStartIndex = lines.firstIndex { line in
             line == "识别文字：" || line == "识别文字:" || line == "OCR：" || line == "OCR:"
         }.map { $0 + 1 } ?? 1
         let recognizedText = lines
@@ -1579,7 +1601,16 @@ extension MemoAsset {
             return nil
         }
 
-        return (title, limitedSummary(recognizedText))
+        return (
+            title,
+            limitedSummary(recognizedText),
+            SharedAttachmentStore.attachments(in: rawLines.joined(separator: "\n"))
+        )
+    }
+
+    private static func imageTextTitlePrefix(in line: String) -> String? {
+        let prefixes = ["图片文字：", "图片文字:", "截图文字：", "截图文字:"]
+        return prefixes.first(where: { line.hasPrefix($0) })
     }
 
     private static func wardrobeItemAsset(in text: String) -> (title: String, summary: String?)? {

@@ -45,6 +45,12 @@ struct MediaMetadata: Equatable {
 }
 
 enum MediaMetadataExtractor {
+    struct CacheMaintenanceResult: Equatable {
+        var warmedCount: Int
+        var failedCount: Int
+        var skippedCount: Int
+    }
+
     private static let summaryCache = NSCache<NSString, NSString>()
 
     static func summary(
@@ -107,6 +113,64 @@ enum MediaMetadataExtractor {
         }
 
         return metadata.summary == nil ? nil : metadata
+    }
+
+    static func sourceAttachments(
+        in assets: [MemoAsset],
+        limit: Int = 120
+    ) -> [SharedAttachment] {
+        var attachments: [SharedAttachment] = []
+        var seenPaths = Set<String>()
+
+        for asset in assets {
+            guard attachments.count < limit,
+                  isMediaAsset(asset),
+                  let attachment = AttachmentReferenceResolver.attachment(from: asset) else {
+                continue
+            }
+
+            guard seenPaths.insert(attachment.relativePath).inserted else {
+                continue
+            }
+
+            attachments.append(attachment)
+        }
+
+        return attachments
+    }
+
+    static func preheatSummaries(
+        for attachments: [SharedAttachment],
+        fileManager: FileManager = .default
+    ) -> CacheMaintenanceResult {
+        var result = CacheMaintenanceResult(warmedCount: 0, failedCount: 0, skippedCount: 0)
+        var seenKeys = Set<String>()
+
+        for attachment in attachments {
+            let key = "\(attachment.relativePath):\(attachment.typeIdentifier):\(attachment.byteCount)"
+            guard seenKeys.insert(key).inserted else {
+                result.skippedCount += 1
+                continue
+            }
+
+            if summary(for: attachment, fileManager: fileManager) == nil {
+                result.failedCount += 1
+            } else {
+                result.warmedCount += 1
+            }
+        }
+
+        return result
+    }
+
+    private static func isMediaAsset(_ asset: MemoAsset) -> Bool {
+        guard let type = asset.typeIdentifier.flatMap(UTType.init) else {
+            return false
+        }
+
+        return type.conforms(to: .image)
+            || type.conforms(to: .movie)
+            || type.conforms(to: .audio)
     }
 
     private static func finiteSeconds(_ time: CMTime) -> TimeInterval? {

@@ -465,3 +465,13 @@
 - `ImageEditRenderer` 对对象清理使用独立 `objectcleanup` 文件名后缀，并提高贴片半径与过渡强度；普通柔和修补保持旧行为。
 - `ImageEditorView` 的授权清理区新增“柔和修补 / 对象清理”分段选择，画布用不同颜色标记清理点；`MemoStore.addImageEdit` 会额外写入“对象清理：N处”。
 - 本地验证通过：`xcrun swiftc -parse some/Models/Memo.swift some/Stores/MemoStore.swift some/Utilities/ImageEditRenderer.swift some/Views/ImageEditorView.swift SomeTests/SomeTests.swift`、`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`。完整构建和 XCTest 继续以 GitHub Actions 为准。
+
+## 2026-06-23T18:25:00+08:00
+
+- 进入并完成阶段 46：媒体元数据预热与多 OCR 素材索引。开工前复查 Git 状态、素材库生命周期、`MediaMetadataExtractor`、`VideoThumbnailGenerator`、`MemoAsset` 图片文字解析和相关测试；阶段 45 的远端 CI 已触发，当前仍在运行。
+- 按用户要求检索 `Swift media metadata cache AVAsset ImageIO MIT GitHub`、`iOS AVAsset metadata cache Swift MIT`、`SwiftUI media asset metadata prefetch cache MIT`、`ImageIO AVFoundation metadata summary Swift GitHub MIT`，GitHub API 均返回 0 个可直接复制的 Swift/MIT 模块。
+- 按 TDD 补测试：媒体元数据预热应从素材索引提取图片/音频/视频附件、去重、限制数量，重复附件计入 skipped，缺失文件计入 failed；同一记录追加多个局部 OCR 块时应生成多条截图素材。
+- `MediaMetadataExtractor` 新增 `CacheMaintenanceResult`、`sourceAttachments(in:limit:)` 和 `preheatSummaries(for:)`，复用现有内存 summary cache，不新增数据库迁移。
+- 素材库的生命周期维护从 `maintainVideoThumbnailCache` 升级为 `maintainMediaCaches`：素材变化时后台预热图片/音频/视频元数据摘要，同时继续预热视频缩略图并清理孤儿缩略图缓存。
+- `MemoAsset.assets(in:)` 的图片文字解析从单块改为多块扫描；每个“图片文字/截图文字”块会优先匹配块内附件，其次按标题匹配现有图片附件，避免多图局部 OCR 被折叠成一条截图素材。
+- 本地验证通过：`xcrun swiftc -parse some/Utilities/MediaMetadataExtractor.swift some/Utilities/AttachmentReferenceResolver.swift some/Utilities/SharedAttachmentStore.swift some/Utilities/VideoThumbnailGenerator.swift some/Models/Memo.swift SomeTests/SomeTests.swift`、`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`。本机旧 Swift 5.4 parser 单独解析 `ContentView.swift` 仍被既有 `await` 语法挡住，完整 UI 类型检查继续依赖 GitHub Actions。

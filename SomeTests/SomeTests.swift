@@ -2160,6 +2160,106 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(metadata.summary?.contains(SharedAttachmentStore.formatByteCount(data.count)) == true)
     }
 
+    func testMediaMetadataSourceAttachmentsFilterDeduplicateAndLimitMediaAssets() {
+        let memoID = UUID()
+        let image = SharedAttachment(
+            id: "cover.png",
+            filename: "cover.png",
+            relativePath: "cover.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 10
+        )
+        let audio = SharedAttachment(
+            id: "voice.m4a",
+            filename: "voice.m4a",
+            relativePath: "voice.m4a",
+            typeIdentifier: UTType.mpeg4Audio.identifier,
+            byteCount: 20
+        )
+        let textFile = SharedAttachment(
+            id: "doc.txt",
+            filename: "doc.txt",
+            relativePath: "doc.txt",
+            typeIdentifier: UTType.plainText.identifier,
+            byteCount: 30
+        )
+        let assets = [
+            MemoAsset(
+                memoID: memoID,
+                kind: .attachment,
+                title: image.filename,
+                uri: image.referenceURI,
+                typeIdentifier: image.typeIdentifier,
+                byteCount: image.byteCount,
+                createdAt: .now,
+                updatedAt: .now
+            ),
+            MemoAsset(
+                memoID: memoID,
+                kind: .audio,
+                title: audio.filename,
+                uri: audio.referenceURI,
+                typeIdentifier: audio.typeIdentifier,
+                byteCount: audio.byteCount,
+                createdAt: .now,
+                updatedAt: .now
+            ),
+            MemoAsset(
+                memoID: memoID,
+                kind: .attachment,
+                title: image.filename,
+                uri: image.referenceURI,
+                typeIdentifier: image.typeIdentifier,
+                byteCount: image.byteCount,
+                createdAt: .now,
+                updatedAt: .now
+            ),
+            MemoAsset(
+                memoID: memoID,
+                kind: .attachment,
+                title: textFile.filename,
+                uri: textFile.referenceURI,
+                typeIdentifier: textFile.typeIdentifier,
+                byteCount: textFile.byteCount,
+                createdAt: .now,
+                updatedAt: .now
+            )
+        ]
+
+        let attachments = MediaMetadataExtractor.sourceAttachments(in: assets, limit: 1)
+
+        XCTAssertEqual(attachments.map(\.relativePath), ["cover.png"])
+    }
+
+    func testMediaMetadataPreheatSummariesReportsMissingFilesAndCachesSuccess() throws {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 9, height: 7), format: format).image { context in
+            UIColor.systemPurple.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 9, height: 7))
+        }
+        let attachment = try SharedAttachmentStore.save(
+            data: try XCTUnwrap(image.pngData()),
+            suggestedFilename: "metadata-preheat-\(UUID().uuidString).png",
+            typeIdentifier: UTType.png.identifier
+        )
+        defer { SharedAttachmentStore.delete(attachment) }
+        let missing = SharedAttachment(
+            id: "missing.png",
+            filename: "missing.png",
+            relativePath: "missing-\(UUID().uuidString).png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 0
+        )
+
+        let result = MediaMetadataExtractor.preheatSummaries(for: [attachment, attachment, missing])
+
+        XCTAssertEqual(result.warmedCount, 1)
+        XCTAssertEqual(result.failedCount, 1)
+        XCTAssertEqual(result.skippedCount, 1)
+        XCTAssertTrue(MediaMetadataExtractor.summary(for: attachment)?.contains("9x7") == true)
+    }
+
     func testVideoThumbnailCacheURLChangesWhenFileChanges() throws {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("cache-key-\(UUID().uuidString).mov")
@@ -2473,6 +2573,50 @@ final class SomeTests: XCTestCase {
         store.searchText = "has:ocr A12"
         XCTAssertEqual(store.filteredMemos.first?.id, memo.id)
         XCTAssertEqual(SharedAttachmentStore.attachments(in: updatedMemo.text).count, 1)
+    }
+
+    func testMultipleAppendedRegionImageTextBlocksCreateSeparateScreenshotAssets() throws {
+        let firstAttachment = SharedAttachment(
+            id: "receipt-a.png",
+            filename: "receipt-a.png",
+            relativePath: "receipt-a.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 128
+        )
+        let secondAttachment = SharedAttachment(
+            id: "receipt-b.png",
+            filename: "receipt-b.png",
+            relativePath: "receipt-b.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 256
+        )
+        let firstText = try XCTUnwrap(ImageTextRecognizer.memoText(
+            for: firstAttachment,
+            recognizedLines: ["桌号 A12"],
+            region: ImageTextRegion(x: 0.15, y: 0.2, width: 0.5, height: 0.24),
+            includesAttachmentReference: false
+        ))
+        let secondText = try XCTUnwrap(ImageTextRecognizer.memoText(
+            for: secondAttachment,
+            recognizedLines: ["合计 188 元"],
+            region: ImageTextRegion(x: 0.35, y: 0.3, width: 0.4, height: 0.2),
+            includesAttachmentReference: false
+        ))
+        let memo = Memo(text: """
+        [附件: receipt-a.png](some-attachment://receipt-a.png)
+        [附件: receipt-b.png](some-attachment://receipt-b.png)
+
+        \(firstText)
+
+        \(secondText)
+        """)
+
+        let assets = MemoAsset.assets(in: memo).filter { $0.kind == .screenshot }
+
+        XCTAssertEqual(assets.count, 2)
+        XCTAssertEqual(assets.map(\.title), ["receipt-a.png", "receipt-b.png"])
+        XCTAssertEqual(assets.map(\.summary), ["桌号 A12", "合计 188 元"])
+        XCTAssertEqual(assets.map(\.uri), ["some-attachment://receipt-a.png", "some-attachment://receipt-b.png"])
     }
 
     func testAddWardrobeItemCreatesStructuredMemoAndAsset() throws {

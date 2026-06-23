@@ -2443,7 +2443,7 @@ private struct MemoListView: View {
 private struct AssetLibraryView: View {
     @EnvironmentObject private var store: MemoStore
     @State private var selectedKind: MemoAssetKind?
-    @State private var warmedVideoSignature = ""
+    @State private var warmedMediaSignature = ""
 
     private var filteredAssets: [MemoAsset] {
         guard let selectedKind = selectedKind else {
@@ -2471,9 +2471,9 @@ private struct AssetLibraryView: View {
                 }
             }
         }
-        .onAppear(perform: maintainVideoThumbnailCache)
-        .onChange(of: videoAssetSignature) { _ in
-            maintainVideoThumbnailCache()
+        .onAppear(perform: maintainMediaCaches)
+        .onChange(of: mediaAssetSignature) { _ in
+            maintainMediaCaches()
         }
     }
 
@@ -2509,10 +2509,10 @@ private struct AssetLibraryView: View {
         MemoAssetKind.allCases.filter { assetCount($0) > 0 }
     }
 
-    private var videoAssetSignature: String {
-        VideoThumbnailGenerator
-            .sourceURLs(in: store.assets)
-            .map(\.standardizedFileURL.path)
+    private var mediaAssetSignature: String {
+        MediaMetadataExtractor
+            .sourceAttachments(in: store.assets)
+            .map { "\($0.relativePath):\($0.typeIdentifier):\($0.byteCount)" }
             .joined(separator: "|")
     }
 
@@ -2528,15 +2528,17 @@ private struct AssetLibraryView: View {
         store.memos.first { $0.id == asset.memoID }
     }
 
-    private func maintainVideoThumbnailCache() {
-        let signature = videoAssetSignature
-        guard signature != warmedVideoSignature else {
+    private func maintainMediaCaches() {
+        let signature = mediaAssetSignature
+        guard signature != warmedMediaSignature else {
             return
         }
 
-        warmedVideoSignature = signature
+        warmedMediaSignature = signature
+        let attachments = MediaMetadataExtractor.sourceAttachments(in: store.assets)
         let urls = VideoThumbnailGenerator.sourceURLs(in: store.assets)
         DispatchQueue.global(qos: .utility).async {
+            _ = MediaMetadataExtractor.preheatSummaries(for: attachments)
             _ = VideoThumbnailGenerator.preheatCache(for: urls)
             _ = VideoThumbnailGenerator.pruneCache(keeping: urls)
         }

@@ -46,15 +46,16 @@
 - 2026-06-23：阶段 43 开工前检索 `SwiftUI import backup restore feedback open source MIT`、`SwiftUI file importer import result feedback MIT` 等候选，GitHub API 返回 0 个可直接复制进当前设置页/本地备份恢复链路的 SwiftUI 模块。本轮继续复用项目现有 `MemoBackupPackage`、`MemoStore.importJSON` 和 `ImportView`，补结构化说明与结果反馈。
 - 2026-06-23：阶段 44 开工前检索 `SwiftUI onOpenURL NavigationStack deep link open detail GitHub MIT`、`iOS SwiftUI URL scheme open specific note NavigationStack GitHub MIT` 等候选，GitHub API 返回 0 个可直接复制的许可清晰模块。阶段 36 已有 `some://add` / `some://search` 路由底座，本轮沿用 Apple `onOpenURL`、`NavigationStack(path:)` 和 `MemoStore` 状态，最小扩展为单条记录深链打开。
 - 2026-06-23：阶段 45 开工前检索 `Swift image object removal inpainting MIT GitHub`、`iOS image inpainting object removal Swift MIT`、`Core Image object removal cleanup patch Swift MIT`、`SwiftUI photo editor object removal MIT GitHub`，GitHub API 均返回 0 个可直接复制的 Swift/MIT 对象修复模块。本轮不引入深度补全或水印移除能力，继续在项目内把授权清理点扩展为可记录的柔和修补/对象清理两种样式。
+- 2026-06-23：阶段 46 开工前检索 `Swift media metadata cache AVAsset ImageIO MIT GitHub`、`iOS AVAsset metadata cache Swift MIT`、`SwiftUI media asset metadata prefetch cache MIT`、`ImageIO AVFoundation metadata summary Swift GitHub MIT`，GitHub API 均返回 0 个可直接复制的成熟 Swift/MIT 元数据预热模块。本轮继续复用 Apple AVFoundation/ImageIO 与现有 `MemoAsset` / `SharedAttachmentStore`，只补批量预热工具和素材库生命周期触发。
 
 ## 当前缺口
 
-- 媒体预览：视频附件已有本地缩略图缓存、媒体元数据摘要和缓存预热/清理工具层；后续需用真实长列表验证滚动性能，并按需要接入列表生命周期触发策略。
+- 媒体预览：视频附件已有本地缩略图缓存、媒体元数据摘要、视频缩略图预热/清理和图片/音频/视频元数据摘要批量预热；后续需用真实长列表验证滚动性能，并按需要继续细化缓存淘汰策略。
 - 工作日志：已有勾选记录生成结构化日志 v6；支持按标签、素材类型、时间和关键词筛选来源记录，支持项目字段、日期范围和日报/周报/项目汇报/复盘模板，工作日志列表支持项目/模板/日期筛选，并可把当前结果导出为带本地汇报摘要的 Markdown 或结构化 CSV 后调起系统分享表；后续可补 AI 润色和更细的汇报模板。
 - 电子手帐：已有图层 JSON、预览、详情页拖拽/缩放/旋转、独立编辑器图层新增/复制/删除/层级调整、图片素材追加、画布底色、字体/贴纸/花边预设、颜色/字号/圆角/线宽编辑、PNG/PDF 导出和保存回原 memo；后续缺真实图片排版长页性能、PDF 分享表细化和真机手势验证。
 - 图片编辑：已完成素材库图片编辑入口、预设比例裁剪、拖拽定位/捏合缩放裁剪、裁剪状态边界统一、背景柔化/纯色画布、人物抠图、iOS 17+ 智能主体抠图、智能主体单实例点选、授权图片柔和修补/对象清理贴片、Core Image 滤镜、边框、文字、贴纸、版式模板/导出预设、多图拼贴 MVP、输出 PNG 附件、`imageEdit` / `scrapbookPage` 素材索引和相关搜索；更真实的复杂对象修复、更自由的多图拼贴编辑和真机复杂手势验证仍待补。
 - 电子衣橱：已完成衣橱洞察 v7，可从现有素材索引统计分类、颜色、季节、场景、材质、厚薄、未进入穿搭组合单品、常用单品、穿着次数、最近穿着和成本/次，并记录洗护状态、旅行打包清单、目的地、天气和行程天数；现在可根据最近穿着或打包清单天气生成天气穿搭、自动生成打包草稿，在炎热天气优先轻薄/透气材质，按行程天数扩展上装/下装和配件数量，用最新打包清单带出目的地/天气，用最新洗护状态提醒待清洗/送洗/待熨烫/待修补单品，并可安排本地系统通知。后续可接真实天气 API 和按目的地/天气更细化的数量规则。
-- 网页摘录：已有标题/description、正文清洗、段落评分、来源、摘录卡、重点候选、网页/OCR 统一摘录片段、快速输入片段勾选、摘录片段独立素材索引、`has:clip` 搜索和多链接批量网页摘录；截图/OCR 已补区域识别底座并正在接入完整框选 UI。
+- 网页摘录/OCR：已有标题/description、正文清洗、段落评分、来源、摘录卡、重点候选、网页/OCR 统一摘录片段、快速输入片段勾选、摘录片段独立素材索引、`has:clip` 搜索和多链接批量网页摘录；截图/OCR 已有区域识别和框选 UI，同一记录的多张图片/多段局部 OCR 可分别进入截图素材索引。
 - 导入/备份：设置页已说明 `.somebackup`、旧 JSON 和普通文本三类导入路径，并用结构化反馈区分完整备份恢复、普通文本导入、重复/空导入和失败原因；后续可在真机文件选择流程中继续验证大备份与缺失附件边界。
 - CI 测试稳定性：GitHub iPhone 16 Pro 模拟器默认图片 renderer scale 可能不是 1，像素尺寸测试必须显式设置 `UIGraphicsImageRendererFormat.scale = 1` 或断言比例；视频/媒体测试应使用真实保存文件，不应手工构造不存在的 `SharedAttachment`。App Intents 元数据训练在 CI 测试阶段可能触发 `extract.actionsdata` 解析失败，当前通过独立 DerivedData、测试阶段 `clean test`、`SWIFT_EMIT_LOC_STRINGS=NO`、条件编译和 `EXCLUDED_SOURCE_FILE_NAMES` 暂避，待远端复验。
 - 快速入口：`some://add?text=...`、`some://search?q=...` 和 `some://open?id=<记录UUID>` 已支持快捷指令/浏览器/其他 App 调起；`ContentView` 已使用显式 `NavigationStack` path 消费 `pendingOpenMemoID` 并打开单条记录详情。
