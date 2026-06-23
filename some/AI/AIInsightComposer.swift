@@ -140,3 +140,54 @@ enum AIInsightComposer {
         """
     }
 }
+
+enum WorkLogPolishComposer {
+    static func prompt(
+        draft: String,
+        audience: String = "直属团队或项目组",
+        tone: String = "简洁、清楚、可信"
+    ) -> String {
+        let trimmedDraft = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedAudience = audience.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedTone = tone.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return """
+        你是一个中文工作日志汇报润色助理。请只润色用户给出的工作汇报草稿，不要编造、不要新增未提供的事实，不要夸大成果。
+
+        目标读者：\(trimmedAudience.isEmpty ? "直属团队或项目组" : trimmedAudience)
+        语气：\(trimmedTone.isEmpty ? "简洁、清楚、可信" : trimmedTone)
+
+        规则：
+        - 保留项目名、日期、数字、人名、链接、来源引用和待办状态。
+        - 保留原草稿的核心结构；可以合并重复表述，但不要删除具体进展、风险和下一步。
+        - 如果草稿证据不足，请用更克制的表达，不要补事实。
+        - 输出只包含润色后的汇报正文，不要解释你的改写过程。
+
+        工作汇报草稿：
+        \(trimmedDraft)
+        """
+    }
+}
+
+enum WorkLogPolishComposer {
+    static func prompt(draft: String, audience: String) -> String {
+        let trimmedAudience = audience.trimmingCharacters(in: .whitespacesAndNewlines)
+        let audienceText = trimmedAudience.isEmpty ? "默认读者" : trimmedAudience
+        let trimmedDraft = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return """
+        你是一个中文工作日志汇报润色助手。
+        目标读者：\(audienceText)
+
+        请润色下面的工作汇报草稿，让表达更清晰、简洁、适合发送给目标读者。
+        必须遵守：
+        - 不要编造、补充或推测草稿中没有的事实。
+        - 保留项目名、日期、数字、任务名称、风险和下一步。
+        - 保留原有小节结构；如需合并重复表述，只做措辞优化。
+        - 如果草稿信息不足，请直接说明“信息不足”，不要替用户补细节。
+
+        草稿：
+        \(trimmedDraft)
+        """
+    }
+}

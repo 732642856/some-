@@ -70,7 +70,7 @@
 - Share Extension：可从其他 App 分享文本或链接到 some
 - Share Extension 附件：支持从其他 App 分享图片或文件到 some
 - 共享 App Group 存储：主 App 与 Share Extension 共用 SQLite 数据库
-- 快速输入增强：打开自动聚焦、保存并继续、标签建议、链接预览
+- 快速输入增强：打开自动聚焦、保存并继续、首次记录模板、标签建议、链接预览
 - Markdown 阅读渲染：列表和详情页支持加粗、链接等系统 Markdown 样式
 - Markdown 任务项：识别 `- [ ]` / `- [x]`，详情页可直接勾选并写回
 - App Intents / Shortcuts：支持通过快捷指令保存新随记

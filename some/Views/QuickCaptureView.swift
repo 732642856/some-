@@ -6,6 +6,41 @@ import UIKit
 import UniformTypeIdentifiers
 import VisionKit
 
+struct QuickCaptureStarterSuggestion: Identifiable, Equatable {
+    let id: String
+    let title: String
+    let systemImage: String
+    let text: String
+
+    static let defaults: [QuickCaptureStarterSuggestion] = [
+        QuickCaptureStarterSuggestion(
+            id: "thought",
+            title: "记录想法",
+            systemImage: "lightbulb",
+            text: "刚想到：\n\n#想法"
+        ),
+        QuickCaptureStarterSuggestion(
+            id: "link",
+            title: "保存链接",
+            systemImage: "link",
+            text: "https://\n\n摘录：\n\n#资料"
+        ),
+        QuickCaptureStarterSuggestion(
+            id: "work-log",
+            title: "写工作日志",
+            systemImage: "checklist",
+            text: """
+            工作日志：日报
+            项目：
+            日期：
+            进展：
+            问题：
+            下一步：
+            """
+        )
+    ]
+}
+
 struct QuickCaptureView: View {
     @EnvironmentObject private var store: MemoStore
     @AppStorage("some.quickDraft") private var text = ""
@@ -57,6 +92,28 @@ struct QuickCaptureView: View {
                             .foregroundStyle(Color.primaryText)
                             .background(Color.subtleSurface)
                             .clipShape(Capsule())
+                        }
+                    }
+                }
+            }
+
+            if shouldShowStarterSuggestions {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(QuickCaptureStarterSuggestion.defaults) { suggestion in
+                            Button {
+                                applyStarterSuggestion(suggestion)
+                            } label: {
+                                Label(suggestion.title, systemImage: suggestion.systemImage)
+                                    .font(.caption.weight(.semibold))
+                                    .padding(.horizontal, 10)
+                                    .frame(height: 30)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(Color.primaryText)
+                            .background(Color.subtleSurface)
+                            .clipShape(Capsule())
+                            .accessibilityLabel(suggestion.title)
                         }
                     }
                 }
@@ -348,6 +405,14 @@ struct QuickCaptureView: View {
         [.image, .movie, .audio, .pdf, .text, .data]
     }
 
+    private var shouldShowStarterSuggestions: Bool {
+        text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && pendingWebClip == nil
+            && !isImportingMedia
+            && !isClippingWebPage
+            && !audioRecorder.isRecording
+    }
+
     private var canUseCamera: Bool {
         UIImagePickerController.isSourceTypeAvailable(.camera)
     }
@@ -380,6 +445,12 @@ struct QuickCaptureView: View {
         }
 
         text.replaceSubrange(range, with: "#\(tag) ")
+        isFocused = true
+    }
+
+    private func applyStarterSuggestion(_ suggestion: QuickCaptureStarterSuggestion) {
+        text = suggestion.text
+        statusText = nil
         isFocused = true
     }
 

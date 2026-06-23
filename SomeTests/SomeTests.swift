@@ -1496,6 +1496,16 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(store.timelineEmptyState.subtitle.contains("本机"))
     }
 
+    func testQuickCaptureStarterSuggestionsSeedFirstMemo() {
+        let suggestions = QuickCaptureStarterSuggestion.defaults
+
+        XCTAssertEqual(suggestions.map(\.title), ["记录想法", "保存链接", "写工作日志"])
+        XCTAssertTrue(suggestions.allSatisfy { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })
+        XCTAssertTrue(suggestions[0].text.contains("#想法"))
+        XCTAssertTrue(suggestions[1].text.contains("https://"))
+        XCTAssertTrue(suggestions[2].text.contains("工作日志：日报"))
+    }
+
     func testTimelineEmptyStateDistinguishesSearchNoResults() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "已有记录 #日常")
@@ -1989,6 +1999,27 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(prompt.contains("AI 洞察"))
         XCTAssertTrue(prompt.contains("下午整理产品灵感 #产品"))
         XCTAssertTrue(prompt.contains("不要编造事实"))
+    }
+
+    func testWorkLogPolishPromptPreservesFactsAndStructure() {
+        let draft = """
+        工作汇报
+
+        项目：some
+        日期：2026-06-24
+
+        进展：
+        1. 完成工作日志模板
+        """
+
+        let prompt = WorkLogPolishComposer.prompt(draft: draft, audience: "项目组")
+
+        XCTAssertTrue(prompt.contains("工作日志汇报润色"))
+        XCTAssertTrue(prompt.contains("目标读者：项目组"))
+        XCTAssertTrue(prompt.contains("不要编造"))
+        XCTAssertTrue(prompt.contains("保留项目名、日期、数字"))
+        XCTAssertTrue(prompt.contains("项目：some"))
+        XCTAssertTrue(prompt.contains("日期：2026-06-24"))
     }
 
     func testInsightRangeExcludesArchivedMemos() {

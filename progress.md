@@ -691,3 +691,16 @@
 - 按 TDD 增加 `testSemanticEmbeddingDiskCacheReportsSummary`，先用红灯探针确认 `SemanticEmbeddingDiskCache.summary` 缺失。
 - `SemanticEmbeddingDiskCache.Summary` 返回条目数和文件字节数；空/已删除缓存返回 0 条 0 bytes，保存快照后可读到真实条目数和非零文件大小。
 - 设置页 AI 区域新增“AI 语义缓存：暂无本机缓存 / N 条，X KB”摘要，进入设置页刷新，清除缓存后立即更新。
+
+## 2026-06-24T01:12:00+08:00
+
+- 进入并完成阶段 72：首次记录模板引导。开工前复查 Git 状态、远端 CI、计划文件、快速输入/空状态/设置页，并补做 flomo 快速捕捉体验与 SwiftUI notes onboarding 开源检索。
+- 按 TDD 增加 `testQuickCaptureStarterSuggestionsSeedFirstMemo`，锁定模板标题和文字/链接/工作日志三类可保存示例。
+- `QuickCaptureView` 新增 `QuickCaptureStarterSuggestion`，空草稿且未导入/摘录/录音时显示“记录想法 / 保存链接 / 写工作日志”三个横向胶囊按钮，点击后填入草稿并聚焦输入框；用户开始输入后模板自动隐藏。
+
+## 2026-06-24T01:10:00+08:00
+
+- 进入并完成阶段 71：App Store 隐私文案同步 AI 本地缓存。阶段 67-70 改变了 AI 语义搜索的本机缓存行为，需要同步上架材料，避免隐私政策和真实功能不一致。
+- 复查 `AppStore/privacy-policy.md`、`app-store-metadata.md`、`submission-checklist.md` 和 2026-06-20/21 旧快照；旧文案只写可选 OpenAI API，没有说明本机 `AICache`。
+- 隐私政策新增 App Group 本地容器、AI embedding 缓存位置、模型名 + SHA-256 文本指纹 key、1000 条上限、不保存笔记明文、设置页可查看/清除和清除不影响笔记/API Key 的说明。
+- App Store metadata 和 submission checklist 同步审核说明、App Privacy 提醒和 TestFlight 自测项。
