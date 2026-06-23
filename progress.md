@@ -483,3 +483,10 @@
 - 按 TDD 增加 `testWorkLogExporterBuildsShareableReportDraft`，锁定纯文本汇报稿应包含项目、日期、进展、风险/问题和下一步，并按结构化字段去重。
 - `WorkLogExporter.reportDraft` 会从当前筛选日志生成可直接发送的“工作汇报”文本；工作日志导出菜单新增“汇报稿”，导出为 `.txt` 并复用系统分享表。
 - 本地验证通过：`xcrun swiftc -parse some/Utilities/WorkLogSourceFilterEngine.swift some/Views/ContentView.swift SomeTests/SomeTests.swift`、`git diff --check`。完整 XCTest 继续以 GitHub Actions 为准。
+
+## 2026-06-23T19:05:00+08:00
+
+- 进入并完成阶段 48：TestFlight workflow checkout action 对齐。开工前复查 Git 状态、`ios-ci.yml`、`ios-testflight.yml`、发布文档和既有 CI 警告记录。
+- 复查官方 `actions/checkout` 远端 tags，确认 `v5` / `v5.0.1` 存在；本项目 CI workflow 已使用 `actions/checkout@v5`，发布 workflow 仍停在 `v4`。
+- `.github/workflows/ios-testflight.yml` 的 Checkout 步骤升级到 `actions/checkout@v5`，并同步更新计划、发现、发布说明和验证记录，明确 CI/TestFlight 两条 workflow 已对齐。
+- 本地验证通过：`ruby -e "require 'yaml'; YAML.load_file('.github/workflows/ios-ci.yml'); YAML.load_file('.github/workflows/ios-testflight.yml')"`、`rg -n "actions/checkout@" .github/workflows`、`git diff --check`。实际 TestFlight 上传仍依赖 Apple 签名和 App Store Connect secrets。
