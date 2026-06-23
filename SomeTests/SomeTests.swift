@@ -2198,6 +2198,9 @@ final class SomeTests: XCTestCase {
             colors: ["白", "蓝"],
             seasons: ["春", "秋"],
             scenes: ["通勤"],
+            materials: ["棉", "亚麻"],
+            thickness: "轻薄",
+            purchasePrice: "399",
             attachment: attachment
         ) else {
             return XCTFail("Expected wardrobe memo")
@@ -2208,11 +2211,14 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(memo.text.contains("颜色：白、蓝"))
         XCTAssertTrue(memo.text.contains("季节：春、秋"))
         XCTAssertTrue(memo.text.contains("场景：通勤"))
+        XCTAssertTrue(memo.text.contains("材质：棉、亚麻"))
+        XCTAssertTrue(memo.text.contains("厚薄：轻薄"))
+        XCTAssertTrue(memo.text.contains("价格：399"))
         XCTAssertEqual(SharedAttachmentStore.attachments(in: memo.text).first?.relativePath, attachment.relativePath)
 
         let asset = store.assets(for: memo).first { $0.kind == .wardrobeItem }
         XCTAssertEqual(asset?.title, "白衬衫")
-        XCTAssertEqual(asset?.summary, "分类：上装 · 颜色：白、蓝 · 季节：春、秋 · 场景：通勤")
+        XCTAssertEqual(asset?.summary, "分类：上装 · 颜色：白、蓝 · 季节：春、秋 · 场景：通勤 · 材质：棉、亚麻 · 厚薄：轻薄 · 价格：399")
         XCTAssertEqual(asset?.uri, "some-attachment://\(attachment.relativePath)")
         XCTAssertEqual(asset?.typeIdentifier, UTType.jpeg.identifier)
     }
@@ -2301,6 +2307,7 @@ final class SomeTests: XCTestCase {
             title: "杭州周末",
             destination: "杭州",
             dateRange: "6/24-6/26",
+            tripDays: 3,
             itemNames: ["白衬衫", "黑裤"],
             weather: "多云",
             note: "带伞"
@@ -2311,14 +2318,52 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(memo.text.contains("旅行打包：杭州周末"))
         XCTAssertTrue(memo.text.contains("目的地：杭州"))
         XCTAssertTrue(memo.text.contains("日期：6/24-6/26"))
+        XCTAssertTrue(memo.text.contains("天数：3天"))
         XCTAssertTrue(memo.text.contains("单品：白衬衫、黑裤"))
         XCTAssertTrue(memo.text.contains("天气：多云"))
         XCTAssertTrue(memo.text.contains("备注：带伞"))
 
         let asset = store.assets(for: memo).first { $0.kind == .packingList }
         XCTAssertEqual(asset?.title, "杭州周末")
-        XCTAssertEqual(asset?.summary, "目的地：杭州 · 日期：6/24-6/26 · 单品：白衬衫、黑裤 · 天气：多云 · 备注：带伞")
+        XCTAssertEqual(asset?.summary, "目的地：杭州 · 日期：6/24-6/26 · 天数：3天 · 单品：白衬衫、黑裤 · 天气：多云 · 备注：带伞")
         XCTAssertEqual(asset?.typeIdentifier, UTType.text.identifier)
+    }
+
+    func testWardrobeInsightsParseMaterialAndThicknessForWeatherPacking() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let wornDate = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+        store.addWardrobeItem(
+            name: "亚麻衬衫",
+            category: "上装",
+            colors: ["白"],
+            seasons: ["春"],
+            scenes: ["旅行"],
+            materials: ["亚麻"],
+            thickness: "轻薄"
+        )
+        store.addWardrobeItem(
+            name: "羊毛开衫",
+            category: "外套",
+            colors: ["灰"],
+            seasons: ["冬"],
+            scenes: ["旅行"],
+            materials: ["羊毛"],
+            thickness: "保暖"
+        )
+        store.addWearLog(
+            itemNames: ["亚麻衬衫"],
+            date: wornDate,
+            scenes: ["旅行"],
+            weather: "晴 热 30C"
+        )
+
+        let insights = WardrobeInsightEngine.insights(for: store.assets)
+
+        let linenShirt = insights.items.first { $0.name == "亚麻衬衫" }
+        XCTAssertEqual(linenShirt?.materials, ["亚麻"])
+        XCTAssertEqual(linenShirt?.thickness, "轻薄")
+        XCTAssertEqual(insights.suggestions.first { $0.id == "weather-晴 热 30C" }?.itemNames.first, "亚麻衬衫")
+        XCTAssertTrue(insights.packingSuggestions.first?.note?.contains("优先轻薄、透气材质") == true)
     }
 
     func testWardrobeInsightsSummarizeItemsOutfitsAndSuggestions() {

@@ -346,3 +346,10 @@
 - 完成阶段 17：GitHub Actions run `28011472819` 对应 `3951815` 已通过 Build and test，远端 Xcode 16.4 完整构建和 XCTest 恢复绿色。
 - 继续处理 CI 警告：GitHub Actions 仍提示 `actions/checkout@v4` 运行在 Node 20 deprecation 路径；检索官方 `actions/checkout` release，v5 已升级 Node 24，且 GitHub-hosted `macos-15` runner 满足兼容方向。
 - `.github/workflows/ios-ci.yml` 升级 `actions/checkout@v5`，用于消除 Node 20 deprecation 警告。
+
+## 2026-06-23T16:18:00+08:00
+
+- 继续主动推进衣橱体验：发现 `SomeTests.swift` 有未提交的衣橱材质/厚薄/旅行天数测试碎片，已保留并补齐生产实现。
+- `MemoStore.addWardrobeItem` 支持写入“材质”“厚薄”，`addPackingList` 支持写入“天数”；旧调用保持默认参数向后兼容。
+- `WardrobeInsightEngine` 解析衣橱材质和厚薄；炎热/晴天的天气穿搭与打包建议会提高轻薄、棉麻等透气材质单品权重，并在打包说明中提示“优先轻薄、透气材质”。
+- 本地验证通过：`git diff --check`、`.github/workflows/ios-ci.yml` YAML 解析、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、旧 Swift parser 覆盖 `MemoStore.swift` / `WardrobeInsightEngine.swift` / `SomeTests.swift`。

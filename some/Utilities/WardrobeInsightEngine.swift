@@ -8,6 +8,8 @@ struct WardrobeItemInsight: Identifiable, Equatable {
     var colors: [String]
     var seasons: [String]
     var scenes: [String]
+    var materials: [String]
+    var thickness: String?
     var outfitCount: Int
     var wearCount: Int
     var purchasePrice: Double?
@@ -245,6 +247,8 @@ enum WardrobeInsightEngine {
             colors: fields["颜色"] ?? [],
             seasons: fields["季节"] ?? [],
             scenes: fields["场景"] ?? [],
+            materials: fields["材质"] ?? [],
+            thickness: fields["厚薄"]?.first,
             outfitCount: outfitCount,
             wearCount: wearCount,
             purchasePrice: parsedPrice(fields["价格"]?.first),
@@ -478,16 +482,21 @@ enum WardrobeInsightEngine {
                     || item.scenes.contains("旅行")
             }
             : weatherItems
-        let selectedItems = categoryBalancedItems(from: baseItems.isEmpty ? availableItems : baseItems).map(\.name)
-        if !selectedItems.isEmpty {
+        let selectedItemNames = categoryBalancedItems(from: baseItems.isEmpty ? availableItems : baseItems).map(\.name)
+        if !selectedItemNames.isEmpty {
             suggestions.append(
                 WardrobePackingSuggestion(
                     id: "packing-weather",
                     title: "\(scene) 快速打包",
                     destination: nil,
                     weather: weather,
-                    itemNames: selectedItems,
-                    note: packingNote(weather: weather, season: season, scene: scene)
+                    itemNames: selectedItemNames,
+                    note: packingNote(
+                        weather: weather,
+                        season: season,
+                        scene: scene,
+                        items: selectedWardrobeItems(in: availableItems, named: selectedItemNames)
+                    )
                 )
             )
         }
@@ -679,6 +688,8 @@ enum WardrobeInsightEngine {
         if containsAny(text, ["热", "高温", "晴", "sun", "hot"]) {
             if item.seasons.contains("夏") { score += 3 }
             if item.category == "上装" || item.category == "连衣裙" { score += 1 }
+            if isLightweight(item) { score += 3 }
+            if isBreathable(item) { score += 2 }
         }
         if containsAny(text, ["多云", "阴", "cloud"]) {
             if item.seasons.contains("春") || item.seasons.contains("秋") { score += 2 }
@@ -701,16 +712,35 @@ enum WardrobeInsightEngine {
         return "thermometer.medium"
     }
 
-    private static func packingNote(weather: String?, season: String?, scene: String) -> String {
+    private static func packingNote(weather: String?, season: String?, scene: String, items: [WardrobeItemInsight] = []) -> String {
         var parts = ["按 \(scene) 场景生成，已避开待洗待修单品。"]
         if let weather = weather, !weather.isEmpty {
             parts.append("天气参考：\(weather)。")
+            if containsAny(weather.lowercased(), ["热", "高温", "晴", "sun", "hot"]),
+               items.contains(where: { isLightweight($0) || isBreathable($0) }) {
+                parts.append("优先轻薄、透气材质。")
+            }
         }
         if let season = season, !season.isEmpty {
             parts.append("季节参考：\(season)。")
         }
         parts.append("出发前补充内搭、睡衣、充电器和证件。")
         return parts.joined(separator: " ")
+    }
+
+    private static func selectedWardrobeItems(in items: [WardrobeItemInsight], named names: [String]) -> [WardrobeItemInsight] {
+        let lookup = Dictionary(uniqueKeysWithValues: items.map { (wardrobeNormalizedName($0.name), $0) })
+        return names.compactMap { lookup[wardrobeNormalizedName($0)] }
+    }
+
+    private static func isLightweight(_ item: WardrobeItemInsight) -> Bool {
+        guard let thickness = item.thickness?.lowercased() else { return false }
+        return containsAny(thickness, ["轻薄", "薄", "透气", "light"])
+    }
+
+    private static func isBreathable(_ item: WardrobeItemInsight) -> Bool {
+        let materialText = item.materials.joined(separator: " ").lowercased()
+        return containsAny(materialText, ["棉", "亚麻", "麻", "linen", "cotton", "真丝", "silk"])
     }
 
     private static func isUnavailableLaundryStatus(_ status: String) -> Bool {

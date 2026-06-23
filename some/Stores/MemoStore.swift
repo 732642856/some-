@@ -434,6 +434,8 @@ final class MemoStore: ObservableObject {
         colors: [String] = [],
         seasons: [String] = [],
         scenes: [String] = [],
+        materials: [String] = [],
+        thickness: String? = nil,
         purchasePrice: String? = nil,
         attachment: SharedAttachment? = nil
     ) -> Memo? {
@@ -447,6 +449,8 @@ final class MemoStore: ObservableObject {
         appendField("颜色", values: colors, to: &lines)
         appendField("季节", values: seasons, to: &lines)
         appendField("场景", values: scenes, to: &lines)
+        appendField("材质", values: materials, to: &lines)
+        appendField("厚薄", value: thickness, to: &lines)
         appendField("价格", value: purchasePrice, to: &lines)
         return addStructuredMemo(lines: lines, attachment: attachment)
     }
@@ -525,6 +529,7 @@ final class MemoStore: ObservableObject {
         title: String,
         destination: String? = nil,
         dateRange: String? = nil,
+        tripDays: Int? = nil,
         itemNames: [String],
         weather: String? = nil,
         note: String? = nil
@@ -538,6 +543,9 @@ final class MemoStore: ObservableObject {
         var lines = ["旅行打包：\(cleanedTitle)"]
         appendField("目的地", value: destination, to: &lines)
         appendField("日期", value: dateRange, to: &lines)
+        if let tripDays = tripDays, tripDays > 0 {
+            appendField("天数", value: "\(tripDays)天", to: &lines)
+        }
         appendField("单品", values: cleanedItems, to: &lines)
         appendField("天气", value: weather, to: &lines)
         appendField("备注", value: note, to: &lines)
