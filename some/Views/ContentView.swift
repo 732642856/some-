@@ -712,6 +712,9 @@ private struct WorkLogView: View {
     @EnvironmentObject private var store: MemoStore
     @State private var logTitle = ""
     @State private var scope = "今日"
+    @State private var project = ""
+    @State private var dateRange = DateFormatters.wardrobeDay.string(from: Date())
+    @State private var template = "日报"
     @State private var progress = ""
     @State private var blockers = ""
     @State private var nextSteps = ""
@@ -720,6 +723,7 @@ private struct WorkLogView: View {
     @State private var statusText: String?
 
     private let scopes = ["今日", "本周", "项目", "复盘"]
+    private let templates = ["日报", "周报", "项目汇报", "复盘"]
 
     private var workLogAssets: [MemoAsset] {
         store.assets.filter { $0.kind == .workLog }
@@ -770,6 +774,39 @@ private struct WorkLogView: View {
                 }
             }
             .pickerStyle(.segmented)
+
+            VStack(spacing: 8) {
+                TextField("项目：可选", text: $project)
+                    .textFieldStyle(.plain)
+                    .padding(10)
+                    .background(Color.subtleSurface)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                TextField("日期：2026-06-23 或本周", text: $dateRange)
+                    .textFieldStyle(.plain)
+                    .padding(10)
+                    .background(Color.subtleSurface)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(templates, id: \.self) { option in
+                        Button {
+                            applyTemplate(option)
+                        } label: {
+                            Text(option)
+                                .font(.caption.weight(.semibold))
+                                .padding(.horizontal, 10)
+                                .frame(height: 28)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(template == option ? Color.white : Color.secondaryText)
+                        .background(template == option ? Color.accentGreen : Color.subtleSurface)
+                        .clipShape(Capsule())
+                    }
+                }
+            }
 
             TextField("进展：完成了什么，可用顿号分隔", text: $progress)
                 .textFieldStyle(.plain)
@@ -935,7 +972,8 @@ private struct WorkLogView: View {
     }
 
     private var defaultTitle: String {
-        "\(scope)工作日志"
+        let projectName = project.trimmingCharacters(in: .whitespacesAndNewlines)
+        return projectName.isEmpty ? "\(scope)工作日志" : "\(projectName) \(scope)工作日志"
     }
 
     private var canSave: Bool {
@@ -991,10 +1029,79 @@ private struct WorkLogView: View {
         statusText = "已从勾选记录提取"
     }
 
+    private func applyTemplate(_ option: String) {
+        template = option
+        switch option {
+        case "周报":
+            scope = "本周"
+            if dateRange.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || dateRange == DateFormatters.wardrobeDay.string(from: Date()) {
+                dateRange = currentWeekRange()
+            }
+            fillEmptyFields(
+                progress: inferredProgress(),
+                blockers: [],
+                nextSteps: inferredNextSteps(),
+                notePrefix: "本周汇总"
+            )
+        case "项目汇报":
+            scope = "项目"
+            fillEmptyFields(
+                progress: inferredProgress(),
+                blockers: [],
+                nextSteps: inferredNextSteps(),
+                notePrefix: project.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "项目进展" : project
+            )
+        case "复盘":
+            scope = "复盘"
+            fillEmptyFields(
+                progress: inferredProgress(),
+                blockers: blockers.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? ["待复盘问题"] : splitValues(blockers),
+                nextSteps: inferredNextSteps(),
+                notePrefix: "复盘"
+            )
+        default:
+            scope = "今日"
+            if dateRange.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                dateRange = DateFormatters.wardrobeDay.string(from: Date())
+            }
+            fillEmptyFields(
+                progress: inferredProgress(),
+                blockers: [],
+                nextSteps: inferredNextSteps(),
+                notePrefix: "今日同步"
+            )
+        }
+        statusText = "已套用\(option)模板"
+    }
+
+    private func fillEmptyFields(
+        progress progressValues: [String],
+        blockers blockerValues: [String],
+        nextSteps nextStepValues: [String],
+        notePrefix: String
+    ) {
+        if progress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            progress = progressValues.joined(separator: "、")
+        }
+        if blockers.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            blockers = blockerValues.joined(separator: "、")
+        }
+        if nextSteps.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            nextSteps = nextStepValues.joined(separator: "、")
+        }
+        if note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            note = notePrefix
+        }
+    }
+
     private func saveLog() {
         guard store.addWorkLog(
             title: resolvedTitle,
             scope: scope,
+            project: project,
+            dateRange: dateRange,
+            template: template,
             progress: splitValues(progress).isEmpty ? inferredProgress() : splitValues(progress),
             blockers: splitValues(blockers),
             nextSteps: splitValues(nextSteps).isEmpty ? inferredNextSteps() : splitValues(nextSteps),
@@ -1006,6 +1113,10 @@ private struct WorkLogView: View {
         }
 
         logTitle = ""
+        project = ""
+        dateRange = DateFormatters.wardrobeDay.string(from: Date())
+        template = "日报"
+        scope = "今日"
         progress = ""
         blockers = ""
         nextSteps = ""
@@ -1077,6 +1188,14 @@ private struct WorkLogView: View {
         }
 
         return result
+    }
+
+    private func currentWeekRange() -> String {
+        let calendar = Calendar.current
+        let now = Date()
+        let start = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
+        let end = calendar.date(byAdding: .day, value: 6, to: start) ?? now
+        return "\(DateFormatters.wardrobeDay.string(from: start))~\(DateFormatters.wardrobeDay.string(from: end))"
     }
 }
 

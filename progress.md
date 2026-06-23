@@ -249,3 +249,17 @@
 - 完成阶段 27。为避免 Share Extension 再次出现 target 缺源码问题，已把 `ClipFragmentExtractor.swift` 加入 SomeShareExtension Sources；`MemoAsset.assets` 在主 App 和分享扩展路径都能解析摘录片段素材。
 - 本地验证通过：`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`、旧 Swift parser 覆盖 `WebClipExtractor.swift` / `LinkExtractor.swift` / `ClipFragmentExtractor.swift` / `MemoReferenceParser.swift` / `MemoTaskParser.swift` / `SharedAttachmentStore.swift` / `MemoSearchQuery.swift` / `Memo.swift` / `MemoStore.swift` / `SomeTests.swift`，并用 `-D SOME_SHARE_EXTENSION` 覆盖分享扩展路径。
 - 单独解析 `QuickCaptureView.swift` 仍被本机旧 Swift 5.4 parser 的既有 async/await 与新式 `if let` 语法限制阻止，需要 Xcode 16 / GitHub Actions 做完整 typecheck；核心批量保存逻辑已用 Store 层测试覆盖。
+
+## 2026-06-23T05:05:00+08:00
+
+- 用户指出不应停下；已立即继续推进下一阶段。
+- 当前工作树干净，远端同步到 `origin/master`。复查缺口后选择阶段 28：工作日志项目/日期/模板增强，原因是用户明确要求工作日志和汇总能力，且该功能可在本地确定性实现。
+- 外部检索 `SwiftUI work log daily report app MIT`、`iOS work log daily report Swift MIT`、`SwiftUI project journal daily report MIT`、`Swift daily standup log app MIT` 未发现可直接复制进当前 SwiftUI/iOS 项目的成熟 MIT 模块；继续复用 some 现有结构化 memo、引用和素材索引。
+- `MemoStore.addWorkLog` 向后兼容新增 `project`、`dateRange`、`template` 字段，结构化正文会写入“项目 / 日期 / 模板”。
+- 工作日志 UI 新增项目、日期范围、模板按钮；日报、周报、项目汇报和复盘模板会切换范围并自动填充空的进展/问题/下一步/备注字段。
+- 新增测试覆盖工作日志项目、日期、模板字段写入，以及 `workLog` 素材摘要包含新字段。
+
+## 2026-06-23T13:05:42+08:00
+
+- 完成阶段 28：工作日志 v2 已支持项目、日期范围和常用模板。
+- 本地验证通过：`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`、旧 Swift parser 覆盖 `DateFormatters.swift` / `LinkExtractor.swift` / `ClipFragmentExtractor.swift` / `MemoReferenceParser.swift` / `MemoTaskParser.swift` / `SharedAttachmentStore.swift` / `MemoSearchQuery.swift` / `Memo.swift` / `MemoStore.swift` / `SomeTests.swift`，并用 `-D SOME_SHARE_EXTENSION` 覆盖分享扩展路径。

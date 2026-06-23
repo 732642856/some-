@@ -685,6 +685,9 @@ final class SomeTests: XCTestCase {
         guard let log = store.addWorkLog(
             title: "今日工作日志",
             scope: "今日",
+            project: "some",
+            dateRange: "2026-06-23",
+            template: "日报",
             progress: ["接入缩略图"],
             blockers: ["无"],
             nextSteps: ["做缓存"],
@@ -696,6 +699,9 @@ final class SomeTests: XCTestCase {
 
         XCTAssertTrue(log.text.contains("工作日志：今日工作日志"))
         XCTAssertTrue(log.text.contains("范围：今日"))
+        XCTAssertTrue(log.text.contains("项目：some"))
+        XCTAssertTrue(log.text.contains("日期：2026-06-23"))
+        XCTAssertTrue(log.text.contains("模板：日报"))
         XCTAssertTrue(log.text.contains("进展：接入缩略图"))
         XCTAssertTrue(log.text.contains("问题：无"))
         XCTAssertTrue(log.text.contains("下一步：做缓存"))
@@ -704,6 +710,8 @@ final class SomeTests: XCTestCase {
 
         let asset = store.assets(for: log).first { $0.kind == .workLog }
         XCTAssertEqual(asset?.title, "今日工作日志")
+        XCTAssertTrue(asset?.summary?.contains("项目：some") == true)
+        XCTAssertTrue(asset?.summary?.contains("日期：2026-06-23") == true)
         XCTAssertTrue(asset?.summary?.contains("进展：接入缩略图") == true)
     }
 

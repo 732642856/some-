@@ -371,6 +371,7 @@ final class MemoStore: ObservableObject {
         return addStructuredMemo(lines: lines, attachments: attachments)
     }
 
+    #if !SOME_SHARE_EXTENSION
     @discardableResult
     func addPhotoCollage(
         title: String,
@@ -421,6 +422,7 @@ final class MemoStore: ObservableObject {
 
         return memo
     }
+    #endif
 
     @discardableResult
     func addWardrobeItem(
@@ -543,6 +545,9 @@ final class MemoStore: ObservableObject {
     func addWorkLog(
         title: String,
         scope: String,
+        project: String? = nil,
+        dateRange: String? = nil,
+        template: String? = nil,
         progress: [String] = [],
         blockers: [String] = [],
         nextSteps: [String] = [],
@@ -556,6 +561,9 @@ final class MemoStore: ObservableObject {
 
         var lines = ["工作日志：\(cleanedTitle)"]
         appendField("范围", value: scope, to: &lines)
+        appendField("项目", value: project, to: &lines)
+        appendField("日期", value: dateRange, to: &lines)
+        appendField("模板", value: template, to: &lines)
         appendField("进展", values: progress, to: &lines)
         appendField("问题", values: blockers, to: &lines)
         appendField("下一步", values: nextSteps, to: &lines)
