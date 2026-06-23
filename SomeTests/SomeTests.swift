@@ -602,23 +602,22 @@ final class SomeTests: XCTestCase {
 
     func testSearchQueryParserExtractsDateFilters() {
         let query = MemoSearchQueryParser.parse("created:2026-06 updated:>=2026-06-22 复盘")
+        let calendar = Calendar(identifier: .gregorian)
+        let juneStart = calendar.date(from: DateComponents(timeZone: .current, year: 2026, month: 6, day: 1))
+        let june22Start = calendar.date(from: DateComponents(timeZone: .current, year: 2026, month: 6, day: 22))
 
         XCTAssertEqual(query.textTerms, ["复盘"])
         XCTAssertEqual(query.dateFilters.count, 2)
-        XCTAssertTrue(
-            query.dateFilters.contains {
-                $0.field == .created
-                    && $0.operation == .on
-                    && Calendar.current.component(.month, from: $0.start) == 6
-            }
-        )
-        XCTAssertTrue(
-            query.dateFilters.contains {
-                $0.field == .updated
-                    && $0.operation == .onOrAfter
-                    && Calendar.current.component(.day, from: $0.start) == 22
-            }
-        )
+        XCTAssertTrue(query.dateFilters.contains { filter in
+            filter.field == .created
+                && filter.operation == .on
+                && filter.start == juneStart
+        }, "Expected created month filter, got \(query.dateFilters)")
+        XCTAssertTrue(query.dateFilters.contains { filter in
+            filter.field == .updated
+                && filter.operation == .onOrAfter
+                && filter.start == june22Start
+        }, "Expected updated day filter, got \(query.dateFilters)")
     }
 
     func testSearchQueryParserKeepsInvalidDateFiltersAsText() {
