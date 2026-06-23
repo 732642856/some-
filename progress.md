@@ -590,3 +590,12 @@
 - `MemoReference` 新增向后兼容的 `note`；`MemoReferenceParser` 支持读取/生成 `引用批注：...` + `[引用: ...](some-memo://...)`，并在正文展示时一起隐藏引用行和批注行。
 - `MemoStore.addReference` 支持传入批注；搜索新增 `has:引用批注` / `has:reference-note`；工作日志来源筛选也可按引用批注筛选。
 - 详情页“引用”卡片会在指向/被引用条目下展示对应批注，保留原有添加引用流程，不新增存储 schema。
+
+## 2026-06-23T22:38:17+08:00
+
+- 进入并完成阶段 59：重复引用批注解析与 CI 预防修复。开工前复查 Git 状态、HEAD `7217f95`、阶段 58 diff、引用解析器、store 关系去重、素材索引和最新 GitHub Actions run。
+- 本地红灯探针确认阶段 58 的 `testMemoReferenceParserKeepsDuplicateReferenceNotesInOrder` 会失败：解析器按 memo ID 去重后只返回第一条批注，不能表达同一目标下多条引用依据。
+- `MemoReferenceParser.references(in:)` 改为忠实返回文本中的每个引用实例；`MemoStore.referencedMemos(from:)` 在详情关系卡片边界按 memo ID 去重，避免同一目标卡片重复出现。
+- `has:引用批注` 与工作日志来源筛选改为按 trim 后非空判断；`MemoAsset.reference` 会把第一条引用批注写入摘要，素材库能看到引用上下文。
+- 按 TDD 补 `testDuplicateReferenceNotesKeepOneRelationAndFirstAssetSummary`，覆盖“重复批注保留解析顺序、关系卡片唯一、素材摘要显示第一条批注”。
+- 本地验证通过：重复引用批注 Swift 探针、`xcrun swiftc -parse some/Utilities/MemoReferenceParser.swift some/Utilities/MemoSearchQuery.swift some/Stores/MemoStore.swift some/Models/Memo.swift SomeTests/SomeTests.swift`、`xcrun swiftc -parse some/Utilities/WorkLogSourceFilterEngine.swift some/Utilities/MemoReferenceParser.swift SomeTests/SomeTests.swift`、`git diff --check`、plist/scheme/workflow 校验。GitHub 公共 API 已触发 rate limit，最新 run `28033567402` 只能待窗口恢复后继续复验。
