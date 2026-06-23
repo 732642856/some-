@@ -1,5 +1,6 @@
 import AVFoundation
 import UIKit
+import UniformTypeIdentifiers
 
 enum VideoThumbnailGenerator {
     struct CacheMaintenanceResult: Equatable {
@@ -82,6 +83,33 @@ enum VideoThumbnailGenerator {
         try? fileManager.removeItem(at: url)
     }
 
+    static func sourceURLs(
+        in assets: [MemoAsset],
+        limit: Int = 60,
+        fileManager: FileManager = .default
+    ) -> [URL] {
+        var urls: [URL] = []
+        var seenPaths = Set<String>()
+
+        for asset in assets {
+            guard urls.count < limit,
+                  isVideoAsset(asset),
+                  let attachment = AttachmentReferenceResolver.attachment(from: asset),
+                  let url = SharedAttachmentStore.url(for: attachment, fileManager: fileManager) else {
+                continue
+            }
+
+            let key = url.standardizedFileURL.path
+            guard seenPaths.insert(key).inserted else {
+                continue
+            }
+
+            urls.append(url)
+        }
+
+        return urls
+    }
+
     static func preheatCache(
         for urls: [URL],
         at seconds: Double = 0.5,
@@ -153,6 +181,19 @@ enum VideoThumbnailGenerator {
         }
 
         return result
+    }
+
+    private static func isVideoAsset(_ asset: MemoAsset) -> Bool {
+        if asset.kind == .video {
+            return true
+        }
+
+        guard asset.kind == .attachment,
+              let type = asset.typeIdentifier.flatMap(UTType.init) else {
+            return false
+        }
+
+        return type.conforms(to: .movie)
     }
 
     private static func cachedImage(

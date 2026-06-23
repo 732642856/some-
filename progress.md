@@ -326,3 +326,10 @@
 - 收窄 `MemoBackupPackage` 的 actor 隔离边界：只把真正触碰 `MemoStore` 的导入/导出方法标记为 `@MainActor`，让 `fileExtension` 保持普通静态常量，避免文档类型静态声明等非隔离上下文触发 Swift 并发隔离报错。
 - 衣橱天气洞察改为保留“天气”原始字段，避免 `多云，午后阵雨 22C` 被通用字段拆分逻辑切碎；新增回归测试覆盖天气穿搭、打包建议和说明文案保留完整天气短语。
 - 本地验证通过：`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、旧 Swift parser 覆盖 `MemoSearchQuery.swift` / `VideoThumbnailGenerator.swift` / `WardrobeInsightEngine.swift` / `SomeTests.swift`。
+
+## 2026-06-23T15:43:00+08:00
+
+- 继续阶段 17：GitHub Actions run `28010154822` 的 Build for simulator 已通过，Run tests 失败摘要只剩 `XCTAssertEqual failed: ("false") is not equal to ("true")`，不再是 AppIntents 或测试编译错误。
+- 按系统化调试复查失败候选后，修正手帐 PDF 导出附件测试的类型判断：不再要求 `UTType.pdf.identifier` 精确字符串，而是使用 `UTType(...).conforms(to: .pdf)`，兼容不同系统返回的等价 PDF 类型标识；同时给手帐导出附件资产断言补充失败上下文。
+- 纳入视频缩略图缓存维护碎片：`VideoThumbnailGenerator.sourceURLs(in:)` 从素材索引中提取、去重并限制视频源；素材库页进入/素材变化时会预热视频缩略图并清理孤儿缓存。
+- 本地验证通过：`git diff --check`、`.github/workflows/ios-ci.yml` YAML 解析、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、旧 Swift parser 覆盖 `SharedAttachmentStore.swift` / `AttachmentReferenceResolver.swift` / `VideoThumbnailGenerator.swift` / `ContentView.swift` / `SomeTests.swift`。

@@ -25,7 +25,11 @@ struct SharedAttachment: Equatable, Identifiable {
     }
 
     var referenceLine: String {
-        "[附件: \(filename)](some-attachment://\(SharedAttachmentStore.encodedReferencePath(relativePath)))"
+        "[附件: \(filename)](\(referenceURI))"
+    }
+
+    var referenceURI: String {
+        "\(SharedAttachmentStore.referenceScheme)://\(SharedAttachmentStore.encodedReferencePath(relativePath))"
     }
 }
 

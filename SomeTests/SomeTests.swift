@@ -1942,6 +1942,78 @@ final class SomeTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: removedCacheURL.path))
     }
 
+    func testVideoThumbnailSourceURLsFilterDeduplicateAndLimitVideoAssets() {
+        let memoID = UUID()
+        let firstVideo = SharedAttachment(
+            id: "first.mov",
+            filename: "first.mov",
+            relativePath: "first.mov",
+            typeIdentifier: UTType.quickTimeMovie.identifier,
+            byteCount: 10
+        )
+        let secondVideo = SharedAttachment(
+            id: "second.mp4",
+            filename: "second.mp4",
+            relativePath: "second.mp4",
+            typeIdentifier: UTType.mpeg4Movie.identifier,
+            byteCount: 20
+        )
+        let image = SharedAttachment(
+            id: "cover.png",
+            filename: "cover.png",
+            relativePath: "cover.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 30
+        )
+        let assets = [
+            MemoAsset(
+                memoID: memoID,
+                kind: .video,
+                title: firstVideo.displayName,
+                uri: firstVideo.referenceURI,
+                typeIdentifier: firstVideo.typeIdentifier,
+                byteCount: firstVideo.byteCount,
+                createdAt: Date(),
+                updatedAt: Date()
+            ),
+            MemoAsset(
+                memoID: memoID,
+                kind: .attachment,
+                title: image.displayName,
+                uri: image.referenceURI,
+                typeIdentifier: image.typeIdentifier,
+                byteCount: image.byteCount,
+                createdAt: Date(),
+                updatedAt: Date()
+            ),
+            MemoAsset(
+                memoID: memoID,
+                kind: .video,
+                title: firstVideo.displayName,
+                uri: firstVideo.referenceURI,
+                typeIdentifier: firstVideo.typeIdentifier,
+                byteCount: firstVideo.byteCount,
+                createdAt: Date(),
+                updatedAt: Date()
+            ),
+            MemoAsset(
+                memoID: memoID,
+                kind: .attachment,
+                title: secondVideo.displayName,
+                uri: secondVideo.referenceURI,
+                typeIdentifier: secondVideo.typeIdentifier,
+                byteCount: secondVideo.byteCount,
+                createdAt: Date(),
+                updatedAt: Date()
+            )
+        ]
+
+        let urls = VideoThumbnailGenerator.sourceURLs(in: assets, limit: 1)
+
+        XCTAssertEqual(urls.count, 1)
+        XCTAssertEqual(urls.first?.lastPathComponent, firstVideo.relativePath)
+    }
+
     func testImageTextRecognizerBuildsMemoText() {
         let attachment = SharedAttachment(
             id: "receipt.png",
@@ -2779,9 +2851,10 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(updatedMemo.text.contains("导出图片：\(attachment.displayName)"))
         XCTAssertTrue(updatedMemo.text.contains(attachment.referenceLine))
         XCTAssertEqual(updatedLayout.layers.last?.text, "已导出")
-        XCTAssertEqual(store.assets(for: updatedMemo).contains { asset in
+        let assets = store.assets(for: updatedMemo)
+        XCTAssertTrue(assets.contains { asset in
             asset.kind == .attachment && asset.uri?.contains(attachment.relativePath) == true
-        }, true)
+        }, "Expected exported scrapbook image attachment asset, got: \(assets)")
     }
 
     func testExportScrapbookPDFReferencesAttachmentInMemo() throws {
@@ -2799,9 +2872,11 @@ final class SomeTests: XCTestCase {
 
         XCTAssertTrue(updatedMemo.text.contains("导出PDF：\(attachment.displayName)"))
         XCTAssertTrue(updatedMemo.text.contains(attachment.referenceLine))
-        XCTAssertEqual(store.assets(for: updatedMemo).contains { asset in
-            asset.kind == .attachment && asset.typeIdentifier == UTType.pdf.identifier
-        }, true)
+        let assets = store.assets(for: updatedMemo)
+        XCTAssertTrue(assets.contains { asset in
+            asset.kind == .attachment
+                && UTType(asset.typeIdentifier ?? "")?.conforms(to: .pdf) == true
+        }, "Expected exported scrapbook PDF attachment asset, got: \(assets)")
     }
 
     func testAddAttachmentMemoDoesNotDuplicateAttachmentAlreadyInNote() throws {

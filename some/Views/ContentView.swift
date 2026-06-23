@@ -2217,6 +2217,7 @@ private struct MemoListView: View {
 private struct AssetLibraryView: View {
     @EnvironmentObject private var store: MemoStore
     @State private var selectedKind: MemoAssetKind?
+    @State private var warmedVideoSignature = ""
 
     private var filteredAssets: [MemoAsset] {
         guard let selectedKind = selectedKind else {
@@ -2243,6 +2244,10 @@ private struct AssetLibraryView: View {
                     }
                 }
             }
+        }
+        .onAppear(perform: maintainVideoThumbnailCache)
+        .onChange(of: videoAssetSignature) { _ in
+            maintainVideoThumbnailCache()
         }
     }
 
@@ -2278,6 +2283,13 @@ private struct AssetLibraryView: View {
         MemoAssetKind.allCases.filter { assetCount($0) > 0 }
     }
 
+    private var videoAssetSignature: String {
+        VideoThumbnailGenerator
+            .sourceURLs(in: store.assets)
+            .map(\.standardizedFileURL.path)
+            .joined(separator: "|")
+    }
+
     private var emptyTitle: String {
         selectedKind.map { "还没有\($0.title)素材" } ?? "还没有素材"
     }
@@ -2288,6 +2300,20 @@ private struct AssetLibraryView: View {
 
     private func memo(for asset: MemoAsset) -> Memo? {
         store.memos.first { $0.id == asset.memoID }
+    }
+
+    private func maintainVideoThumbnailCache() {
+        let signature = videoAssetSignature
+        guard signature != warmedVideoSignature else {
+            return
+        }
+
+        warmedVideoSignature = signature
+        let urls = VideoThumbnailGenerator.sourceURLs(in: store.assets)
+        DispatchQueue.global(qos: .utility).async {
+            _ = VideoThumbnailGenerator.preheatCache(for: urls)
+            _ = VideoThumbnailGenerator.pruneCache(keeping: urls)
+        }
     }
 
     private func assetFilterButton(
