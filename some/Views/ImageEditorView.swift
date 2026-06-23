@@ -632,8 +632,19 @@ private struct ImageCropSelectionCanvas: View {
 
                 let width = max(imageRect.width, 1)
                 let height = max(imageRect.height, 1)
-                cropX = clamped((dragStartX ?? cropX) + Double(value.translation.width / width))
-                cropY = clamped((dragStartY ?? cropY) + Double(value.translation.height / height))
+                let adjustment = ImageEditRecipe.CropAdjustment(
+                    x: dragStartX ?? cropX,
+                    y: dragStartY ?? cropY,
+                    scale: cropScale
+                ).applyingDrag(
+                    widthDelta: Double(value.translation.width),
+                    heightDelta: Double(value.translation.height),
+                    imageWidth: Double(width),
+                    imageHeight: Double(height)
+                )
+                cropX = adjustment.x
+                cropY = adjustment.y
+                cropScale = adjustment.scale
             }
             .onEnded { _ in
                 dragStartX = nil
@@ -647,7 +658,14 @@ private struct ImageCropSelectionCanvas: View {
                 if scaleStart == nil {
                     scaleStart = cropScale
                 }
-                cropScale = min(max((scaleStart ?? cropScale) * Double(value), 1), 3)
+                let adjustment = ImageEditRecipe.CropAdjustment(
+                    x: cropX,
+                    y: cropY,
+                    scale: scaleStart ?? cropScale
+                ).applyingMagnification(Double(value))
+                cropX = adjustment.x
+                cropY = adjustment.y
+                cropScale = adjustment.scale
             }
             .onEnded { _ in
                 scaleStart = nil
@@ -672,11 +690,12 @@ private struct ImageCropSelectionCanvas: View {
             baseHeight = imageRect.width / CGFloat(aspectRatio)
         }
 
-        let scale = CGFloat(min(max(cropScale, 1), 3))
+        let adjustment = ImageEditRecipe.CropAdjustment(x: cropX, y: cropY, scale: cropScale).clamped()
+        let scale = CGFloat(adjustment.scale)
         let width = max(32, min(imageRect.width, baseWidth / scale))
         let height = max(32, min(imageRect.height, baseHeight / scale))
-        let centerX = imageRect.minX + CGFloat(clamped(cropX)) * imageRect.width
-        let centerY = imageRect.minY + CGFloat(clamped(cropY)) * imageRect.height
+        let centerX = imageRect.minX + CGFloat(adjustment.x) * imageRect.width
+        let centerY = imageRect.minY + CGFloat(adjustment.y) * imageRect.height
         let originX = min(max(centerX - width / 2, imageRect.minX), imageRect.maxX - width)
         let originY = min(max(centerY - height / 2, imageRect.minY), imageRect.maxY - height)
 

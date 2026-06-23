@@ -378,3 +378,26 @@
 - `MemoStore` 新增 `timelineEmptyState`，首次无记录时提示“写文字、贴链接、导入图片/录音/文件；内容默认只保存在本机”，搜索或筛选无结果时保留“换个关键词/清除筛选”的恢复提示。
 - `ContentView` 的时间线和归档列表改为传入完整空状态文案，避免所有空列表都只显示同一标题。
 - 新增测试覆盖首次打开空状态和搜索无结果空状态。本地验证通过：`git diff --check`、`xcrun swiftc -parse some/Stores/MemoStore.swift SomeTests/SomeTests.swift`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`。本机缺 iPhone simulator SDK，`ContentView.swift` parse 仍被既有 `await` 语法误判挡住，完整类型检查继续依赖 GitHub Actions。
+
+## 2026-06-23T17:18:00+08:00
+
+- 进入并完成阶段 37：图片编辑手势裁剪状态统一。开工前复查最新提交、任务计划、图片编辑模型/渲染器/UI/测试和当前缺口，发现图片编辑已有手势画布，但拖拽/捏合边界仍分散在 UI 与 renderer 内。
+- 按用户要求重新对标图片裁剪开源候选：`Mantis`、`SwiftyCrop`、`TOCropViewController` 仍可作为成熟参考；当前未复制源码，因为 some 已有 `ImageEditRecipe` 持久配方和自建渲染管线，引入新包会增加 Xcode/SPM/桥接和状态同步成本。
+- 按 TDD 补 `testImageEditCropAdjustmentAppliesGestureChangesWithinBounds`，随后在 `ImageEditRecipe.CropAdjustment` 中加入 `minimumScale` / `maximumScale`、`clamped()`、`applyingDrag(...)` 和 `applyingMagnification(...)`。
+- `ImageCropSelectionCanvas` 的拖拽、捏合和画框计算改为复用同一套 `CropAdjustment` 方法；`ImageEditRenderer` 的导出裁剪也改为使用 `adjustment.clamped()`，避免预览与导出上下限不一致。
+- 本地验证通过：`xcrun swiftc -parse some/Models/Memo.swift some/Utilities/ImageEditRenderer.swift some/Views/ImageEditorView.swift SomeTests/SomeTests.swift`、`git diff --check`。
+
+## 2026-06-23T17:28:00+08:00
+
+- 进入并完成阶段 38：工作日志 Markdown 导出与分享入口。开工前发现并行窗口留下 `WorkLogExporter`、日志页导出按钮和 `ExportedDocument` 可见性调整碎片；已逐项阅读后保留并继续验证，不回滚。
+- `WorkLogExporter.markdown(memos:assets:)` 会从工作日志素材中筛出未归档记录，按创建时间倒序输出 Markdown，包含范围、项目、日期、模板和原始日志正文；空结果返回“共 0 条日志”。
+- `WorkLogView` 在工作日志列表标题栏加入分享图标按钮，只导出当前项目/模板/日期筛选后的日志；复用设置页已有导出目录和系统分享表。
+- `SettingsView` 中 `ExportedDocument` 与 `ShareSheet` 从 private 调整为模块内可见，供工作日志页复用，不改变公共数据结构。
+- 本地验证通过：`xcrun swiftc -parse some/Models/Memo.swift some/Utilities/DateFormatters.swift some/Utilities/WorkLogSourceFilterEngine.swift some/Utilities/ImageEditRenderer.swift some/Views/ImageEditorView.swift SomeTests/SomeTests.swift`、`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`。裸全量 `swiftc -parse` 仍会因既有 Swift concurrency/async 项目编译设置误判 `await`，不是本轮新增问题；完整 XCTest 仍需远端 Xcode CI。
+
+## 2026-06-23T17:06:00+08:00
+
+- 修复 #92 远端 CI：Run tests 阶段失败，annotation 明确显示 `SomeTests.swift` 找不到 `WorkLogExporter`，根因为工作日志导出测试已进入提交但生产实现未同步进入远端。
+- 收束本地正向碎片：`WorkLogExporter` 进入 `WorkLogSourceFilterEngine.swift`，支持按工作日志素材排序导出 Markdown；工作日志页新增导出当前筛选结果按钮，并复用 `ShareSheet` / `ExportedDocument`。
+- 图片编辑裁剪手势碎片同步纳入：`ImageEditRecipe.CropAdjustment` 统一处理拖拽、缩放和边界夹取，渲染器与裁剪画布共用同一套夹取规则；新增测试覆盖拖拽/缩放边界。
+- 本地验证通过：`git diff --check`、`xcrun swiftc -parse some/Models/Memo.swift some/Utilities/ImageEditRenderer.swift some/Utilities/WorkLogSourceFilterEngine.swift some/Views/ImageEditorView.swift SomeTests/SomeTests.swift`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`。

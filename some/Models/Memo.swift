@@ -975,6 +975,9 @@ struct ImageEditRecipe: Codable, Equatable {
     }
 
     struct CropAdjustment: Codable, Equatable {
+        static let minimumScale: Double = 1
+        static let maximumScale: Double = 3
+
         var x: Double
         var y: Double
         var scale: Double
@@ -986,7 +989,48 @@ struct ImageEditRecipe: Codable, Equatable {
         }
 
         var isAdjusted: Bool {
-            abs(x - 0.5) > 0.01 || abs(y - 0.5) > 0.01 || abs(scale - 1) > 0.01
+            let adjustment = clamped()
+            return abs(adjustment.x - 0.5) > 0.01
+                || abs(adjustment.y - 0.5) > 0.01
+                || abs(adjustment.scale - Self.minimumScale) > 0.01
+        }
+
+        func clamped() -> CropAdjustment {
+            CropAdjustment(
+                x: Self.clamped(x, lower: 0, upper: 1),
+                y: Self.clamped(y, lower: 0, upper: 1),
+                scale: Self.clamped(scale, lower: Self.minimumScale, upper: Self.maximumScale)
+            )
+        }
+
+        func applyingDrag(
+            widthDelta: Double,
+            heightDelta: Double,
+            imageWidth: Double,
+            imageHeight: Double
+        ) -> CropAdjustment {
+            let adjustment = clamped()
+            let safeWidth = max(imageWidth, 1)
+            let safeHeight = max(imageHeight, 1)
+            return CropAdjustment(
+                x: adjustment.x + widthDelta / safeWidth,
+                y: adjustment.y + heightDelta / safeHeight,
+                scale: adjustment.scale
+            ).clamped()
+        }
+
+        func applyingMagnification(_ magnification: Double) -> CropAdjustment {
+            let adjustment = clamped()
+            let multiplier = magnification.isFinite ? magnification : 1
+            return CropAdjustment(
+                x: adjustment.x,
+                y: adjustment.y,
+                scale: adjustment.scale * multiplier
+            ).clamped()
+        }
+
+        private static func clamped(_ value: Double, lower: Double, upper: Double) -> Double {
+            min(max(value, lower), upper)
         }
     }
 

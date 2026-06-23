@@ -736,6 +736,7 @@ private struct WorkLogView: View {
     @State private var sourceKindFilter: MemoContentFilter?
     @State private var sourceDateScope: WorkLogSourceFilter.DateScope = .all
     @State private var sourceSearchText = ""
+    @State private var exportedWorkLog: ExportedDocument?
     @State private var statusText: String?
 
     private let scopes = ["今日", "本周", "项目", "复盘"]
@@ -815,6 +816,9 @@ private struct WorkLogView: View {
             logForm
             sourcePicker
             workLogList
+        }
+        .sheet(item: $exportedWorkLog) { item in
+            ShareSheet(items: [item.url])
         }
     }
 
@@ -1078,6 +1082,17 @@ private struct WorkLogView: View {
                 Text("\(filteredWorkLogRecords.count)/\(workLogRecords.count)")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Color.tertiaryText)
+
+                Button {
+                    exportFilteredWorkLogs()
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                        .frame(width: 34, height: 30)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.accentGreen)
+                .accessibilityLabel("导出当前工作日志")
+                .disabled(filteredWorkLogRecords.isEmpty)
             }
 
             workLogFilterBar
@@ -1318,6 +1333,29 @@ private struct WorkLogView: View {
         return uniqueValues(
             selectedMemos.map { MemoReferenceParser.title(for: $0, maxLength: 24) }
         )
+    }
+
+    private func exportFilteredWorkLogs() {
+        let records = filteredWorkLogRecords
+        let selectedMemoIDs = Set(records.map(\.memo.id))
+        let selectedMemos = store.memos.filter { selectedMemoIDs.contains($0.id) }
+        let selectedAssetIDs = Set(records.map(\.asset.id))
+        let selectedAssets = store.assets.filter { selectedAssetIDs.contains($0.id) }
+        let markdown = WorkLogExporter.markdown(
+            memos: selectedMemos,
+            assets: selectedAssets
+        )
+
+        do {
+            exportedWorkLog = try ExportedDocument(
+                prefix: "some-worklog",
+                fileExtension: "md",
+                content: markdown
+            )
+            statusText = "已准备导出工作日志"
+        } catch {
+            statusText = "导出失败：\(error.localizedDescription)"
+        }
     }
 
     private func inferredNextSteps() -> [String] {

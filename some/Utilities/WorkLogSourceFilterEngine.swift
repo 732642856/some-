@@ -187,3 +187,115 @@ enum WorkLogSourceFilterEngine {
         assetsByMemoID[memo.id, default: []].contains { $0.kind == kind }
     }
 }
+
+enum WorkLogExporter {
+    static func markdown(
+        memos: [Memo],
+        assets: [MemoAsset]? = nil
+    ) -> String {
+        let resolvedAssets = assets ?? memos.flatMap { MemoAsset.assets(in: $0) }
+        let records = workLogRecords(from: memos, assets: resolvedAssets)
+
+        guard !records.isEmpty else {
+            return "# 工作日志导出\n\n共 0 条日志\n"
+        }
+
+        let body = records.map { record -> String in
+            let fields = fields(in: record.asset.summary, fallbackText: record.memo.text)
+            var metadata = [
+                "- 创建时间：\(DateFormatters.export.string(from: record.memo.createdAt))"
+            ]
+
+            appendMetadata("范围", from: fields, to: &metadata)
+            appendMetadata("项目", from: fields, to: &metadata)
+            appendMetadata("日期", from: fields, to: &metadata)
+            appendMetadata("模板", from: fields, to: &metadata)
+
+            return """
+            ## \(headingTitle(record.asset.title))
+
+            \(metadata.joined(separator: "\n"))
+
+            \(record.memo.text)
+            """
+        }.joined(separator: "\n\n---\n\n")
+
+        return "# 工作日志导出\n\n共 \(records.count) 条日志\n\n\(body)\n"
+    }
+
+    private static func workLogRecords(
+        from memos: [Memo],
+        assets: [MemoAsset]
+    ) -> [(memo: Memo, asset: MemoAsset)] {
+        let workLogAssetsByMemoID = Dictionary(
+            grouping: assets.filter { $0.kind == .workLog },
+            by: \.memoID
+        )
+
+        return memos.compactMap { memo -> (memo: Memo, asset: MemoAsset)? in
+            guard !memo.isArchived,
+                  let asset = workLogAssetsByMemoID[memo.id]?.sorted(by: sortAssets).first else {
+                return nil
+            }
+            return (memo, asset)
+        }
+        .sorted { lhs, rhs in
+            if lhs.asset.createdAt == rhs.asset.createdAt {
+                return lhs.asset.title < rhs.asset.title
+            }
+            return lhs.asset.createdAt > rhs.asset.createdAt
+        }
+    }
+
+    private static func sortAssets(_ lhs: MemoAsset, _ rhs: MemoAsset) -> Bool {
+        if lhs.createdAt == rhs.createdAt {
+            return lhs.title < rhs.title
+        }
+        return lhs.createdAt > rhs.createdAt
+    }
+
+    private static func appendMetadata(
+        _ key: String,
+        from fields: [String: String],
+        to metadata: inout [String]
+    ) {
+        guard let value = fields[key], !value.isEmpty else { return }
+        metadata.append("- \(key)：\(value)")
+    }
+
+    private static func fields(in summary: String?, fallbackText: String) -> [String: String] {
+        var result: [String: String] = [:]
+
+        let summaryParts = summary?
+            .components(separatedBy: " · ")
+            .flatMap { $0.components(separatedBy: .newlines) } ?? []
+        (summaryParts + fallbackText.components(separatedBy: .newlines))
+            .compactMap(field)
+            .forEach { key, value in
+                if result[key] == nil {
+                    result[key] = value
+                }
+            }
+
+        return result
+    }
+
+    private static func field(in line: String) -> (String, String)? {
+        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        for separator in ["：", ":"] {
+            guard let range = trimmed.range(of: separator) else { continue }
+            let key = String(trimmed[..<range.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+            let value = String(trimmed[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !key.isEmpty, !value.isEmpty else { return nil }
+            return (key, value)
+        }
+        return nil
+    }
+
+    private static func headingTitle(_ title: String) -> String {
+        let trimmed = title
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "未命名工作日志" : trimmed
+    }
+}

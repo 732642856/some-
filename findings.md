@@ -37,13 +37,15 @@
 - 2026-06-23：阶段 31 开工前检索 OCR 框选/SwiftUI 裁剪候选。`SwiftUI image cropper MIT OCR selection` 返回 0；`benedom/SwiftyCrop` 为 MIT、SwiftUI、2026-04 有推送，适合作为后续完整 SwiftUI 裁剪器候选；`guoyingtao/Mantis` 为 MIT、Swift、成熟图片裁剪库，适合作为后续完整自由裁剪/图片编辑依赖候选。本轮只需要 OCR 区域矩形框，不引入完整裁剪依赖，先复用 some 现有 SwiftUI、UIKit 和 `ImageTextRegion` 自建轻量框选入口。
 - 2026-06-23：阶段 34 开工前检索 `VNGenerateForegroundInstanceMaskRequest Swift MIT` 和 `iOS object cutout Vision Swift MIT`，GitHub API 均返回 0 个可直接复制的 Swift/MIT 仓库。Apple 官方文档确认 `VNGenerateForegroundInstanceMaskRequest` 与 `VNInstanceMaskObservation` 为 iOS 17+，`allInstances` 可取得所有前景实例，`generateMaskedImage(ofInstances:from:croppedToInstancesExtent:)` 可生成透明背景的高分辨率前景图。本轮不引入第三方依赖，采用 iOS 17 渐进增强，低版本和识别失败回退原图。
 - 2026-06-23：阶段 36 开工前检索 `SwiftUI onOpenURL custom URL scheme quick note app GitHub MIT`、`iOS notes app URL scheme add note open source MIT SwiftUI`、`MoeMemos iOS URL scheme shortcuts save memo GitHub`；未找到可直接复制进当前 SwiftUI、本地 SQLite 和已有 `MemoStore` 架构的许可清晰 URL Scheme 路由模块。本轮复用 Apple SwiftUI `onOpenURL` 与项目已有 `some://` 注册，把原本只支持保存的入口扩展为保存/搜索路由。
+- 2026-06-23：阶段 37 开工前重新对标图片裁剪候选。`guoyingtao/Mantis`、`benedom/SwiftyCrop`、`TimOliver/TOCropViewController` 仍是许可清晰的成熟参考；当前项目已有 `ImageEditRecipe`、`ImageCropSelectionCanvas` 和 `ImageEditRenderer`，直接引入新包会带来 Xcode/SPM/桥接与状态同步成本。本轮不复制第三方源码，复用其交互思路，把拖拽/捏合裁剪状态抽成项目内可测试模型，并让预览与导出渲染共享边界。
+- 2026-06-23：阶段 38 开工前复查工作日志筛选、结构化 memo、导出工具和分享表；现有 `ExportedDocument` / `ShareSheet` 原本仅在设置页私有，无法被日志页复用。本轮只放宽到文件内模块可见并复用现有导出目录，不新增第三方 Markdown/分享依赖。
 
 ## 当前缺口
 
 - 媒体预览：视频附件已有本地缩略图缓存、媒体元数据摘要和缓存预热/清理工具层；后续需用真实长列表验证滚动性能，并按需要接入列表生命周期触发策略。
-- 工作日志：已有勾选记录生成结构化日志 v3；支持按标签、素材类型、时间和关键词筛选来源记录，支持项目字段、日期范围和日报/周报/项目汇报/复盘模板，后续可补 AI 润色和导出/分享入口。
+- 工作日志：已有勾选记录生成结构化日志 v4；支持按标签、素材类型、时间和关键词筛选来源记录，支持项目字段、日期范围和日报/周报/项目汇报/复盘模板，工作日志列表支持项目/模板/日期筛选，并可把当前结果导出为 Markdown 后调起系统分享表；后续可补 AI 润色、导出格式选择和更细的汇报模板。
 - 电子手帐：已有图层 JSON、预览、详情页拖拽/缩放/旋转、独立编辑器图层新增/复制/删除/层级调整、图片素材追加、画布底色、字体/贴纸/花边预设、颜色/字号/圆角/线宽编辑、PNG/PDF 导出和保存回原 memo；后续缺真实图片排版长页性能、PDF 分享表细化和真机手势验证。
-- 图片编辑：已完成素材库图片编辑入口、预设比例裁剪、可调裁剪中心/缩放、背景柔化/纯色画布、人物抠图、iOS 17+ 智能主体抠图、授权图片瑕疵清理贴片、Core Image 滤镜、边框、文字、贴纸、版式模板/导出预设、多图拼贴 MVP、输出 PNG 附件、`imageEdit` / `scrapbookPage` 素材索引和相关搜索；完整手势裁剪器、单实例选择、对象级修复和更自由的多图拼贴编辑仍待补。
+- 图片编辑：已完成素材库图片编辑入口、预设比例裁剪、拖拽定位/捏合缩放裁剪、裁剪状态边界统一、背景柔化/纯色画布、人物抠图、iOS 17+ 智能主体抠图、授权图片瑕疵清理贴片、Core Image 滤镜、边框、文字、贴纸、版式模板/导出预设、多图拼贴 MVP、输出 PNG 附件、`imageEdit` / `scrapbookPage` 素材索引和相关搜索；单实例选择、对象级修复、更自由的多图拼贴编辑和真机复杂手势验证仍待补。
 - 电子衣橱：已完成衣橱洞察 v6，可从现有素材索引统计分类、颜色、季节、场景、材质、厚薄、未进入穿搭组合单品、常用单品、穿着次数、最近穿着和成本/次，并记录洗护状态、旅行打包清单和行程天数；现在可根据最近穿着天气生成天气穿搭、自动生成打包草稿，在炎热天气优先轻薄/透气材质，按行程天数扩展上装/下装和配件数量，用最新洗护状态提醒待清洗/送洗/待熨烫/待修补单品，并可安排本地系统通知。后续可接真实天气 API 和按目的地/天气更细化的数量规则。
 - 网页摘录：已有标题/description、正文清洗、段落评分、来源、摘录卡、重点候选、网页/OCR 统一摘录片段、快速输入片段勾选、摘录片段独立素材索引、`has:clip` 搜索和多链接批量网页摘录；截图/OCR 已补区域识别底座并正在接入完整框选 UI。
 - CI 测试稳定性：GitHub iPhone 16 Pro 模拟器默认图片 renderer scale 可能不是 1，像素尺寸测试必须显式设置 `UIGraphicsImageRendererFormat.scale = 1` 或断言比例；视频/媒体测试应使用真实保存文件，不应手工构造不存在的 `SharedAttachment`。App Intents 元数据训练在 CI 测试阶段可能触发 `extract.actionsdata` 解析失败，当前通过独立 DerivedData、测试阶段 `clean test`、`SWIFT_EMIT_LOC_STRINGS=NO`、条件编译和 `EXCLUDED_SOURCE_FILE_NAMES` 暂避，待远端复验。

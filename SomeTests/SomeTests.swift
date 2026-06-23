@@ -836,7 +836,6 @@ final class SomeTests: XCTestCase {
     }
 
     func testWorkLogExporterBuildsMarkdownForFilteredRecords() {
-        let calendar = Calendar(identifier: .gregorian)
         let olderDate = DateFormatters.wardrobeDay.date(from: "2026-06-20")!
         let newerDate = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
         let olderLog = Memo(
@@ -874,8 +873,7 @@ final class SomeTests: XCTestCase {
         let assets = memos.flatMap { MemoAsset.assets(in: $0) }
         let markdown = WorkLogExporter.markdown(
             memos: memos,
-            assets: assets,
-            calendar: calendar
+            assets: assets
         )
 
         XCTAssertTrue(markdown.hasPrefix("# 工作日志导出\n\n共 2 条日志\n\n"))
@@ -3287,6 +3285,31 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(recipe.background, ImageEditRecipe.Background())
         XCTAssertEqual(recipe.subjectExtraction, ImageEditRecipe.SubjectExtraction())
         XCTAssertEqual(recipe.cleanupPatches, [])
+    }
+
+    func testImageEditCropAdjustmentAppliesGestureChangesWithinBounds() {
+        let adjustment = ImageEditRecipe.CropAdjustment(x: 0.45, y: 0.55, scale: 1.2)
+
+        let dragged = adjustment.applyingDrag(
+            widthDelta: 180,
+            heightDelta: -90,
+            imageWidth: 300,
+            imageHeight: 600
+        )
+
+        XCTAssertEqual(dragged.x, 1, accuracy: 0.001)
+        XCTAssertEqual(dragged.y, 0.4, accuracy: 0.001)
+        XCTAssertEqual(dragged.scale, 1.2, accuracy: 0.001)
+
+        let zoomed = dragged.applyingMagnification(4)
+        XCTAssertEqual(zoomed.scale, ImageEditRecipe.CropAdjustment.maximumScale, accuracy: 0.001)
+        XCTAssertEqual(zoomed.x, 1, accuracy: 0.001)
+        XCTAssertEqual(zoomed.y, 0.4, accuracy: 0.001)
+
+        let reset = ImageEditRecipe.CropAdjustment(x: -0.2, y: 1.3, scale: 0.4).clamped()
+        XCTAssertEqual(reset.x, 0, accuracy: 0.001)
+        XCTAssertEqual(reset.y, 1, accuracy: 0.001)
+        XCTAssertEqual(reset.scale, ImageEditRecipe.CropAdjustment.minimumScale, accuracy: 0.001)
     }
 
     func testImageEditRendererAppliesFreeCropAdjustment() throws {

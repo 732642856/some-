@@ -501,7 +501,7 @@ private struct PrivacyPolicyView: View {
     }
 }
 
-private struct ExportedDocument: Identifiable {
+struct ExportedDocument: Identifiable {
     let id = UUID()
     let url: URL
 
@@ -535,7 +535,7 @@ private extension UTType {
     static let someBackupPackage = UTType(filenameExtension: MemoBackupPackage.fileExtension) ?? .data
 }
 
-private struct ShareSheet: UIViewControllerRepresentable {
+struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
 
     func makeUIViewController(context: Context) -> UIActivityViewController {

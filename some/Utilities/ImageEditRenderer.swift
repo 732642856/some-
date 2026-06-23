@@ -88,11 +88,12 @@ enum ImageEditRenderer {
             baseCropHeight = width / aspectRatio
         }
 
-        let scale = min(max(adjustment.scale, 1), 3)
+        let adjustment = adjustment.clamped()
+        let scale = adjustment.scale
         let cropWidth = max(1, min(width, baseCropWidth / scale))
         let cropHeight = max(1, min(height, baseCropHeight / scale))
-        let desiredCenterX = clamped(adjustment.x, lower: 0, upper: 1) * width
-        let desiredCenterY = clamped(adjustment.y, lower: 0, upper: 1) * height
+        let desiredCenterX = adjustment.x * width
+        let desiredCenterY = adjustment.y * height
         let originX = min(max(desiredCenterX - cropWidth / 2, 0), max(0, width - cropWidth))
         let originY = min(max(desiredCenterY - cropHeight / 2, 0), max(0, height - cropHeight))
 
@@ -443,10 +444,6 @@ enum ImageEditRenderer {
 
     private static func normalized(_ value: Double) -> CGFloat {
         CGFloat(min(max(value, 0), 1))
-    }
-
-    private static func clamped(_ value: Double, lower: Double, upper: Double) -> Double {
-        min(max(value, lower), upper)
     }
 
     private static func color(hex: String, fallback: UIColor) -> UIColor {
