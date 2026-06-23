@@ -3230,6 +3230,36 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(ScrapbookPageLayout.layout(in: updatedText)?.layers.first?.title, "贴纸")
     }
 
+    func testScrapbookImageLayerCompositionRoundTripsAndDefaults() throws {
+        let layer = ScrapbookLayer(
+            kind: .image,
+            title: "餐厅照片",
+            attachmentPath: "dinner.png",
+            x: 120,
+            y: 140,
+            width: 220,
+            height: 180,
+            imageCropX: 0.62,
+            imageCropY: 0.38,
+            imageCropScale: 1.7
+        )
+        let data = try JSONEncoder.memoEncoder.encode(layer)
+        let decoded = try JSONDecoder.memoDecoder.decode(ScrapbookLayer.self, from: data)
+
+        XCTAssertEqual(decoded.imageCropX, 0.62, accuracy: 0.0001)
+        XCTAssertEqual(decoded.imageCropY, 0.38, accuracy: 0.0001)
+        XCTAssertEqual(decoded.imageCropScale, 1.7, accuracy: 0.0001)
+
+        let legacyData = Data("""
+        {"id":"11111111-1111-1111-1111-111111111111","kind":"image","title":"旧图","attachmentPath":"old.png","x":100,"y":120,"width":220,"height":180,"rotation":0,"scale":1}
+        """.utf8)
+        let legacy = try JSONDecoder.memoDecoder.decode(ScrapbookLayer.self, from: legacyData)
+
+        XCTAssertEqual(legacy.imageCropX, 0.5, accuracy: 0.0001)
+        XCTAssertEqual(legacy.imageCropY, 0.5, accuracy: 0.0001)
+        XCTAssertEqual(legacy.imageCropScale, 1, accuracy: 0.0001)
+    }
+
     func testUpdateScrapbookLayoutPersistsThroughStore() throws {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         guard let memo = store.addScrapbookPage(
@@ -3358,6 +3388,9 @@ final class SomeTests: XCTestCase {
 
         XCTAssertEqual(layout.layers.filter { $0.kind == .image }.count, 4)
         XCTAssertEqual(layout.layers.filter { $0.kind == .image }.first?.attachmentPath, "photo-1.png")
+        XCTAssertEqual(layout.layers.filter { $0.kind == .image }.first?.imageCropX, 0.5)
+        XCTAssertEqual(layout.layers.filter { $0.kind == .image }.first?.imageCropY, 0.5)
+        XCTAssertEqual(layout.layers.filter { $0.kind == .image }.first?.imageCropScale, 1)
         XCTAssertTrue(layout.layers.contains { $0.kind == .text && $0.text == "周末拼贴" })
         XCTAssertTrue(layout.layers.contains { $0.kind == .text && $0.text == "吃饭和散步" })
     }

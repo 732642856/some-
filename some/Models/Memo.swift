@@ -412,6 +412,9 @@ struct ScrapbookLayer: Identifiable, Codable, Equatable {
     var borderWidth: Double?
     var cornerRadius: Double?
     var shadowOpacity: Double?
+    var imageCropX: Double
+    var imageCropY: Double
+    var imageCropScale: Double
 
     init(
         id: UUID = UUID(),
@@ -432,7 +435,10 @@ struct ScrapbookLayer: Identifiable, Codable, Equatable {
         borderColorHex: String? = nil,
         borderWidth: Double? = nil,
         cornerRadius: Double? = nil,
-        shadowOpacity: Double? = nil
+        shadowOpacity: Double? = nil,
+        imageCropX: Double = 0.5,
+        imageCropY: Double = 0.5,
+        imageCropScale: Double = 1
     ) {
         self.id = id
         self.kind = kind
@@ -453,6 +459,9 @@ struct ScrapbookLayer: Identifiable, Codable, Equatable {
         self.borderWidth = borderWidth
         self.cornerRadius = cornerRadius
         self.shadowOpacity = shadowOpacity
+        self.imageCropX = Self.clamped(imageCropX, lower: 0, upper: 1)
+        self.imageCropY = Self.clamped(imageCropY, lower: 0, upper: 1)
+        self.imageCropScale = Self.clamped(imageCropScale, lower: 1, upper: 3)
     }
 
     enum Kind: String, Codable, Equatable {
@@ -461,6 +470,64 @@ struct ScrapbookLayer: Identifiable, Codable, Equatable {
         case sticker
         case border
         case shape
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case kind
+        case title
+        case text
+        case attachmentPath
+        case x
+        case y
+        case width
+        case height
+        case rotation
+        case scale
+        case fontName
+        case fontSize
+        case textColorHex
+        case backgroundColorHex
+        case borderColorHex
+        case borderWidth
+        case cornerRadius
+        case shadowOpacity
+        case imageCropX
+        case imageCropY
+        case imageCropScale
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        kind = try container.decode(Kind.self, forKey: .kind)
+        title = try container.decode(String.self, forKey: .title)
+        text = try container.decodeIfPresent(String.self, forKey: .text)
+        attachmentPath = try container.decodeIfPresent(String.self, forKey: .attachmentPath)
+        x = try container.decode(Double.self, forKey: .x)
+        y = try container.decode(Double.self, forKey: .y)
+        width = try container.decode(Double.self, forKey: .width)
+        height = try container.decode(Double.self, forKey: .height)
+        rotation = try container.decodeIfPresent(Double.self, forKey: .rotation) ?? 0
+        scale = try container.decodeIfPresent(Double.self, forKey: .scale) ?? 1
+        fontName = try container.decodeIfPresent(String.self, forKey: .fontName)
+        fontSize = try container.decodeIfPresent(Double.self, forKey: .fontSize)
+        textColorHex = try container.decodeIfPresent(String.self, forKey: .textColorHex)
+        backgroundColorHex = try container.decodeIfPresent(String.self, forKey: .backgroundColorHex)
+        borderColorHex = try container.decodeIfPresent(String.self, forKey: .borderColorHex)
+        borderWidth = try container.decodeIfPresent(Double.self, forKey: .borderWidth)
+        cornerRadius = try container.decodeIfPresent(Double.self, forKey: .cornerRadius)
+        shadowOpacity = try container.decodeIfPresent(Double.self, forKey: .shadowOpacity)
+        imageCropX = Self.clamped(try container.decodeIfPresent(Double.self, forKey: .imageCropX) ?? 0.5, lower: 0, upper: 1)
+        imageCropY = Self.clamped(try container.decodeIfPresent(Double.self, forKey: .imageCropY) ?? 0.5, lower: 0, upper: 1)
+        imageCropScale = Self.clamped(try container.decodeIfPresent(Double.self, forKey: .imageCropScale) ?? 1, lower: 1, upper: 3)
+    }
+
+    private static func clamped(_ value: Double, lower: Double, upper: Double) -> Double {
+        guard value.isFinite else {
+            return lower
+        }
+        return min(max(value, lower), upper)
     }
 }
 

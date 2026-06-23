@@ -230,6 +230,10 @@ struct ScrapbookEditorView: View {
                 )
             }
 
+            if layer.wrappedValue.kind == .image {
+                imageCompositionControls(layer: layer)
+            }
+
             VStack(alignment: .leading, spacing: 8) {
                 Slider(value: scaleBinding(for: layer), in: 0.35...2.4)
                     .tint(Color.accentGreen)
@@ -365,6 +369,32 @@ struct ScrapbookEditorView: View {
         }
     }
 
+    private func imageCompositionControls(layer: Binding<ScrapbookLayer>) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                controlLabel("照片构图")
+                Spacer()
+                Button("复位") {
+                    layer.wrappedValue.imageCropX = 0.5
+                    layer.wrappedValue.imageCropY = 0.5
+                    layer.wrappedValue.imageCropScale = 1
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.accentGreen)
+            }
+
+            Slider(value: imageCropXBinding(for: layer), in: 0...1)
+                .tint(Color.accentGreen)
+                .accessibilityLabel("照片横向取景")
+            Slider(value: imageCropYBinding(for: layer), in: 0...1)
+                .tint(Color.accentGreen)
+                .accessibilityLabel("照片纵向取景")
+            Slider(value: imageCropScaleBinding(for: layer), in: 1...3)
+                .tint(Color.accentGreen)
+                .accessibilityLabel("照片取景放大")
+        }
+    }
+
     private func colorSwatches(title: String, values: [String], selection: Binding<String>) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             controlLabel(title)
@@ -497,6 +527,27 @@ struct ScrapbookEditorView: View {
         Binding(
             get: { layer.wrappedValue.borderColorHex ?? "#D7DDEA" },
             set: { layer.wrappedValue.borderColorHex = $0 }
+        )
+    }
+
+    private func imageCropXBinding(for layer: Binding<ScrapbookLayer>) -> Binding<Double> {
+        Binding(
+            get: { layer.wrappedValue.imageCropX },
+            set: { layer.wrappedValue.imageCropX = min(max($0, 0), 1) }
+        )
+    }
+
+    private func imageCropYBinding(for layer: Binding<ScrapbookLayer>) -> Binding<Double> {
+        Binding(
+            get: { layer.wrappedValue.imageCropY },
+            set: { layer.wrappedValue.imageCropY = min(max($0, 0), 1) }
+        )
+    }
+
+    private func imageCropScaleBinding(for layer: Binding<ScrapbookLayer>) -> Binding<Double> {
+        Binding(
+            get: { layer.wrappedValue.imageCropScale },
+            set: { layer.wrappedValue.imageCropScale = min(max($0, 1), 3) }
         )
     }
 
@@ -716,10 +767,21 @@ private struct EditableScrapbookLayerView: View {
             if let attachmentPath = layer.attachmentPath,
                let url = SharedAttachmentStore.url(for: attachment(relativePath: attachmentPath)),
                let image = UIImage(contentsOfFile: url.path) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .clipShape(RoundedRectangle(cornerRadius: CGFloat(layer.cornerRadius ?? 0) * canvasScale, style: .continuous))
+                GeometryReader { proxy in
+                    let drawRect = imageDrawRect(
+                        imageSize: image.size,
+                        viewSize: proxy.size,
+                        cropX: layer.imageCropX,
+                        cropY: layer.imageCropY,
+                        cropScale: layer.imageCropScale
+                    )
+
+                    Image(uiImage: image)
+                        .resizable()
+                        .frame(width: drawRect.width, height: drawRect.height)
+                        .offset(x: drawRect.minX, y: drawRect.minY)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: CGFloat(layer.cornerRadius ?? 0) * canvasScale, style: .continuous))
             } else {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(Color.greenTint)
@@ -816,6 +878,33 @@ private struct EditableScrapbookLayerView: View {
             relativePath: relativePath,
             typeIdentifier: UTType.image.identifier,
             byteCount: 0
+        )
+    }
+
+    private func imageDrawRect(
+        imageSize: CGSize,
+        viewSize: CGSize,
+        cropX: Double,
+        cropY: Double,
+        cropScale: Double
+    ) -> CGRect {
+        guard imageSize.width > 0, imageSize.height > 0 else {
+            return CGRect(origin: .zero, size: viewSize)
+        }
+
+        let cropScale = min(max(CGFloat(cropScale.isFinite ? cropScale : 1), 1), 3)
+        let cropX = min(max(CGFloat(cropX.isFinite ? cropX : 0.5), 0), 1)
+        let cropY = min(max(CGFloat(cropY.isFinite ? cropY : 0.5), 0), 1)
+        let scale = max(viewSize.width / imageSize.width, viewSize.height / imageSize.height) * cropScale
+        let drawSize = CGSize(width: imageSize.width * scale, height: imageSize.height * scale)
+        let maxOffsetX = max(0, drawSize.width - viewSize.width)
+        let maxOffsetY = max(0, drawSize.height - viewSize.height)
+
+        return CGRect(
+            x: -maxOffsetX * cropX,
+            y: -maxOffsetY * cropY,
+            width: drawSize.width,
+            height: drawSize.height
         )
     }
 

@@ -135,7 +135,12 @@ enum ScrapbookRenderer {
         if let attachmentPath = layer.attachmentPath,
            let url = SharedAttachmentStore.url(for: attachment(relativePath: attachmentPath)),
            let image = UIImage(contentsOfFile: url.path) {
-            image.drawAspectFill(in: rect)
+            image.drawAspectFill(
+                in: rect,
+                cropX: layer.imageCropX,
+                cropY: layer.imageCropY,
+                cropScale: layer.imageCropScale
+            )
         } else {
             color(hex: layer.backgroundColorHex, fallback: UIColor(red: 0.91, green: 0.96, blue: 0.93, alpha: 1)).setFill()
             UIBezierPath(rect: rect).fill()
@@ -283,15 +288,20 @@ private extension UIFont {
 }
 
 private extension UIImage {
-    func drawAspectFill(in rect: CGRect) {
+    func drawAspectFill(in rect: CGRect, cropX: Double = 0.5, cropY: Double = 0.5, cropScale: Double = 1) {
         guard size.width > 0, size.height > 0 else {
             return
         }
-        let scale = max(rect.width / size.width, rect.height / size.height)
+        let cropScale = min(max(CGFloat(cropScale.isFinite ? cropScale : 1), 1), 3)
+        let cropX = min(max(CGFloat(cropX.isFinite ? cropX : 0.5), 0), 1)
+        let cropY = min(max(CGFloat(cropY.isFinite ? cropY : 0.5), 0), 1)
+        let scale = max(rect.width / size.width, rect.height / size.height) * cropScale
         let drawSize = CGSize(width: size.width * scale, height: size.height * scale)
+        let maxOffsetX = max(0, drawSize.width - rect.width)
+        let maxOffsetY = max(0, drawSize.height - rect.height)
         let drawRect = CGRect(
-            x: rect.midX - drawSize.width / 2,
-            y: rect.midY - drawSize.height / 2,
+            x: rect.minX - (maxOffsetX * cropX),
+            y: rect.minY - (maxOffsetY * cropY),
             width: drawSize.width,
             height: drawSize.height
         )

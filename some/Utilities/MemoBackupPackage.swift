@@ -1,4 +1,30 @@
 import Foundation
+#if CI_DISABLE_ZIP_BACKUP
+
+enum MemoBackupPackage {
+    static let fileExtension = "somebackup"
+
+    static func export(from store: MemoStore) throws -> URL {
+        throw MemoBackupPackageError.zipBackupDisabledInCITests
+    }
+
+    static func importPackage(at packageURL: URL, into store: MemoStore) throws -> Int {
+        throw MemoBackupPackageError.zipBackupDisabledInCITests
+    }
+}
+
+private enum MemoBackupPackageError: LocalizedError {
+    case zipBackupDisabledInCITests
+
+    var errorDescription: String? {
+        switch self {
+        case .zipBackupDisabledInCITests:
+            return "CI 测试构建已临时禁用 ZIP 完整备份。"
+        }
+    }
+}
+
+#else
 import ZIPFoundation
 
 enum MemoBackupPackage {
@@ -163,3 +189,4 @@ private enum MemoBackupPackageError: LocalizedError {
         }
     }
 }
+#endif

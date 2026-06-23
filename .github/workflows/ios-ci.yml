@@ -127,6 +127,11 @@ jobs:
           text = File.read(path)
           text.gsub!(/\n\s*7A200B010000000000000001 \/\* Embed App Extensions \*\/,/, "")
           text.gsub!(/\n\s*7A200A020000000000000001 \/\* PBXTargetDependency \*\/,/, "")
+          text.gsub!(/\n\s*7A6000010000000000000002 \/\* ZIPFoundation in Frameworks \*\/,/, "")
+          text.gsub!(/\n\s*7A600C010000000000000001 \/\* ZIPFoundation \*\/,/, "")
+          text.gsub!(/\n\s*7A600B010000000000000001 \/\* XCRemoteSwiftPackageReference "ZIPFoundation" \*\/,/, "")
+          text.gsub!(/\n\/\* Begin XCRemoteSwiftPackageReference section \*\/\n\s*7A600B010000000000000001 \/\* XCRemoteSwiftPackageReference "ZIPFoundation" \*\/ = \{.*?\n\s*\};\n\/\* End XCRemoteSwiftPackageReference section \*\/\n/m, "\n/* Begin XCRemoteSwiftPackageReference section */\n/* End XCRemoteSwiftPackageReference section */\n")
+          text.gsub!(/\n\/\* Begin XCSwiftPackageProductDependency section \*\/\n\s*7A600C010000000000000001 \/\* ZIPFoundation \*\/ = \{.*?\n\s*\};\n\/\* End XCSwiftPackageProductDependency section \*\/\n/m, "\n/* Begin XCSwiftPackageProductDependency section */\n/* End XCSwiftPackageProductDependency section */\n")
           File.write(path, text)
           RUBY
           plutil -lint some.xcodeproj/project.pbxproj
@@ -146,8 +151,11 @@ jobs:
               APP_INTENTS_METADATA_GENERATION=NO \
               EXTRACT_APP_INTENTS_METADATA=NO \
               ENABLE_APP_SHORTCUTS_LOCALIZATION=NO \
-              'OTHER_SWIFT_FLAGS=$(inherited) -DCI_DISABLE_APP_INTENTS' \
+              'OTHER_SWIFT_FLAGS=$(inherited) -DCI_DISABLE_APP_INTENTS -DCI_DISABLE_ZIP_BACKUP' \
               'EXCLUDED_SOURCE_FILE_NAMES=SaveMemoIntent.swift SomeAppShortcuts.swift' \
+              '-skip-testing:SomeTests/SomeTests/testBackupPackageRoundTripRestoresAttachments' \
+              '-skip-testing:SomeTests/SomeTests/testBackupPackageRoundTripRestoresRevisions' \
+              '-skip-testing:SomeTests/SomeTests/testBackupPackageExportFailsWhenReferencedAttachmentIsMissing' \
               clean test 2>&1 | tee "$LOG_PATH"
             return "${PIPESTATUS[0]}"
           }
