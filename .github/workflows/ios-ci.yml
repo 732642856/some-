@@ -127,6 +127,7 @@ jobs:
           text = File.read(path)
           text.gsub!(/\n\s*7A200B010000000000000001 \/\* Embed App Extensions \*\/,/, "")
           text.gsub!(/\n\s*7A200A020000000000000001 \/\* PBXTargetDependency \*\/,/, "")
+          text.gsub!(/\n\s*7A6000010000000000000002 \/\* ZIPFoundation in Frameworks \*\/ = \{.*?\};/, "")
           text.gsub!(/\n\s*7A6000010000000000000002 \/\* ZIPFoundation in Frameworks \*\/,/, "")
           text.gsub!(/\n\s*7A600C010000000000000001 \/\* ZIPFoundation \*\/,/, "")
           text.gsub!(/\n\s*7A600B010000000000000001 \/\* XCRemoteSwiftPackageReference "ZIPFoundation" \*\/,/, "")

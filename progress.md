@@ -498,3 +498,10 @@
 - 按 TDD 增加 `testExportScrapbookLayoutForSharingReturnsExistingFileURL`，锁定导出分享时应返回附件和真实存在的文件 URL，并继续把 PNG/PDF 引用回写到 memo。
 - `MemoStore.exportScrapbookLayoutForSharing` 复用现有导出逻辑返回 `ScrapbookShareExport`；`ScrapbookEditorView` 在 PNG/PDF 导出成功后把文件 URL 交给 `ShareSheet`，用户可立刻发送或保存。
 - 本地验证通过：`xcrun swiftc -parse some/Stores/MemoStore.swift some/Views/ScrapbookEditorView.swift some/Utilities/ScrapbookRenderer.swift SomeTests/SomeTests.swift`、`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`。本机缺 iOS/UIKit SDK，`swiftc -typecheck` 会在 `import UIKit` 失败，完整 XCTest 继续以 GitHub Actions 为准。
+
+## 2026-06-23T19:45:00+08:00
+
+- 回到 CI 阻塞：公开 check-run annotations 显示 `ef86208`、`ac846ab`、`fe06e85` 的 Build for simulator 通过，但 Run tests 因 `appintentsmetadataprocessor --module-name ZIPFoundation` 退出 65；`fe06e85` 另有分享 helper 漏提交问题，已由 `9eafad8` 补齐。
+- 按系统化调试确认根因不在业务断言，而是 Xcode 16.4 测试构建对 Swift Package 触发 App Intents metadata processor；正式 Build for simulator 仍要保留 ZIPFoundation，以继续覆盖完整备份真实构建。
+- `.github/workflows/ios-ci.yml` 的 Run tests 阶段会临时从 pbxproj 移除 ZIPFoundation package/framework/product 引用，并传入 `-DCI_DISABLE_ZIP_BACKUP`；`MemoBackupPackage` 在该 flag 下提供不导入 ZIPFoundation 的 stub，CI 只跳过 3 个 ZIP 包专属测试，普通 JSON 备份/附件恢复测试继续跑。
+- 本地验证通过：CI Ruby 改写后的临时 `project.pbxproj` 通过 `plutil -lint` 且不含 ZIPFoundation 引用，`.github/workflows/ios-ci.yml` YAML 解析通过，`xcrun swiftc -parse -D CI_DISABLE_ZIP_BACKUP some/Utilities/MemoBackupPackage.swift SomeTests/SomeTests.swift` 通过，`git diff --check` 通过。完整远端复验等待新 GitHub Actions run。
