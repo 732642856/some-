@@ -3494,8 +3494,8 @@ final class SomeTests: XCTestCase {
         let decoded = try XCTUnwrap(ImageEditRecipe.recipe(in: "图片编辑：包包\n\(line)"))
 
         XCTAssertEqual(decoded.subjectExtraction.mode, .object)
-        XCTAssertEqual(decoded.subjectExtraction.selectionX, 0.28, accuracy: 0.001)
-        XCTAssertEqual(decoded.subjectExtraction.selectionY, 0.62, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(decoded.subjectExtraction.selectionX), 0.28, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(decoded.subjectExtraction.selectionY), 0.62, accuracy: 0.001)
         XCTAssertTrue(decoded.subjectExtraction.hasSelectionPoint)
         XCTAssertTrue(decoded.summary.contains("单主体"))
         XCTAssertTrue(ImageEditRenderer.outputFilename(
@@ -3563,8 +3563,9 @@ final class SomeTests: XCTestCase {
         defer { attachments.forEach { SharedAttachmentStore.delete($0) } }
 
         XCTAssertTrue(memo.text.contains("主体：智能主体（单主体 72/24）"))
-        XCTAssertEqual(ImageEditRecipe.recipe(in: memo.text)?.subjectExtraction.selectionX, 0.72, accuracy: 0.001)
-        XCTAssertEqual(ImageEditRecipe.recipe(in: memo.text)?.subjectExtraction.selectionY, 0.24, accuracy: 0.001)
+        let decoded = try XCTUnwrap(ImageEditRecipe.recipe(in: memo.text))
+        XCTAssertEqual(try XCTUnwrap(decoded.subjectExtraction.selectionX), 0.72, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(decoded.subjectExtraction.selectionY), 0.24, accuracy: 0.001)
     }
 
     func testAddWebClipCreatesMemoAndWebClipAsset() {
