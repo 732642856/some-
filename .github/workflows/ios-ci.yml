@@ -120,6 +120,14 @@ jobs:
           DESTINATION="${{ steps.simulator.outputs.destination }}"
           DERIVED_DATA_PATH="${RUNNER_TEMP}/DerivedData-test"
           LOG_PATH="${RUNNER_TEMP}/xcodebuild-test.log"
+          ruby <<'RUBY'
+          path = "some.xcodeproj/project.pbxproj"
+          text = File.read(path)
+          text.gsub!(/\n\s*7A200B010000000000000001 \/\* Embed App Extensions \*\/,/, "")
+          text.gsub!(/\n\s*7A200A020000000000000001 \/\* PBXTargetDependency \*\/,/, "")
+          File.write(path, text)
+          RUBY
+          plutil -lint some.xcodeproj/project.pbxproj
           set +e
           xcodebuild \
             -project some.xcodeproj \

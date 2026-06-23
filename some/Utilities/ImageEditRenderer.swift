@@ -1,6 +1,7 @@
 import CoreImage
 import CoreImage.CIFilterBuiltins
 import UIKit
+import Vision
 
 enum ImageEditRenderer {
     private static let context = CIContext()
@@ -19,7 +20,8 @@ enum ImageEditRenderer {
 
         let cropped = crop(CGImage: normalized, preset: recipe.cropPreset, adjustment: recipe.cropAdjustment) ?? normalized
         let backgroundProcessed = applyBackground(recipe.background, to: cropped) ?? cropped
-        let cleaned = applyCleanupPatches(to: backgroundProcessed, patches: recipe.cleanupPatches) ?? backgroundProcessed
+        let subjectProcessed = applySubjectExtraction(recipe.subjectExtraction, to: backgroundProcessed) ?? backgroundProcessed
+        let cleaned = applyCleanupPatches(to: subjectProcessed, patches: recipe.cleanupPatches) ?? subjectProcessed
         let filtered = applyFilter(to: cleaned, filter: recipe.filter) ?? cleaned
         return drawDecorations(on: filtered, recipe: recipe)
     }
@@ -38,6 +40,9 @@ enum ImageEditRenderer {
         }
         if recipe.background.mode != .original {
             suffixParts.append("background")
+        }
+        if recipe.subjectExtraction.mode != .none {
+            suffixParts.append("subject")
         }
         let suffix = suffixParts
             .filter { !$0.isEmpty && $0 != "original" }
@@ -206,6 +211,49 @@ enum ImageEditRenderer {
             }
         }
         return rendered.cgImage
+    }
+
+    private static func applySubjectExtraction(
+        _ subjectExtraction: ImageEditRecipe.SubjectExtraction,
+        to image: CGImage
+    ) -> CGImage? {
+        switch subjectExtraction.mode {
+        case .none:
+            return image
+        case .person:
+            return personSubjectImage(from: image)
+        }
+    }
+
+    private static func personSubjectImage(from image: CGImage) -> CGImage? {
+        let request = VNGeneratePersonSegmentationRequest()
+        request.qualityLevel = .balanced
+        request.outputPixelFormat = kCVPixelFormatType_OneComponent8
+
+        let handler = VNImageRequestHandler(cgImage: image, options: [:])
+        guard (try? handler.perform([request])) != nil,
+              let maskBuffer = request.results?.first?.pixelBuffer else {
+            return image
+        }
+
+        let input = CIImage(cgImage: image)
+        let mask = CIImage(cvPixelBuffer: maskBuffer)
+            .transformed(by: CGAffineTransform(
+                scaleX: input.extent.width / CGFloat(CVPixelBufferGetWidth(maskBuffer)),
+                y: input.extent.height / CGFloat(CVPixelBufferGetHeight(maskBuffer))
+            ))
+            .cropped(to: input.extent)
+        let transparentBackground = CIImage(color: .clear).cropped(to: input.extent)
+
+        let blend = CIFilter.blendWithMask()
+        blend.inputImage = input
+        blend.backgroundImage = transparentBackground
+        blend.maskImage = mask
+
+        guard let output = blend.outputImage else {
+            return image
+        }
+        return context.createCGImage(output, from: input.extent)
     }
 
     private static func blurredImage(from image: CGImage, radius: CGFloat) -> CGImage? {

@@ -647,6 +647,7 @@ struct ImageEditRecipe: Codable, Equatable {
     var cropAdjustment: CropAdjustment
     var border: Border
     var background: Background
+    var subjectExtraction: SubjectExtraction
     var textOverlays: [TextOverlay]
     var stickerOverlays: [StickerOverlay]
     var cleanupPatches: [CleanupPatch]
@@ -661,6 +662,7 @@ struct ImageEditRecipe: Codable, Equatable {
         cropAdjustment: CropAdjustment = CropAdjustment(),
         border: Border = Border(),
         background: Background = Background(),
+        subjectExtraction: SubjectExtraction = SubjectExtraction(),
         textOverlays: [TextOverlay] = [],
         stickerOverlays: [StickerOverlay] = [],
         cleanupPatches: [CleanupPatch] = []
@@ -674,6 +676,7 @@ struct ImageEditRecipe: Codable, Equatable {
         self.cropAdjustment = cropAdjustment
         self.border = border
         self.background = background
+        self.subjectExtraction = subjectExtraction
         self.textOverlays = textOverlays
         self.stickerOverlays = stickerOverlays
         self.cleanupPatches = cleanupPatches
@@ -692,6 +695,9 @@ struct ImageEditRecipe: Codable, Equatable {
         }
         if background.mode != .original {
             parts.append(background.mode.title)
+        }
+        if subjectExtraction.mode != .none {
+            parts.append(subjectExtraction.mode.title)
         }
         if !textOverlays.isEmpty {
             parts.append("文字\(textOverlays.count)")
@@ -715,6 +721,7 @@ struct ImageEditRecipe: Codable, Equatable {
         case cropAdjustment
         case border
         case background
+        case subjectExtraction
         case textOverlays
         case stickerOverlays
         case cleanupPatches
@@ -731,6 +738,7 @@ struct ImageEditRecipe: Codable, Equatable {
         cropAdjustment = try container.decodeIfPresent(CropAdjustment.self, forKey: .cropAdjustment) ?? CropAdjustment()
         border = try container.decodeIfPresent(Border.self, forKey: .border) ?? Border()
         background = try container.decodeIfPresent(Background.self, forKey: .background) ?? Background()
+        subjectExtraction = try container.decodeIfPresent(SubjectExtraction.self, forKey: .subjectExtraction) ?? SubjectExtraction()
         textOverlays = try container.decodeIfPresent([TextOverlay].self, forKey: .textOverlays) ?? []
         stickerOverlays = try container.decodeIfPresent([StickerOverlay].self, forKey: .stickerOverlays) ?? []
         cleanupPatches = try container.decodeIfPresent([CleanupPatch].self, forKey: .cleanupPatches) ?? []
@@ -979,6 +987,26 @@ struct ImageEditRecipe: Codable, Equatable {
 
         var isAdjusted: Bool {
             abs(x - 0.5) > 0.01 || abs(y - 0.5) > 0.01 || abs(scale - 1) > 0.01
+        }
+    }
+
+    struct SubjectExtraction: Codable, Equatable {
+        var mode: Mode
+
+        init(mode: Mode = .none) {
+            self.mode = mode
+        }
+
+        enum Mode: String, Codable, CaseIterable, Equatable {
+            case none
+            case person
+
+            var title: String {
+                switch self {
+                case .none: return "无"
+                case .person: return "人物抠图"
+                }
+            }
         }
     }
 

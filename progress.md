@@ -290,3 +290,21 @@
 - 区域 OCR 结果会追加回当前 memo；`ImageTextRecognizer.memoText` 新增 `includesAttachmentReference`，追加模式不重复写入同一附件引用。
 - 修复 `MemoAsset.imageTextAsset`，让普通图片记录后续追加“图片文字”段落时也能进入 `screenshot` 素材索引并支持 `has:ocr` 搜索。
 - 新增测试覆盖可追加区域 OCR 文本、追加后只保留一个附件引用、追加 OCR 后生成 `screenshot` 素材并能用 `has:ocr` 搜索。
+
+## 2026-06-23T13:49:00+08:00
+
+- 进入阶段 32：衣橱洗护本地通知。开工前复查 `ReminderManager`、衣橱洞察 UI、`WardrobeCareReminder` 和洗护提醒测试。
+- 按用户要求检索开源候选：`SwiftUI local notification reminder MIT` GitHub 搜索返回 0 个匹配仓库；本轮继续复用项目已有 `ReminderManager` 和 Apple UserNotifications。
+- `ReminderManager` 新增洗护提醒状态、稳定通知 identifier、单个 `WardrobeCareReminder` 的本地通知安排/取消入口，复用每日回顾提醒的通知授权流程。
+- 衣橱洞察里的洗护提醒从纯文字条升级为可操作列表，可一键为待清洗/送洗/待熨烫/待修补单品安排系统通知。
+- 新增测试覆盖洗护提醒通知 identifier 的稳定性。
+- 完成阶段 32。补充联网检索确认：`flomo alternative notes license:mit` 未返回可直接复用仓库；`ios swiftui notes app license:mit` 返回 `XunMengWinter/PetNote-oss`、`0si43/PiecesOfPaper` 等 MIT 参考，但业务域与当前素材库/衣橱/图片编辑链路不同；`ios local notification reminder swift license:mit` 返回 `lukeleleh/reminders-app` 等示例，当前实现继续复用项目已有 `ReminderManager`，避免引入 TCA 或示例工程结构。
+
+## 2026-06-23T14:18:00+08:00
+
+- 进入并完成阶段 33：图片编辑人物抠图入口。开工前复查 `ImageEditRecipe`、`ImageEditRenderer`、`ImageEditorView` 和图片编辑测试，发现底层人物抠图已有碎片但 UI 未暴露给用户。
+- `ImageEditRecipe` 新增 `subjectExtraction` 配方字段，旧 JSON 会默认解码为关闭状态；摘要会记录“人物抠图”。
+- `ImageEditRenderer` 复用 Apple Vision `VNGeneratePersonSegmentationRequest` 生成单人分割 mask，并在导出文件名中追加 `subject` 标记。
+- `ImageEditorView` 新增“主体”分段控件，用户可直接选择“无/人物抠图”，预览会跟随刷新。
+- 新增测试覆盖人物抠图配方编码/解码、旧配方兼容、摘要和导出文件名。
+- 继续修复阶段 17 CI：Run tests 步骤会在测试工作区临时移除 App target 对 `SomeShareExtension` 的嵌入和依赖，保留前置 Build for simulator 对正式 app/extension 的完整构建，降低 XCTest 被 App Intents 元数据处理器误伤的概率。

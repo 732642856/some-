@@ -1095,6 +1095,21 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(components.minute, 30)
     }
 
+    func testWardrobeReminderIdentifierIsStable() {
+        let reminder = WardrobeCareReminder(
+            id: "white-shirt-待清洗",
+            itemName: "白衬衫",
+            status: "待清洗",
+            detail: "尽快清洗，避免影响搭配。",
+            loggedAt: nil
+        )
+
+        XCTAssertEqual(
+            ReminderManager.wardrobeReminderIdentifier(for: reminder),
+            "some.wardrobeCareReminder.white-shirt-待清洗"
+        )
+    }
+
     func testLinkExtractorDeduplicatesURLs() {
         let urls = LinkExtractor.urls(in: "资料 https://example.com/a 和 https://example.com/a")
 
@@ -2787,6 +2802,7 @@ final class SomeTests: XCTestCase {
             cropAdjustment: ImageEditRecipe.CropAdjustment(x: 0.42, y: 0.58, scale: 1.4),
             border: ImageEditRecipe.Border(colorHex: "#FFFFFF", width: 18),
             background: ImageEditRecipe.Background(mode: .softBlur, colorHex: "#DDEBF7", blurRadius: 18),
+            subjectExtraction: ImageEditRecipe.SubjectExtraction(mode: .person),
             textOverlays: [ImageEditRecipe.TextOverlay(text: "晚餐")],
             stickerOverlays: [ImageEditRecipe.StickerOverlay(text: "good")],
             cleanupPatches: [ImageEditRecipe.CleanupPatch(x: 0.3, y: 0.35, radius: 0.07)]
@@ -2803,12 +2819,14 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(decoded.cropAdjustment.scale, 1.4, accuracy: 0.001)
         XCTAssertEqual(decoded.background.mode, .softBlur)
         XCTAssertEqual(decoded.background.colorHex, "#DDEBF7")
+        XCTAssertEqual(decoded.subjectExtraction.mode, .person)
         XCTAssertEqual(decoded.textOverlays.first?.text, "晚餐")
         XCTAssertEqual(decoded.stickerOverlays.first?.text, "good")
         XCTAssertEqual(decoded.cleanupPatches.count, 1)
         XCTAssertTrue(decoded.summary.contains("自由裁剪"))
         XCTAssertTrue(decoded.summary.contains("美食留白"))
         XCTAssertTrue(decoded.summary.contains("柔化背景"))
+        XCTAssertTrue(decoded.summary.contains("人物抠图"))
         XCTAssertTrue(decoded.summary.contains("清理1"))
     }
 
@@ -2843,6 +2861,7 @@ final class SomeTests: XCTestCase {
             cropAdjustment: ImageEditRecipe.CropAdjustment(x: 0.4, y: 0.45, scale: 1.3),
             border: ImageEditRecipe.Border(colorHex: "#F8DCE8", width: 6),
             background: ImageEditRecipe.Background(mode: .solid, colorHex: "#FDF8FA", inset: 0.08),
+            subjectExtraction: ImageEditRecipe.SubjectExtraction(mode: .person),
             textOverlays: [ImageEditRecipe.TextOverlay(text: "晚餐", fontSize: 18)],
             stickerOverlays: [ImageEditRecipe.StickerOverlay(text: "OK", fontSize: 18)],
             cleanupPatches: [ImageEditRecipe.CleanupPatch(x: 0.3, y: 0.3, radius: 0.06)]
@@ -2866,6 +2885,7 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(memo.text.contains("裁剪微调："))
         XCTAssertTrue(memo.text.contains("授权清理：1处"))
         XCTAssertTrue(memo.text.contains("背景：纯色背景"))
+        XCTAssertTrue(memo.text.contains("主体：人物抠图"))
         XCTAssertNotNil(ImageEditRecipe.recipe(in: memo.text)?.outputAttachmentPath)
         XCTAssertEqual(attachments.count, 2)
         XCTAssertTrue(attachments.contains { $0.relativePath == sourceAttachment.relativePath })
@@ -2892,6 +2912,7 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(recipe.cropAdjustment, ImageEditRecipe.CropAdjustment())
         XCTAssertEqual(recipe.layoutPreset, .manual)
         XCTAssertEqual(recipe.background, ImageEditRecipe.Background())
+        XCTAssertEqual(recipe.subjectExtraction, ImageEditRecipe.SubjectExtraction())
         XCTAssertEqual(recipe.cleanupPatches, [])
     }
 
@@ -2963,6 +2984,26 @@ final class SomeTests: XCTestCase {
             ),
             recipe: recipe
         ).contains("background"))
+    }
+
+    func testImageEditRendererMarksSubjectExtractionInFilenameAndSummary() {
+        let recipe = ImageEditRecipe(
+            sourceAttachmentPath: "source.png",
+            filter: .original,
+            subjectExtraction: ImageEditRecipe.SubjectExtraction(mode: .person)
+        )
+
+        XCTAssertTrue(recipe.summary.contains("人物抠图"))
+        XCTAssertTrue(ImageEditRenderer.outputFilename(
+            source: SharedAttachment(
+                id: "source.png",
+                filename: "source.png",
+                relativePath: "source.png",
+                typeIdentifier: UTType.png.identifier,
+                byteCount: 0
+            ),
+            recipe: recipe
+        ).contains("subject"))
     }
 
     func testAddWebClipCreatesMemoAndWebClipAsset() {

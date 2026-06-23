@@ -9,6 +9,7 @@ final class ReminderManager: ObservableObject {
     @Published private(set) var authorizationStatus: UNAuthorizationStatus = .notDetermined
     @Published private(set) var reminderDate: Date
     @Published private(set) var statusMessage: String?
+    @Published private(set) var wardrobeStatusMessage: String?
 
     private static let isEnabledKey = "some.dailyReviewReminder.isEnabled"
     private static let hourKey = "some.dailyReviewReminder.hour"
@@ -87,6 +88,49 @@ final class ReminderManager: ObservableObject {
         Task {
             await scheduleDailyReminder()
         }
+    }
+
+    func scheduleWardrobeCareReminder(
+        for reminder: WardrobeCareReminder,
+        after timeInterval: TimeInterval = 60 * 60
+    ) async {
+        let isAuthorized = await requestAuthorizationIfNeeded()
+        guard isAuthorized else {
+            wardrobeStatusMessage = statusMessage ?? "没有通知权限，无法设置洗护提醒。"
+            return
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = "处理 \(reminder.itemName)"
+        content.body = "\(reminder.status)：\(reminder.detail)"
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: Self.wardrobeReminderIdentifier(for: reminder),
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(
+                timeInterval: max(60, timeInterval),
+                repeats: false
+            )
+        )
+
+        do {
+            try await addNotificationRequest(request)
+            wardrobeStatusMessage = "已安排 \(reminder.itemName) 的洗护提醒。"
+        } catch {
+            wardrobeStatusMessage = error.localizedDescription
+        }
+    }
+
+    func cancelWardrobeCareReminder(for reminder: WardrobeCareReminder) {
+        notificationCenter.removePendingNotificationRequests(
+            withIdentifiers: [Self.wardrobeReminderIdentifier(for: reminder)]
+        )
+        wardrobeStatusMessage = "已取消 \(reminder.itemName) 的洗护提醒。"
+    }
+
+    nonisolated static func wardrobeReminderIdentifier(for reminder: WardrobeCareReminder) -> String {
+        "some.wardrobeCareReminder.\(reminder.id)"
     }
 
     private func requestAuthorizationIfNeeded() async -> Bool {

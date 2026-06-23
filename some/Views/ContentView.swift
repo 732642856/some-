@@ -1351,6 +1351,7 @@ private struct WorkLogRecord: Identifiable {
 
 private struct WardrobeView: View {
     @EnvironmentObject private var store: MemoStore
+    @EnvironmentObject private var reminders: ReminderManager
     @State private var itemName = ""
     @State private var itemCategory = "上装"
     @State private var itemColors = ""
@@ -1482,12 +1483,7 @@ private struct WardrobeView: View {
                 }
 
                 if !insights.careReminders.isEmpty {
-                    namedStrip(
-                        title: "洗护提醒",
-                        values: insights.careReminders.map { reminder in
-                            "\(reminder.itemName) · \(reminder.status) · \(reminder.detail)"
-                        }
-                    )
+                    wardrobeCareReminderList
                 }
 
                 if !insights.suggestions.isEmpty {
@@ -1584,6 +1580,60 @@ private struct WardrobeView: View {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(Color.border, lineWidth: 1)
         )
+    }
+
+    private var wardrobeCareReminderList: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("洗护提醒")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+
+            ForEach(insights.careReminders) { reminder in
+                HStack(spacing: 10) {
+                    Image(systemName: "bell.badge")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.accentGreen)
+                        .frame(width: 24, height: 24)
+                        .background(Color.greenTint)
+                        .clipShape(Circle())
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("\(reminder.itemName) · \(reminder.status)")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(Color.primaryText)
+                        Text(reminder.detail)
+                            .font(.caption)
+                            .lineLimit(2)
+                            .foregroundStyle(Color.secondaryText)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Button {
+                        Task {
+                            await reminders.scheduleWardrobeCareReminder(for: reminder)
+                        }
+                    } label: {
+                        Image(systemName: "bell.and.waves.left.and.right")
+                            .frame(width: 34, height: 32)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.accentGreen)
+                    .background(Color.subtleSurface)
+                    .clipShape(Circle())
+                    .accessibilityLabel("安排 \(reminder.itemName) 洗护提醒")
+                }
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+
+            if let message = reminders.wardrobeStatusMessage {
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(Color.secondaryText)
+            }
+        }
     }
 
     private var wardrobeItemForm: some View {

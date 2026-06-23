@@ -313,6 +313,9 @@ final class MemoStore: ObservableObject {
         if renderedRecipe.background.mode != .original {
             appendField("背景", value: renderedRecipe.background.mode.title, to: &lines)
         }
+        if renderedRecipe.subjectExtraction.mode != .none {
+            appendField("主体", value: renderedRecipe.subjectExtraction.mode.title, to: &lines)
+        }
         if renderedRecipe.border.width > 0 {
             appendField("边框", value: renderedRecipe.border.colorHex, to: &lines)
         }

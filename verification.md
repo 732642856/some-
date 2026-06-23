@@ -183,6 +183,7 @@
 - 2026-06-23：GitHub Actions run `28003903915` 已确认最新 HEAD 的 Build for simulator 通过，Run tests 仍在进行中；等待期间推进媒体缩略图缓存维护。
 - 2026-06-23：媒体缩略图缓存维护新增 `preheatCache(for:)` 和 `pruneCache(keeping:)`，覆盖重复 URL 去重、缺失文件失败统计、保留仍引用缓存和删除孤儿缓存。本地 `git diff --check` 通过；旧 Swift parser 覆盖 `VideoThumbnailGenerator.swift`、`SharedMemoStorage.swift`、`SomeTests.swift`。
 - 2026-06-23：截图/OCR 框选 UI 已在详情页图片附件区提供“框选识别”，支持拖动选区和右下角缩放，OCR 结果追加回当前 memo 且不重复附件引用。`git diff --check`、`plutil -lint`、`xmllint --noout` 通过；旧 Swift parser 覆盖 OCR/模型/缓存和测试核心文件。包含 `MemoDetailView.swift` 的完整 UI 编译需以 GitHub Actions/Xcode 16 为准。
+- 2026-06-23：衣橱洗护本地通知新增 `ReminderManager.scheduleWardrobeCareReminder`、稳定通知 identifier 和衣橱洞察安排入口；图片编辑新增人物抠图配方、Vision 分割渲染和编辑页入口；GitHub Actions Run tests 阶段新增 CI-only Share Extension 解耦。验证通过：`ruby -e "require 'yaml'; YAML.load_file('.github/workflows/ios-ci.yml')"`、`plutil -lint some.xcodeproj/project.pbxproj`、旧 Swift parser 覆盖 `Memo.swift` / `ImageEditRenderer.swift` / `ImageEditorView.swift`。`ReminderManager.swift` 单独解析被本机旧 Swift 5.4 parser 的既有 `try await` / `if let error` 语法限制阻止；完整编译以 GitHub Actions/Xcode 16.4 为准。
 - 2026-06-22：手帐画布拖拽、双指缩放和旋转需要完整 Xcode 16 + 模拟器/真机环境做真实手势验证；当前环境已完成模型替换测试、plist/scheme 校验和旧 Swift parser 对可解析文件的检查。
 - 2026-06-22：手帐画布编辑需要完整 Xcode 16 + 模拟器/真机验证多指缩放/旋转、拖拽边界、滚动页面内手势冲突和真实图片图层显示；当前环境只能验证模型替换逻辑和静态语法。
 - 2026-06-22：图片编辑需要完整 Xcode 16 + 模拟器/真机验证真实照片色彩、保存耗时、素材库 sheet 交互、长边大图内存占用和系统分享/备份链路；当前环境已完成渲染核心静态解析和小图单元测试。

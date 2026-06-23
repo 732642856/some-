@@ -22,6 +22,7 @@ struct ImageEditorView: View {
     @State private var backgroundBlurRadius: Double = 22
     @State private var backgroundInset: Double = 0.06
     @State private var backgroundCornerRadius: Double = 28
+    @State private var subjectExtractionMode: ImageEditRecipe.SubjectExtraction.Mode = .none
     @State private var cleanupX: Double = 0.5
     @State private var cleanupY: Double = 0.5
     @State private var cleanupRadius: Double = 0.08
@@ -82,6 +83,7 @@ struct ImageEditorView: View {
         .onChange(of: backgroundBlurRadius) { _ in refreshPreview() }
         .onChange(of: backgroundInset) { _ in refreshPreview() }
         .onChange(of: backgroundCornerRadius) { _ in refreshPreview() }
+        .onChange(of: subjectExtractionMode) { _ in refreshPreview() }
         .onChange(of: cleanupPatches) { _ in refreshPreview() }
         .onChange(of: caption) { _ in refreshPreview() }
         .onChange(of: sticker) { _ in refreshPreview() }
@@ -174,6 +176,7 @@ struct ImageEditorView: View {
 
             cropControls
             backgroundControls
+            subjectExtractionControls
             cleanupControls
 
             VStack(alignment: .leading, spacing: 8) {
@@ -248,6 +251,7 @@ struct ImageEditorView: View {
                 cornerRadius: backgroundCornerRadius,
                 inset: backgroundInset
             ),
+            subjectExtraction: ImageEditRecipe.SubjectExtraction(mode: subjectExtractionMode),
             textOverlays: caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? [] : [
                 layoutPreset.textOverlay(text: caption.trimmingCharacters(in: .whitespacesAndNewlines))
             ],
@@ -273,6 +277,7 @@ struct ImageEditorView: View {
         backgroundBlurRadius = preset.background.blurRadius
         backgroundInset = preset.background.inset
         backgroundCornerRadius = preset.background.cornerRadius
+        subjectExtractionMode = .none
         if caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
            let defaultCaption = preset.defaultCaption {
             caption = defaultCaption
@@ -443,6 +448,24 @@ struct ImageEditorView: View {
                 }
                 .tint(Color.accentGreen)
             }
+        }
+        .padding(10)
+        .background(Color.subtleSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private var subjectExtractionControls: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("主体", systemImage: "person.crop.rectangle")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+
+            Picker("主体", selection: $subjectExtractionMode) {
+                ForEach(ImageEditRecipe.SubjectExtraction.Mode.allCases, id: \.self) { mode in
+                    Text(mode.title).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
         }
         .padding(10)
         .background(Color.subtleSurface)
