@@ -21,7 +21,7 @@
 - 发布一个公开可访问的隐私政策页面。
 - App Store Connect 的 Privacy Policy URL 填入该页面。
 - App Privacy 需要按实际上架版本填写：如果保留 AI 功能，需披露用户主动发送给 OpenAI API 的文本处理；如果移除 AI 功能且没有任何网络上传，才可选择不收集数据。
-- 如果保留 AI 语义搜索，需要在隐私政策和审核说明中写明本机 App Group 会保存最近使用的记录 embedding 缓存：最多 1000 条、不额外保存笔记明文、设置页可查看条数/大小并清除。
+- 如果保留 AI 语义搜索，需要在隐私政策和审核说明中写明本机 App Group `AICache` 会保存最近使用的记录 embedding 缓存：key 使用模型名和文本 SHA-256 指纹、最多 1000 条、不额外保存笔记明文、设置页可查看条数/大小并清除。
 - Export Compliance：当前版本只使用 Apple 系统框架和本地存储，通常可选择不使用专门加密功能；最终仍按 App Store Connect 的问卷如实回答。
 - 不要在应用名、描述、截图中使用 flomo 品牌词、Logo 或暗示从属关系。
 
