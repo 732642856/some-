@@ -977,7 +977,7 @@ final class MemoStore: ObservableObject {
     }
 
     @discardableResult
-    func addReference(from sourceMemo: Memo, to targetMemo: Memo) -> Bool {
+    func addReference(from sourceMemo: Memo, to targetMemo: Memo, note: String? = nil) -> Bool {
         guard sourceMemo.id != targetMemo.id,
               memos.contains(where: { $0.id == targetMemo.id }) else {
             return false
@@ -988,7 +988,7 @@ final class MemoStore: ObservableObject {
             return true
         }
 
-        let referenceLine = MemoReferenceParser.referenceLine(for: targetMemo)
+        let referenceLine = MemoReferenceParser.referenceLine(for: targetMemo, note: note)
         let separator = sourceMemo.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "" : "\n\n"
         return update(sourceMemo, text: "\(sourceMemo.text)\(separator)\(referenceLine)")
     }
@@ -1444,6 +1444,10 @@ final class MemoStore: ObservableObject {
             return taskItems(in: memo).contains { $0.isCompleted }
         case .reference:
             return !MemoReferenceParser.references(in: memo.text).isEmpty
+        case .referenceNote:
+            return MemoReferenceParser.references(in: memo.text).contains { reference in
+                reference.note?.isEmpty == false
+            }
         case .backlink:
             return !backlinkMemos(to: memo).isEmpty
         case .webClip:

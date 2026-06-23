@@ -35,6 +35,8 @@ struct MemoDetailView: View {
         let attachments = SharedAttachmentStore.attachments(in: displayText)
         let referencedMemos = store.referencedMemos(from: currentMemo)
         let backlinkMemos = store.backlinkMemos(to: currentMemo)
+        let referencedNotesByMemoID = referenceNotesByMemoID(in: currentMemo)
+        let backlinkNotesByMemoID = backlinkNotesByMemoID(for: currentMemo, backlinks: backlinkMemos)
 
         ZStack {
             Color.appBackground.ignoresSafeArea()
@@ -141,6 +143,8 @@ struct MemoDetailView: View {
                         MemoRelationSection(
                             referencedMemos: referencedMemos,
                             backlinkMemos: backlinkMemos,
+                            referencedNotesByMemoID: referencedNotesByMemoID,
+                            backlinkNotesByMemoID: backlinkNotesByMemoID,
                             onAddReference: {
                                 isShowingReferencePicker = true
                             }
@@ -204,8 +208,8 @@ struct MemoDetailView: View {
         .sheet(isPresented: $isShowingReferencePicker) {
             MemoReferencePickerView(
                 candidates: store.referenceCandidates(for: currentMemo),
-                onSelect: { targetMemo in
-                    if store.addReference(from: currentMemo, to: targetMemo),
+                onSelect: { targetMemo, note in
+                    if store.addReference(from: currentMemo, to: targetMemo, note: note),
                        let updatedMemo = store.memos.first(where: { $0.id == currentMemo.id }) {
                         text = updatedMemo.text
                     }
@@ -457,6 +461,35 @@ struct MemoDetailView: View {
             }
         }
     }
+
+    private func referenceNotesByMemoID(in memo: Memo) -> [UUID: String] {
+        Dictionary(
+            MemoReferenceParser.references(in: memo.text).compactMap { reference in
+                guard let note = reference.note?.trimmingCharacters(in: .whitespacesAndNewlines),
+                      !note.isEmpty else {
+                    return nil
+                }
+                return (reference.memoID, note)
+            },
+            uniquingKeysWith: { first, _ in first }
+        )
+    }
+
+    private func backlinkNotesByMemoID(for memo: Memo, backlinks: [Memo]) -> [UUID: String] {
+        Dictionary(
+            backlinks.compactMap { backlink in
+                guard let note = MemoReferenceParser.references(in: backlink.text)
+                    .first(where: { $0.memoID == memo.id })?
+                    .note?
+                    .trimmingCharacters(in: .whitespacesAndNewlines),
+                      !note.isEmpty else {
+                    return nil
+                }
+                return (backlink.id, note)
+            },
+            uniquingKeysWith: { first, _ in first }
+        )
+    }
 }
 
 private extension String {
@@ -698,6 +731,8 @@ private struct ImageTextRegionSelectionCanvas: View {
 private struct MemoRelationSection: View {
     let referencedMemos: [Memo]
     let backlinkMemos: [Memo]
+    let referencedNotesByMemoID: [UUID: String]
+    let backlinkNotesByMemoID: [UUID: String]
     let onAddReference: () -> Void
 
     var body: some View {
@@ -720,16 +755,31 @@ private struct MemoRelationSection: View {
             }
 
             if !referencedMemos.isEmpty {
-                relationGroup(title: "指向", memos: referencedMemos, systemImage: "arrow.up.forward")
+                relationGroup(
+                    title: "指向",
+                    memos: referencedMemos,
+                    systemImage: "arrow.up.forward",
+                    notesByMemoID: referencedNotesByMemoID
+                )
             }
 
             if !backlinkMemos.isEmpty {
-                relationGroup(title: "被引用", memos: backlinkMemos, systemImage: "arrow.down.backward")
+                relationGroup(
+                    title: "被引用",
+                    memos: backlinkMemos,
+                    systemImage: "arrow.down.backward",
+                    notesByMemoID: backlinkNotesByMemoID
+                )
             }
         }
     }
 
-    private func relationGroup(title: String, memos: [Memo], systemImage: String) -> some View {
+    private func relationGroup(
+        title: String,
+        memos: [Memo],
+        systemImage: String,
+        notesByMemoID: [UUID: String]
+    ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Label(title, systemImage: systemImage)
                 .font(.caption.weight(.semibold))
@@ -751,6 +801,13 @@ private struct MemoRelationSection: View {
                             Text(DateFormatters.row.localizedString(for: memo.createdAt, relativeTo: Date()))
                                 .font(.caption2)
                                 .foregroundStyle(Color.secondaryText)
+
+                            if let note = notesByMemoID[memo.id] {
+                                Text(note)
+                                    .font(.caption)
+                                    .foregroundStyle(Color.secondaryText)
+                                    .lineLimit(2)
+                            }
                         }
 
                         Spacer()
@@ -760,7 +817,8 @@ private struct MemoRelationSection: View {
                             .foregroundStyle(Color.tertiaryText)
                     }
                     .padding(.horizontal, 10)
-                    .frame(height: 48)
+                    .padding(.vertical, 9)
+                    .frame(minHeight: 48)
                     .background(Color.subtleSurface)
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
@@ -772,10 +830,11 @@ private struct MemoRelationSection: View {
 
 private struct MemoReferencePickerView: View {
     let candidates: [Memo]
-    let onSelect: (Memo) -> Void
+    let onSelect: (Memo, String?) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
+    @State private var referenceNote = ""
 
     var body: some View {
         NavigationStack {
@@ -783,24 +842,37 @@ private struct MemoReferencePickerView: View {
                 Color.appBackground.ignoresSafeArea()
 
                 if filteredCandidates.isEmpty {
-                    EmptyStateView(title: candidates.isEmpty ? "没有可引用的记录" : "没有匹配的记录")
-                        .padding(18)
+                    VStack(spacing: 14) {
+                        referenceNoteField
+                        EmptyStateView(title: candidates.isEmpty ? "没有可引用的记录" : "没有匹配的记录")
+                    }
+                    .padding(18)
                 } else {
-                    List(filteredCandidates) { candidate in
-                        Button {
-                            onSelect(candidate)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(MemoReferenceParser.title(for: candidate))
-                                    .font(.body.weight(.semibold))
-                                    .foregroundStyle(Color.primaryText)
-                                    .lineLimit(2)
+                    List {
+                        Section {
+                            referenceNoteField
+                                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                                .listRowBackground(Color.clear)
+                        }
 
-                                Text(DateFormatters.row.localizedString(for: candidate.createdAt, relativeTo: Date()))
-                                    .font(.caption)
-                                    .foregroundStyle(Color.secondaryText)
+                        Section {
+                            ForEach(filteredCandidates) { candidate in
+                                Button {
+                                    onSelect(candidate, normalizedReferenceNote)
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text(MemoReferenceParser.title(for: candidate))
+                                            .font(.body.weight(.semibold))
+                                            .foregroundStyle(Color.primaryText)
+                                            .lineLimit(2)
+
+                                        Text(DateFormatters.row.localizedString(for: candidate.createdAt, relativeTo: Date()))
+                                            .font(.caption)
+                                            .foregroundStyle(Color.secondaryText)
+                                    }
+                                    .padding(.vertical, 4)
+                                }
                             }
-                            .padding(.vertical, 4)
                         }
                     }
                     .listStyle(.plain)
@@ -817,6 +889,32 @@ private struct MemoReferencePickerView: View {
                     }
                 }
             }
+        }
+    }
+
+    private var normalizedReferenceNote: String? {
+        let trimmed = referenceNote.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private var referenceNoteField: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Label("引用批注", systemImage: "quote.bubble")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.tertiaryText)
+
+            TextField("记录为什么引用它", text: $referenceNote, axis: .vertical)
+                .lineLimit(2...4)
+                .textFieldStyle(.plain)
+                .font(.subheadline)
+                .foregroundStyle(Color.primaryText)
+                .padding(10)
+                .background(Color.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Color.border, lineWidth: 1)
+                )
         }
     }
 

@@ -1377,6 +1377,36 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(MemoReferenceParser.displayTextWithoutReferences(text), "正文 #关系")
     }
 
+    func testMemoReferenceParserKeepsReferenceNotesWithReference() {
+        let id = UUID()
+        let text = """
+        正文 #关系
+
+        引用批注：这条是项目决策依据
+        [引用: 目标记录](some-memo://\(id.uuidString))
+        """
+
+        let references = MemoReferenceParser.references(in: text)
+
+        XCTAssertEqual(references, [MemoReference(memoID: id, title: "目标记录", note: "这条是项目决策依据")])
+        XCTAssertEqual(MemoReferenceParser.displayTextWithoutReferences(text), "正文 #关系")
+    }
+
+    func testMemoReferenceParserKeepsDuplicateReferenceNotesInOrder() {
+        let id = UUID()
+        let text = """
+        引用批注：第一条依据
+        [引用: 目标记录](some-memo://\(id.uuidString))
+
+        引用批注：第二条依据
+        [引用: 目标记录](some-memo://\(id.uuidString))
+        """
+
+        let references = MemoReferenceParser.references(in: text)
+
+        XCTAssertEqual(references.map(\.note), ["第一条依据", "第二条依据"])
+    }
+
     func testStoreCanAddReferencesAndFindBacklinks() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "源记录 #关系")
@@ -1395,6 +1425,29 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(store.referencedMemos(from: updatedSource).map(\.id), [target.id])
         XCTAssertEqual(store.backlinkMemos(to: target).map(\.id), [source.id])
         XCTAssertFalse(store.referenceCandidates(for: updatedSource).contains { $0.id == target.id })
+    }
+
+    func testStoreCanAddReferenceWithNoteAndSearchIt() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.addMemo(text: "源记录 #关系")
+        store.addMemo(text: "目标记录 #关系")
+
+        guard let source = store.memos.first(where: { $0.text.contains("源记录") }),
+              let target = store.memos.first(where: { $0.text.contains("目标记录") }) else {
+            return XCTFail("Expected memos")
+        }
+
+        XCTAssertTrue(store.addReference(from: source, to: target, note: "这条是项目决策依据"))
+        guard let updatedSource = store.memos.first(where: { $0.id == source.id }) else {
+            return XCTFail("Expected updated source")
+        }
+
+        XCTAssertEqual(MemoReferenceParser.references(in: updatedSource.text).first?.note, "这条是项目决策依据")
+        XCTAssertEqual(MemoReferenceParser.displayTextWithoutReferences(updatedSource.text), "源记录 #关系")
+
+        store.searchText = "has:引用批注"
+
+        XCTAssertEqual(store.filteredMemos.map(\.id), [updatedSource.id])
     }
 
     func testStoreDoesNotDuplicateExistingReference() {

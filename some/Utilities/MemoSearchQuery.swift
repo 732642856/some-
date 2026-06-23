@@ -7,6 +7,7 @@ enum MemoContentFilter: String, CaseIterable, Hashable {
     case openTask = "open-task"
     case completedTask = "completed-task"
     case reference
+    case referenceNote = "reference-note"
     case backlink
     case webClip = "web-clip"
     case clipFragment = "clip-fragment"
@@ -189,6 +190,8 @@ enum MemoSearchQueryParser {
             return .completedTask
         case "reference", "references", "ref", "refs", "引用":
             return .reference
+        case "reference-note", "reference-notes", "ref-note", "ref-notes", "引用批注", "引用备注":
+            return .referenceNote
         case "backlink", "backlinks", "incoming-reference", "incoming-references", "被引用", "反向引用":
             return .backlink
         case "web", "webclip", "web-clip", "article", "articles", "网页", "网页摘录":

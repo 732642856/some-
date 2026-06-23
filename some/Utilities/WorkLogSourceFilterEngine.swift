@@ -119,6 +119,10 @@ enum WorkLogSourceFilterEngine {
             return taskItems(in: memo).contains { $0.isCompleted }
         case .reference:
             return !MemoReferenceParser.references(in: memo.text).isEmpty
+        case .referenceNote:
+            return MemoReferenceParser.references(in: memo.text).contains { reference in
+                reference.note?.isEmpty == false
+            }
         case .backlink:
             return false
         case .webClip:

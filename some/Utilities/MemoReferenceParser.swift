@@ -3,12 +3,24 @@ import Foundation
 struct MemoReference: Equatable, Identifiable {
     let memoID: UUID
     let title: String?
+    let note: String?
+
+    init(memoID: UUID, title: String?, note: String? = nil) {
+        self.memoID = memoID
+        self.title = title
+        self.note = note
+    }
 
     var id: UUID { memoID }
 
     var referenceLine: String {
         let label = title ?? memoID.uuidString
-        return "[引用: \(label)](some-memo://\(memoID.uuidString))"
+        let line = "[引用: \(label)](some-memo://\(memoID.uuidString))"
+        guard let note = note?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !note.isEmpty else {
+            return line
+        }
+        return "引用批注：\(note)\n\(line)"
     }
 }
 
@@ -38,10 +50,12 @@ enum MemoReferenceParser {
             }
 
             let title = title(in: text, match: result)
+            let note = referenceNote(in: text, before: result)
             references.append(
                 MemoReference(
                     memoID: id,
-                    title: title
+                    title: title,
+                    note: note
                 )
             )
         }
@@ -50,13 +64,41 @@ enum MemoReferenceParser {
     }
 
     static func referenceLine(for memo: Memo) -> String {
-        MemoReference(memoID: memo.id, title: title(for: memo)).referenceLine
+        MemoReference(memoID: memo.id, title: title(for: memo), note: nil).referenceLine
+    }
+
+    static func referenceLine(for memo: Memo, note: String?) -> String {
+        MemoReference(memoID: memo.id, title: title(for: memo), note: note).referenceLine
     }
 
     static func displayTextWithoutReferences(_ text: String) -> String {
-        text
-            .components(separatedBy: .newlines)
-            .filter { !isReferenceOnlyLine($0) }
+        let lines = text.components(separatedBy: .newlines)
+        var indexesToRemove: Set<Int> = []
+
+        for index in lines.indices where isReferenceOnlyLine(lines[index]) {
+            indexesToRemove.insert(index)
+            guard index > lines.startIndex else {
+                continue
+            }
+            var previousIndex = lines.index(before: index)
+            while lines.indices.contains(previousIndex) {
+                let previousLine = lines[previousIndex].trimmingCharacters(in: .whitespacesAndNewlines)
+                if previousLine.isEmpty {
+                    if previousIndex == lines.startIndex { break }
+                    previousIndex = lines.index(before: previousIndex)
+                    continue
+                }
+                if isReferenceNoteLine(previousLine) {
+                    indexesToRemove.insert(previousIndex)
+                }
+                break
+            }
+        }
+
+        return lines
+            .enumerated()
+            .filter { !indexesToRemove.contains($0.offset) }
+            .map(\.element)
             .joined(separator: "\n")
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -85,6 +127,23 @@ enum MemoReferenceParser {
         return label.replacingOccurrences(of: "引用: ", with: "")
     }
 
+    private static func referenceNote(in text: String, before match: NSTextCheckingResult) -> String? {
+        let nsText = text as NSString
+        let prefix = nsText.substring(to: match.range.location)
+        guard let previousLine = prefix
+            .components(separatedBy: .newlines)
+            .reversed()
+            .map({ $0.trimmingCharacters(in: .whitespacesAndNewlines) })
+            .first(where: { !$0.isEmpty }),
+              isReferenceNoteLine(previousLine) else {
+            return nil
+        }
+
+        return previousLine
+            .dropFirst("引用批注：".count)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private static func isReferenceOnlyLine(_ line: String) -> Bool {
         let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.hasPrefix("[引用:") || trimmed.hasPrefix("["),
@@ -94,5 +153,9 @@ enum MemoReferenceParser {
         }
 
         return references(in: trimmed).count == 1
+    }
+
+    private static func isReferenceNoteLine(_ line: String) -> Bool {
+        line.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("引用批注：")
     }
 }

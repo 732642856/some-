@@ -908,7 +908,7 @@ private struct WorkLogView: View {
 
     private let scopes = ["今日", "本周", "项目", "复盘"]
     private let templates = ["日报", "周报", "项目汇报", "复盘"]
-    private let sourceKindOptions: [MemoContentFilter] = [.task, .openTask, .completedTask, .link, .webClip, .clipFragment, .attachment, .audio, .video, .screenshot, .imageEdit, .scrapbook, .wardrobe, .outfit, .wearLog, .laundryLog, .packingList]
+    private let sourceKindOptions: [MemoContentFilter] = [.task, .openTask, .completedTask, .link, .webClip, .clipFragment, .attachment, .reference, .referenceNote, .audio, .video, .screenshot, .imageEdit, .scrapbook, .wardrobe, .outfit, .wearLog, .laundryLog, .packingList]
 
     private var workLogAssets: [MemoAsset] {
         store.assets.filter { $0.kind == .workLog }
@@ -1594,6 +1594,7 @@ private struct WorkLogView: View {
         case .openTask: return "未完成"
         case .completedTask: return "已完成"
         case .reference: return "引用"
+        case .referenceNote: return "引用批注"
         case .backlink: return "被引用"
         case .webClip: return "网页"
         case .clipFragment: return "摘录"

@@ -581,3 +581,12 @@
 - 按用户要求补做 WidgetKit/notes widget 开源检索，精确 GitHub 查询 `SwiftUI WidgetKit widgetURL MIT` 和 `iOS notes WidgetKit SwiftUI MIT` 均返回 0；本轮不复制第三方源码，改发布配置与文档。
 - `.github/workflows/ios-testflight.yml` 新增 `WIDGET_EXTENSION_BUNDLE_ID`、`IOS_WIDGET_EXTENSION_APP_STORE_PROVISIONING_PROFILE_BASE64`、`IOS_WIDGET_EXTENSION_APP_STORE_PROVISIONING_PROFILE_NAME`，并在安装 profile、ExportOptions provisioningProfiles 和 `xcodebuild archive` build settings 中传入 widget bundle/profile。
 - README、`docs/online-build-and-release.md` 和 `AppStore/submission-checklist.md` 已同步说明 Widget Extension 的 Bundle ID、App Group、App Store provisioning profile secret 和 TestFlight 真机验收项。
+
+## 2026-06-23T22:31:00+08:00
+
+- 远端 GitHub Actions 已确认 `3a2de0b` 与 `37404fe` 均通过 Build and test；`a5545d8` 最新 run `28032434917` 也通过 Build for simulator 和 Run tests，阶段 55-57 的 CI 阻塞已闭环。
+- 进入并完成阶段 58：引用批注正文与筛选。开工前复查 `MemoReferenceParser`、`MemoStore.addReference`、`MemoSearchQuery`、`MemoDetailView` 和引用相关测试。
+- 按用户要求检索 `SwiftUI notes backlink annotation MIT` 与 `iOS backlink notes annotation Swift MIT`，GitHub Search 精确查询均返回 0；本轮不复制第三方源码，继续沿用 Markdown 可迁移文本格式。
+- `MemoReference` 新增向后兼容的 `note`；`MemoReferenceParser` 支持读取/生成 `引用批注：...` + `[引用: ...](some-memo://...)`，并在正文展示时一起隐藏引用行和批注行。
+- `MemoStore.addReference` 支持传入批注；搜索新增 `has:引用批注` / `has:reference-note`；工作日志来源筛选也可按引用批注筛选。
+- 详情页“引用”卡片会在指向/被引用条目下展示对应批注，保留原有添加引用流程，不新增存储 schema。
