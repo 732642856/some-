@@ -2,6 +2,9 @@ import Foundation
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
+#if !SOME_SHARE_EXTENSION
+import WidgetKit
+#endif
 
 enum MemoHomeMode: String, CaseIterable, Identifiable {
     case timeline
@@ -103,6 +106,7 @@ final class MemoStore: ObservableObject {
 
         loadSearchCollections()
         load()
+        refreshWidgetSnapshot()
     }
 
     var filteredMemos: [Memo] {
@@ -1305,9 +1309,16 @@ final class MemoStore: ObservableObject {
         }
 
         switch urlAction(in: components) {
+        case "home", "timeline":
+            return openHome()
+        case "zen", "focus":
+            return openZen()
         case "add", "new", "memo", "capture":
             return addMemo(from: components)
         case "search", "find":
+            guard hasSearchQuery(in: components) else {
+                return openHome()
+            }
             return applySearch(from: components)
         case "open":
             return openMemo(from: components)
@@ -1321,6 +1332,7 @@ final class MemoStore: ObservableObject {
         if let selectedTag = selectedTag, !allTags.contains(selectedTag) {
             self.selectedTag = nil
         }
+        refreshWidgetSnapshot()
     }
 
     private func sortMemos(_ lhs: Memo, _ rhs: Memo) -> Bool {
@@ -1568,7 +1580,7 @@ final class MemoStore: ObservableObject {
 
     private func urlAction(in components: URLComponents) -> String {
         if let host = components.host?.lowercased(),
-           ["add", "new", "memo", "capture", "search", "find", "open"].contains(host) {
+           ["add", "new", "memo", "capture", "search", "find", "open", "home", "timeline", "zen", "focus"].contains(host) {
             return host
         }
 
@@ -1607,6 +1619,19 @@ final class MemoStore: ObservableObject {
         return true
     }
 
+    private func openHome() -> Bool {
+        selectedTag = nil
+        homeMode = .timeline
+        return true
+    }
+
+    private func openZen() -> Bool {
+        selectedTag = nil
+        searchText = ""
+        homeMode = .zen
+        return true
+    }
+
     private func openMemo(from components: URLComponents) -> Bool {
         guard let id = memoID(from: components),
               memos.contains(where: { $0.id == id }) else {
@@ -1636,6 +1661,14 @@ final class MemoStore: ObservableObject {
         components.queryItems?
             .first { item in names.contains { $0.caseInsensitiveCompare(item.name) == .orderedSame } }?
             .value
+    }
+
+    private func hasSearchQuery(in components: URLComponents) -> Bool {
+        components.queryItems?.contains { item in
+            ["q", "query", "text", "content"].contains {
+                $0.caseInsensitiveCompare(item.name) == .orderedSame
+            }
+        } == true
     }
 
     private func fallbackURLMemoText(in components: URLComponents) -> String? {
@@ -1810,6 +1843,7 @@ final class MemoStore: ObservableObject {
                     cache(revision)
                 }
                 loadAssets()
+                refreshWidgetSnapshot()
                 return true
             } catch {
                 assertionFailure("Failed to save memo in SQLite: \(error)")
@@ -1820,6 +1854,7 @@ final class MemoStore: ObservableObject {
         let saved = saveLegacyJSON()
         if saved {
             assets = derivedAssets()
+            refreshWidgetSnapshot()
         }
         return saved
     }
@@ -1831,6 +1866,7 @@ final class MemoStore: ObservableObject {
                 let revisions = revisionsByMemoID.values.flatMap { $0 }
                 try database.replaceAll(memos: memos, revisions: revisions)
                 loadAssets()
+                refreshWidgetSnapshot()
                 return true
             } catch {
                 assertionFailure("Failed to save memos in SQLite: \(error)")
@@ -1841,6 +1877,7 @@ final class MemoStore: ObservableObject {
         let saved = saveLegacyJSON()
         if saved {
             assets = derivedAssets()
+            refreshWidgetSnapshot()
         }
         return saved
     }
@@ -1850,6 +1887,7 @@ final class MemoStore: ObservableObject {
             do {
                 try database.delete(id: memo.id)
                 loadAssets()
+                refreshWidgetSnapshot()
                 return true
             } catch {
                 assertionFailure("Failed to delete memo in SQLite: \(error)")
@@ -1860,8 +1898,17 @@ final class MemoStore: ObservableObject {
         let saved = saveLegacyJSON()
         if saved {
             assets = derivedAssets()
+            refreshWidgetSnapshot()
         }
         return saved
+    }
+
+    private func refreshWidgetSnapshot() {
+        #if SOME_SHARE_EXTENSION
+        #else
+        WidgetSnapshotStore.refresh(with: memos)
+        WidgetCenter.shared.reloadTimelines(ofKind: WidgetSnapshotStore.widgetKind)
+        #endif
     }
 
     private func derivedAssets() -> [MemoAsset] {

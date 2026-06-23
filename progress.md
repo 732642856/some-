@@ -555,6 +555,14 @@
 - `MemoHomeMode` 新增“专注”模式；首页新增 `ZenCaptureView`，提供大文本输入、自动聚焦、本地 `@AppStorage("some.zenDraft")` 草稿、实时统计、清空和保存按钮。保存复用 `MemoStore.addMemo`，不新增存储格式。
 - 复查并行窗口碎片时发现 `ContentView.swift` 同时内联重复 `ZenDraftStats` 和两份 `ZenCaptureView`，已收束为独立 `ZenDraftStats.swift` + 单一 `ZenCaptureView(isModal:)`；首页“专注”模式内嵌使用，全屏叶子按钮使用可关闭的 modal。
 
+## 2026-06-23T21:48:00+08:00
+
+- 进入并完成阶段 55：小组件快照与深链入口。开工前继续复查 Git 状态和并行窗口碎片，发现 `SomeWidget/`、`WidgetSnapshotStore.swift`、小组件 target、`MemoStore` 快照刷新和 URL scheme 扩展已写入工作区。
+- 按用户要求检索 SwiftUI/WidgetKit/notes widget 开源参考，存在 MIT 示例项目可参考基础 WidgetKit 和深链写法，但未找到能直接复制到 some 本地 App Group 快照架构的完整笔记小组件模块。
+- `WidgetSnapshotStore` 生成 active/today/recent 快照，主 App 保存、批量替换和删除记录后刷新共享 JSON；Widget 扩展读取快照展示今日/全部计数、最近记录和记录/专注/搜索/详情深链。
+- `MemoStore.handleURL` 新增 `some://home` / `some://zen`，并让无查询参数的 `some://search` 回到时间线；测试覆盖小组件快照排序、文件往返和小组件深链入口。
+- 远端 run `28029991853` 失败根因确认回到 Xcode 16.4 App Intents metadata processor。CI Run tests 阶段临时 pbxproj 改写升级为直接移除 AppIntents build file 定义与 source 引用，并继续移除 ZIPFoundation、分享扩展和小组件嵌入依赖；正式 Build/TestFlight 不受影响。
+
 ## 2026-06-23T21:05:00+08:00
 
 - 继续收口远端 run `28023921262`：Build and test job 仍失败，公开日志只能定位到测试阶段仍有 `XCTAssertTrue failed`，且 GitHub logs API 对当前权限返回 403，无法下载完整日志包。

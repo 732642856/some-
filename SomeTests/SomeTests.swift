@@ -487,6 +487,57 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(stats.summaryText, "空白草稿")
     }
 
+    func testWidgetSnapshotSummarizesRecentActiveMemos() {
+        let older = makeMemo(
+            text: "旧记录 #归档",
+            createdAt: makeDate(year: 2026, month: 6, day: 20),
+            updatedAt: makeDate(year: 2026, month: 6, day: 20),
+            isArchived: true
+        )
+        let recent = makeMemo(
+            text: "今天拍了照片 #灵感\n\n[附件: photo.png](some-attachment://photo.png)",
+            createdAt: makeDate(year: 2026, month: 6, day: 23),
+            updatedAt: makeDate(year: 2026, month: 6, day: 23)
+        )
+        let updated = makeMemo(
+            text: "网页摘录：[SwiftUI](https://example.com) 重点",
+            createdAt: makeDate(year: 2026, month: 6, day: 22),
+            updatedAt: makeDate(year: 2026, month: 6, day: 24)
+        )
+
+        let snapshot = WidgetSnapshotStore.snapshot(
+            from: [older, recent, updated],
+            now: makeDate(year: 2026, month: 6, day: 23),
+            limit: 2
+        )
+
+        XCTAssertEqual(snapshot.activeCount, 2)
+        XCTAssertEqual(snapshot.todayCount, 1)
+        XCTAssertEqual(snapshot.recentItems.map(\.id), [updated.id, recent.id])
+        XCTAssertEqual(snapshot.recentItems[0].title, "网页摘录：SwiftUI 重点")
+        XCTAssertEqual(snapshot.recentItems[1].title, "今天拍了照片 #灵感")
+    }
+
+    func testWidgetSnapshotStoreRoundTripsToSharedFile() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("some-widget-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let memo = makeMemo(
+            text: "小组件快照 #widget",
+            createdAt: makeDate(year: 2026, month: 6, day: 23),
+            updatedAt: makeDate(year: 2026, month: 6, day: 23)
+        )
+
+        let snapshot = WidgetSnapshotStore.snapshot(
+            from: [memo],
+            now: makeDate(year: 2026, month: 6, day: 23)
+        )
+        try WidgetSnapshotStore.write(snapshot, storageDirectory: directory)
+        let loaded = WidgetSnapshotStore.read(storageDirectory: directory)
+
+        XCTAssertEqual(loaded, snapshot)
+    }
+
     func testImportFeedbackExplainsSuccessfulBackupRestore() {
         let summary = MemoBackupSummary(
             memoCount: 3,
@@ -565,6 +616,20 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(store.recentSearches.first, "#项目 is:active")
         XCTAssertEqual(store.activeCount, 1)
         XCTAssertEqual(store.homeMode, .timeline)
+    }
+
+    func testURLSchemeWidgetShortcutsOpenHomeAndZen() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.searchText = "#旧筛选"
+        store.homeMode = .assets
+
+        XCTAssertTrue(store.handleURL(URL(string: "some://home")!))
+        XCTAssertEqual(store.homeMode, .timeline)
+        XCTAssertEqual(store.searchText, "#旧筛选")
+
+        XCTAssertTrue(store.handleURL(URL(string: "some://zen")!))
+        XCTAssertEqual(store.homeMode, .zen)
+        XCTAssertEqual(store.searchText, "")
     }
 
     func testURLSchemeOpenSelectsExistingMemoWithoutCreatingMemo() {
@@ -4237,6 +4302,22 @@ final class SomeTests: XCTestCase {
         components.month = month
         components.day = day
         return calendar.date(from: components) ?? Date(timeIntervalSince1970: 0)
+    }
+
+    private func makeMemo(
+        text: String,
+        createdAt: Date,
+        updatedAt: Date,
+        isArchived: Bool = false
+    ) -> Memo {
+        Memo(
+            id: UUID(),
+            text: text,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            tags: TagParser.extractTags(from: text),
+            isArchived: isArchived
+        )
     }
 
     private func testImage(size: CGSize) -> UIImage {

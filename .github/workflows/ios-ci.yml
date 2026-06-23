@@ -127,6 +127,11 @@ jobs:
           text = File.read(path)
           text.gsub!(/\n\s*7A200B010000000000000001 \/\* Embed App Extensions \*\/,/, "")
           text.gsub!(/\n\s*7A200A020000000000000001 \/\* PBXTargetDependency \*\/,/, "")
+          text.gsub!(/\n\s*7C100A020000000000000001 \/\* PBXTargetDependency \*\/,/, "")
+          text.gsub!(/\n\s*7A4000010000000000000001 \/\* SaveMemoIntent.swift in Sources \*\/ = \{.*?\};/, "")
+          text.gsub!(/\n\s*7A4000010000000000000002 \/\* SomeAppShortcuts.swift in Sources \*\/ = \{.*?\};/, "")
+          text.gsub!(/\n\s*7A4000010000000000000001 \/\* SaveMemoIntent.swift in Sources \*\/,/, "")
+          text.gsub!(/\n\s*7A4000010000000000000002 \/\* SomeAppShortcuts.swift in Sources \*\/,/, "")
           text.gsub!(/\n\s*7A6000010000000000000002 \/\* ZIPFoundation in Frameworks \*\/ = \{.*?\};/, "")
           text.gsub!(/\n\s*7A6000010000000000000002 \/\* ZIPFoundation in Frameworks \*\/,/, "")
           text.gsub!(/\n\s*7A600C010000000000000001 \/\* ZIPFoundation \*\/,/, "")
@@ -134,8 +139,14 @@ jobs:
           text.gsub!(/\n\/\* Begin XCRemoteSwiftPackageReference section \*\/\n\s*7A600B010000000000000001 \/\* XCRemoteSwiftPackageReference "ZIPFoundation" \*\/ = \{.*?\n\s*\};\n\/\* End XCRemoteSwiftPackageReference section \*\/\n/m, "\n/* Begin XCRemoteSwiftPackageReference section */\n/* End XCRemoteSwiftPackageReference section */\n")
           text.gsub!(/\n\/\* Begin XCSwiftPackageProductDependency section \*\/\n\s*7A600C010000000000000001 \/\* ZIPFoundation \*\/ = \{.*?\n\s*\};\n\/\* End XCSwiftPackageProductDependency section \*\/\n/m, "\n/* Begin XCSwiftPackageProductDependency section */\n/* End XCSwiftPackageProductDependency section */\n")
           File.write(path, text)
+
+          scheme_path = "some.xcodeproj/xcshareddata/xcschemes/some.xcscheme"
+          scheme = File.read(scheme_path)
+          scheme.gsub!(/\n\s*<BuildActionEntry\n(?:(?!<\/BuildActionEntry>).)*BlueprintIdentifier = "7C1004010000000000000001"(?:(?!<\/BuildActionEntry>).)*<\/BuildActionEntry>/m, "")
+          File.write(scheme_path, scheme)
           RUBY
           plutil -lint some.xcodeproj/project.pbxproj
+          xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme
           run_xcode_tests() {
             rm -rf "$DERIVED_DATA_PATH" "$RESULT_BUNDLE_PATH"
             xcodebuild \
@@ -184,17 +195,23 @@ jobs:
           if [ "$TEST_STATUS" -ne 0 ]; then
             RESULT_SUMMARY_PATH="${RUNNER_TEMP}/xcresult-summary.txt"
             if [ -d "$RESULT_BUNDLE_PATH" ]; then
+              xcrun xcresulttool get test-results summary --path "$RESULT_BUNDLE_PATH" --compact > "${RUNNER_TEMP}/xcresult-test-summary.json" 2>/dev/null || true
+              xcrun xcresulttool get test-results tests --path "$RESULT_BUNDLE_PATH" --compact > "${RUNNER_TEMP}/xcresult-tests.json" 2>/dev/null || true
               xcrun xcresulttool get --path "$RESULT_BUNDLE_PATH" --format json > "${RUNNER_TEMP}/xcresult.json" 2>/dev/null \
                 || xcrun xcresulttool get --legacy --path "$RESULT_BUNDLE_PATH" --format json > "${RUNNER_TEMP}/xcresult.json" 2>/dev/null \
                 || true
-              if [ -s "${RUNNER_TEMP}/xcresult.json" ]; then
-                python3 - <<'PY' "${RUNNER_TEMP}/xcresult.json" "$RESULT_SUMMARY_PATH"
+              if [ -s "${RUNNER_TEMP}/xcresult.json" ] || [ -s "${RUNNER_TEMP}/xcresult-tests.json" ] || [ -s "${RUNNER_TEMP}/xcresult-test-summary.json" ]; then
+                python3 - <<'PY' \
+                  "${RUNNER_TEMP}/xcresult-test-summary.json" \
+                  "${RUNNER_TEMP}/xcresult-tests.json" \
+                  "${RUNNER_TEMP}/xcresult.json" \
+                  "$RESULT_SUMMARY_PATH"
           import json
+          import os
           import sys
 
-          source_path, output_path = sys.argv[1], sys.argv[2]
-          with open(source_path, "r", encoding="utf-8") as handle:
-              data = json.load(handle)
+          source_paths = sys.argv[1:-1]
+          output_path = sys.argv[-1]
 
           matches = []
 
@@ -205,24 +222,70 @@ jobs:
                   return None
               if isinstance(value, str):
                   return value
+              if isinstance(value, (bool, int, float)):
+                  return str(value)
               return None
 
-          def walk(node):
+          def label(node):
+              if not isinstance(node, dict):
+                  return None
+              for key in ("testName", "name", "identifier", "identifierURL", "title", "targetName"):
+                  value = text(node.get(key))
+                  if value:
+                      return value
+              return None
+
+          def interesting_fields(node):
+              fields = []
+              if not isinstance(node, dict):
+                  return fields
+              for key in (
+                  "testName", "name", "identifier", "identifierURL", "title", "targetName",
+                  "testStatus", "status", "result", "message", "issueType", "failureText",
+                  "fileName", "lineNumber", "documentLocationInCreatingWorkspace"
+              ):
+                  value = text(node.get(key))
+                  if value:
+                      fields.append(f"{key}: {value}")
+              return fields
+
+          def has_failure_signal(fields):
+              haystack = "\n".join(fields).lower()
+              return any(token in haystack for token in ("fail", "xctassert", "error"))
+
+          def walk(node, path=None):
+              path = path or []
               if isinstance(node, dict):
-                  for key in ("testName", "identifier", "message", "issueType", "documentLocationInCreatingWorkspace", "targetName"):
-                      value = text(node.get(key))
-                      if value:
-                          matches.append(f"{key}: {value}")
+                  current_path = path[:]
+                  current_label = label(node)
+                  if current_label and (not current_path or current_path[-1] != current_label):
+                      current_path.append(current_label)
+                  fields = interesting_fields(node)
+                  if fields and has_failure_signal(fields):
+                      prefix = " > ".join(current_path[-6:])
+                      detail = " | ".join(fields)
+                      matches.append(f"{prefix}: {detail}" if prefix else detail)
                   for key, value in node.items():
                       if key in ("failureSummaries", "testFailureSummaries", "warningSummaries", "errorSummaries", "issues", "diagnostics", "tests"):
-                          walk(value)
+                          walk(value, current_path)
                       elif isinstance(value, (dict, list)):
-                          walk(value)
+                          walk(value, current_path)
               elif isinstance(node, list):
                   for value in node:
-                      walk(value)
+                      walk(value, path)
 
-          walk(data)
+          for source_path in source_paths:
+              if not os.path.exists(source_path) or os.path.getsize(source_path) == 0:
+                  continue
+              try:
+                  with open(source_path, "r", encoding="utf-8") as handle:
+                      data = json.load(handle)
+              except Exception as error:
+                  matches.append(f"{os.path.basename(source_path)} parse error: {error}")
+                  continue
+              matches.append(f"source: {os.path.basename(source_path)}")
+              walk(data)
+
           deduped = []
           for item in matches:
               if item not in deduped:
@@ -253,7 +316,7 @@ jobs:
               echo "#### Last test cases before failure"
               echo
               echo '```text'
-              grep -nE 'Test Case .*\\(.*seconds\\)|XCTAssert|Executed [0-9]+ tests' "$LOG_PATH" | tail -n 320 || true
+              grep -nE 'Test Case .*\\(.*seconds\\)|XCTAssert|Executed [0-9]+ tests' "$LOG_PATH" | tail -n 80 || true
               echo '```'
               echo
               echo '```text'
@@ -264,13 +327,19 @@ jobs:
             if [ -s "$RESULT_SUMMARY_PATH" ]; then
               RESULT_ANNOTATION="$(
                 cat "$RESULT_SUMMARY_PATH" \
+                  | head -n 80 \
                   | perl -0pe 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/::/%3A%3A/g'
               )"
               echo "::error file=.github/workflows/ios-ci.yml,line=83::xcresult summary:%0A${RESULT_ANNOTATION}"
             fi
             TEST_ANNOTATION="$(
-              grep -nE 'Test Case .*\\(.*seconds\\)|failed:|XCTAssert|Executed [0-9]+ tests|error:|appintents|Testing failed|Test Suite .*failed' "$LOG_PATH" \
-                | tail -n 220 \
+              {
+                echo 'Recent test cases before failure:'
+                grep -nE 'Test Case .*\\(.*seconds\\)' "$LOG_PATH" | tail -n 28 || true
+                echo
+                echo 'Failure lines:'
+                grep -nE 'failed:|XCTAssert|Executed [0-9]+ tests|error:|Testing failed|Test Suite .*failed' "$LOG_PATH" | tail -n 60 || true
+              } \
                 | perl -0pe 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/::/%3A%3A/g'
             )"
             if [ -n "$TEST_ANNOTATION" ]; then
