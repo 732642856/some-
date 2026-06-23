@@ -3,8 +3,6 @@ import CoreImage
 import CoreImage.CIFilterBuiltins
 
 enum ScrapbookRenderer {
-    private static let ciContext = CIContext(options: nil)
-
     enum ExportFormat {
         case png
         case pdf
@@ -139,7 +137,7 @@ enum ScrapbookRenderer {
         if let attachmentPath = layer.attachmentPath,
            let url = SharedAttachmentStore.url(for: attachment(relativePath: attachmentPath)),
            let image = UIImage(contentsOfFile: url.path) {
-            filteredImage(image, filter: layer.imageFilter).drawAspectFill(
+            ScrapbookImageFilterRenderer.image(image, applying: layer.imageFilter).drawAspectFill(
                 in: rect,
                 cropX: layer.imageCropX,
                 cropY: layer.imageCropY,
@@ -154,56 +152,6 @@ enum ScrapbookRenderer {
         context.restoreGState()
         drawImageBorder(layer, in: rect)
         drawShadow(layer, around: path, context: context)
-    }
-
-    private static func filteredImage(_ image: UIImage, filter: ScrapbookLayer.ImageFilter) -> UIImage {
-        guard filter != .original,
-              let cgImage = image.cgImage,
-              let filtered = filteredCGImage(cgImage, filter: filter) else {
-            return image
-        }
-
-        return UIImage(cgImage: filtered, scale: image.scale, orientation: image.imageOrientation)
-    }
-
-    private static func filteredCGImage(_ image: CGImage, filter: ScrapbookLayer.ImageFilter) -> CGImage? {
-        let input = CIImage(cgImage: image)
-        let output: CIImage?
-
-        switch filter {
-        case .original:
-            output = input
-        case .fresh:
-            let controls = CIFilter.colorControls()
-            controls.inputImage = input
-            controls.saturation = 1.08
-            controls.brightness = 0.04
-            controls.contrast = 0.96
-            output = controls.outputImage
-        case .warm:
-            let temperature = CIFilter.temperatureAndTint()
-            temperature.inputImage = input
-            temperature.neutral = CIVector(x: 6500, y: 0)
-            temperature.targetNeutral = CIVector(x: 5200, y: 0)
-            output = temperature.outputImage
-        case .mono:
-            let mono = CIFilter.photoEffectMono()
-            mono.inputImage = input
-            output = mono.outputImage
-        case .vivid:
-            let controls = CIFilter.colorControls()
-            controls.inputImage = input
-            controls.saturation = 1.25
-            controls.brightness = 0.02
-            controls.contrast = 1.08
-            output = controls.outputImage
-        }
-
-        guard let output = output else {
-            return nil
-        }
-
-        return ciContext.createCGImage(output, from: output.extent)
     }
 
     private static func drawImageBorder(_ layer: ScrapbookLayer, in rect: CGRect) {
@@ -325,6 +273,60 @@ enum ScrapbookRenderer {
             blue: CGFloat(value & 0xFF) / 255.0,
             alpha: 1
         )
+    }
+}
+
+enum ScrapbookImageFilterRenderer {
+    private static let ciContext = CIContext(options: nil)
+
+    static func image(_ image: UIImage, applying filter: ScrapbookLayer.ImageFilter) -> UIImage {
+        guard filter != .original,
+              let cgImage = image.cgImage,
+              let filtered = cgImage(cgImage, applying: filter) else {
+            return image
+        }
+
+        return UIImage(cgImage: filtered, scale: image.scale, orientation: image.imageOrientation)
+    }
+
+    private static func cgImage(_ image: CGImage, applying filter: ScrapbookLayer.ImageFilter) -> CGImage? {
+        let input = CIImage(cgImage: image)
+        let output: CIImage?
+
+        switch filter {
+        case .original:
+            output = input
+        case .fresh:
+            let controls = CIFilter.colorControls()
+            controls.inputImage = input
+            controls.saturation = 1.08
+            controls.brightness = 0.04
+            controls.contrast = 0.96
+            output = controls.outputImage
+        case .warm:
+            let temperature = CIFilter.temperatureAndTint()
+            temperature.inputImage = input
+            temperature.neutral = CIVector(x: 6500, y: 0)
+            temperature.targetNeutral = CIVector(x: 5200, y: 0)
+            output = temperature.outputImage
+        case .mono:
+            let mono = CIFilter.photoEffectMono()
+            mono.inputImage = input
+            output = mono.outputImage
+        case .vivid:
+            let controls = CIFilter.colorControls()
+            controls.inputImage = input
+            controls.saturation = 1.25
+            controls.brightness = 0.02
+            controls.contrast = 1.08
+            output = controls.outputImage
+        }
+
+        guard let output = output else {
+            return nil
+        }
+
+        return ciContext.createCGImage(output, from: output.extent)
     }
 }
 

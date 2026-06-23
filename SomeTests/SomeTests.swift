@@ -449,6 +449,17 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(feedback.message.contains("3 条记录 · 2 条历史版本 · 4 个附件 · 12 KB"))
     }
 
+    func testImportFeedbackFormatsBackupSummaryBytesDeterministically() {
+        let summary = MemoBackupSummary(
+            memoCount: 1,
+            revisionCount: 0,
+            attachmentCount: 2,
+            attachmentByteCount: 1_572_864
+        )
+
+        XCTAssertEqual(summary.displayText, "1 条记录 · 0 条历史版本 · 2 个附件 · 1.5 MB")
+    }
+
     func testImportFeedbackExplainsPlainTextImport() {
         let feedback = ImportFeedback.success(kind: .plainText, count: 2)
 
@@ -3415,6 +3426,14 @@ final class SomeTests: XCTestCase {
         let filtered = ScrapbookRenderer.image(for: ScrapbookPageLayout(canvasWidth: 100, canvasHeight: 100, layers: [filteredLayer]))
 
         XCTAssertNotEqual(base.pngData(), filtered.pngData())
+    }
+
+    func testScrapbookImageFilterRendererKeepsOriginalImageDataStable() throws {
+        let image = testImage(size: CGSize(width: 24, height: 24))
+
+        let rendered = ScrapbookImageFilterRenderer.image(image, applying: .original)
+
+        XCTAssertEqual(image.pngData(), rendered.pngData())
     }
 
     func testScrapbookRendererExportsPDFData() throws {

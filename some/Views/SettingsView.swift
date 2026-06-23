@@ -498,7 +498,8 @@ private struct ImportView: View {
             do {
                 let archive = try? JSONDecoder.memoDecoder.decode(MemoBackupArchive.self, from: Data(trimmed.utf8))
                 let count = try store.importJSON(trimmed)
-                feedback = .success(kind: .json, count: count, summary: archive.map(MemoBackupSummary.init))
+                let kind: ImportFeedback.Kind = archive == nil ? .json : .backup
+                feedback = .success(kind: kind, count: count, summary: archive.map(MemoBackupSummary.init))
                 if count > 0 { text = "" }
             } catch {
                 feedback = .failure(error)

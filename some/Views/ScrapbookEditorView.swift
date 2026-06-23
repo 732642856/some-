@@ -1,8 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
 import UIKit
-import CoreImage
-import CoreImage.CIFilterBuiltins
 
 struct ScrapbookEditorView: View {
     @EnvironmentObject private var store: MemoStore
@@ -674,10 +672,10 @@ struct ScrapbookEditorView: View {
             y: layout.canvasHeight * 0.46,
             width: min(760, layout.canvasWidth * 0.72),
             height: min(620, layout.canvasHeight * 0.44),
-            cornerRadius: 24,
-            shadowOpacity: 0.12,
             borderColorHex: "#FFFFFF",
-            borderWidth: 0
+            borderWidth: 0,
+            cornerRadius: 24,
+            shadowOpacity: 0.12
         )
         layout.layers.append(layer)
         selectedLayerID = layer.id
@@ -808,7 +806,7 @@ private struct EditableScrapbookLayerView: View {
                let url = SharedAttachmentStore.url(for: attachment(relativePath: attachmentPath)),
                let image = UIImage(contentsOfFile: url.path) {
                 GeometryReader { proxy in
-                    let previewImage = filteredImage(image, filter: layer.imageFilter)
+                    let previewImage = ScrapbookImageFilterRenderer.image(image, applying: layer.imageFilter)
                     let drawRect = imageDrawRect(
                         imageSize: previewImage.size,
                         viewSize: proxy.size,
@@ -956,56 +954,6 @@ private struct EditableScrapbookLayerView: View {
             width: drawSize.width,
             height: drawSize.height
         )
-    }
-
-    private func filteredImage(_ image: UIImage, filter: ScrapbookLayer.ImageFilter) -> UIImage {
-        guard filter != .original,
-              let cgImage = image.cgImage,
-              let filtered = filteredCGImage(cgImage, filter: filter) else {
-            return image
-        }
-
-        return UIImage(cgImage: filtered, scale: image.scale, orientation: image.imageOrientation)
-    }
-
-    private func filteredCGImage(_ image: CGImage, filter: ScrapbookLayer.ImageFilter) -> CGImage? {
-        let input = CIImage(cgImage: image)
-        let output: CIImage?
-
-        switch filter {
-        case .original:
-            output = input
-        case .fresh:
-            let controls = CIFilter.colorControls()
-            controls.inputImage = input
-            controls.saturation = 1.08
-            controls.brightness = 0.04
-            controls.contrast = 0.96
-            output = controls.outputImage
-        case .warm:
-            let temperature = CIFilter.temperatureAndTint()
-            temperature.inputImage = input
-            temperature.neutral = CIVector(x: 6500, y: 0)
-            temperature.targetNeutral = CIVector(x: 5200, y: 0)
-            output = temperature.outputImage
-        case .mono:
-            let mono = CIFilter.photoEffectMono()
-            mono.inputImage = input
-            output = mono.outputImage
-        case .vivid:
-            let controls = CIFilter.colorControls()
-            controls.inputImage = input
-            controls.saturation = 1.25
-            controls.brightness = 0.02
-            controls.contrast = 1.08
-            output = controls.outputImage
-        }
-
-        guard let output = output else {
-            return nil
-        }
-
-        return CIContext(options: nil).createCGImage(output, from: output.extent)
     }
 
     private func color(hex: String?) -> Color? {
