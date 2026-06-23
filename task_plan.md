@@ -6,9 +6,9 @@
 
 ## 当前阶段
 
-阶段 48：TestFlight workflow checkout action 对齐，状态：complete
+阶段 49：手帐导出后立即分享，状态：complete
 
-备注：阶段 47 在工作日志导出中新增可直接发送的本地汇报稿；阶段 48 将 TestFlight workflow 的 `actions/checkout` 与 CI workflow 对齐到 v5，收束 Node 20 deprecation 警告来源。
+备注：阶段 48 将 TestFlight workflow 的 `actions/checkout` 与 CI workflow 对齐到 v5；阶段 49 在手帐编辑器导出 PNG/PDF 后直接调起系统分享表。
 
 ## 阶段清单
 
@@ -61,6 +61,7 @@
 - 阶段 46：媒体元数据预热与多 OCR 素材索引，状态：complete
 - 阶段 47：工作日志本地汇报稿导出，状态：complete
 - 阶段 48：TestFlight workflow checkout action 对齐，状态：complete
+- 阶段 49：手帐导出后立即分享，状态：complete
 
 ## 当前执行原则
 

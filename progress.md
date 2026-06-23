@@ -490,3 +490,11 @@
 - 复查官方 `actions/checkout` 远端 tags，确认 `v5` / `v5.0.1` 存在；本项目 CI workflow 已使用 `actions/checkout@v5`，发布 workflow 仍停在 `v4`。
 - `.github/workflows/ios-testflight.yml` 的 Checkout 步骤升级到 `actions/checkout@v5`，并同步更新计划、发现、发布说明和验证记录，明确 CI/TestFlight 两条 workflow 已对齐。
 - 本地验证通过：`ruby -e "require 'yaml'; YAML.load_file('.github/workflows/ios-ci.yml'); YAML.load_file('.github/workflows/ios-testflight.yml')"`、`rg -n "actions/checkout@" .github/workflows`、`git diff --check`。实际 TestFlight 上传仍依赖 Apple 签名和 App Store Connect secrets。
+
+## 2026-06-23T19:25:00+08:00
+
+- 进入并完成阶段 49：手帐导出后立即分享。开工前复查 Git 状态、`ScrapbookEditorView`、`ScrapbookRenderer`、`MemoStore.exportScrapbookLayout`、`ShareSheet` / `ExportedDocument` 和手帐导出测试。
+- 按用户要求检索 `SwiftUI PDF export share sheet GitHub MIT iOS scrapbook`、`SwiftUI UIActivityViewController share sheet PDF export GitHub MIT`、`SwiftUI collage editor export PDF share GitHub MIT`、`TPPDF Swift PDF generator MIT GitHub`；已有 MIT 通用参考，但当前项目已有渲染、附件存储和系统分享表，不引入新依赖。
+- 按 TDD 增加 `testExportScrapbookLayoutForSharingReturnsExistingFileURL`，锁定导出分享时应返回附件和真实存在的文件 URL，并继续把 PNG/PDF 引用回写到 memo。
+- `MemoStore.exportScrapbookLayoutForSharing` 复用现有导出逻辑返回 `ScrapbookShareExport`；`ScrapbookEditorView` 在 PNG/PDF 导出成功后把文件 URL 交给 `ShareSheet`，用户可立刻发送或保存。
+- 本地验证通过：`xcrun swiftc -parse some/Stores/MemoStore.swift some/Views/ScrapbookEditorView.swift some/Utilities/ScrapbookRenderer.swift SomeTests/SomeTests.swift`、`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`。本机缺 iOS/UIKit SDK，`swiftc -typecheck` 会在 `import UIKit` 失败，完整 XCTest 继续以 GitHub Actions 为准。

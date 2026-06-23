@@ -700,9 +700,30 @@ final class MemoStore: ObservableObject {
         return attachment
     }
 
+    struct ScrapbookShareExport: Equatable {
+        let attachment: SharedAttachment
+        let url: URL
+    }
+
+    func exportScrapbookLayoutForSharing(
+        _ layout: ScrapbookPageLayout,
+        title: String,
+        for memo: Memo,
+        format: ScrapbookRenderer.ExportFormat = .png
+    ) throws -> ScrapbookShareExport {
+        let attachment = try exportScrapbookLayout(layout, title: title, for: memo, format: format)
+        guard let url = SharedAttachmentStore.url(for: attachment) else {
+            SharedAttachmentStore.delete(attachment)
+            throw ScrapbookExportError.shareURLUnavailable
+        }
+
+        return ScrapbookShareExport(attachment: attachment, url: url)
+    }
+
     private enum ScrapbookExportError: LocalizedError {
         case renderingFailed
         case updateFailed
+        case shareURLUnavailable
 
         var errorDescription: String? {
             switch self {
@@ -710,6 +731,8 @@ final class MemoStore: ObservableObject {
                 return "手帐页面无法渲染为导出文件。"
             case .updateFailed:
                 return "手帐导出文件已回滚，当前记录无法更新。"
+            case .shareURLUnavailable:
+                return "手帐导出文件已保存，但无法定位分享文件。"
             }
         }
     }

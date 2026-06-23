@@ -11,6 +11,7 @@ struct ScrapbookEditorView: View {
     @State private var selectedLayerID: UUID?
     @State private var selectedImageAssetID: UUID?
     @State private var statusText: String?
+    @State private var exportedDocument: ExportedDocument?
 
     init(memo: Memo) {
         self.memo = memo
@@ -51,6 +52,9 @@ struct ScrapbookEditorView: View {
                 }
                 .accessibilityLabel("保存手帐")
             }
+        }
+        .sheet(item: $exportedDocument) { item in
+            ShareSheet(items: [item.url])
         }
     }
 
@@ -635,7 +639,7 @@ struct ScrapbookEditorView: View {
     }
 
     private func exportLayout() {
-        guard let attachment = try? store.exportScrapbookLayout(
+        guard let export = try? store.exportScrapbookLayoutForSharing(
             layout,
             title: MemoReferenceParser.title(for: memo),
             for: memo,
@@ -644,11 +648,12 @@ struct ScrapbookEditorView: View {
             statusText = "导出失败"
             return
         }
-        statusText = "已导出 \(attachment.displayName)"
+        exportedDocument = ExportedDocument(url: export.url)
+        statusText = "已导出 \(export.attachment.displayName)"
     }
 
     private func exportPDF() {
-        guard let attachment = try? store.exportScrapbookLayout(
+        guard let export = try? store.exportScrapbookLayoutForSharing(
             layout,
             title: MemoReferenceParser.title(for: memo),
             for: memo,
@@ -657,7 +662,8 @@ struct ScrapbookEditorView: View {
             statusText = "PDF导出失败"
             return
         }
-        statusText = "已导出 \(attachment.displayName)"
+        exportedDocument = ExportedDocument(url: export.url)
+        statusText = "已导出 \(export.attachment.displayName)"
     }
 
     private func color(hex: String?) -> Color? {

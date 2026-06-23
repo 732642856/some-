@@ -3319,6 +3319,25 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(Array(data.prefix(4)), Array("%PDF".utf8))
     }
 
+    func testScrapbookExportShareFileReturnsOnlyExistingAttachmentURL() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let layout = ScrapbookPageLayout(
+            canvasWidth: 240,
+            canvasHeight: 320,
+            layers: [
+                ScrapbookLayer(kind: .text, title: "标题", text: "分享", x: 120, y: 120, width: 180, height: 80, fontSize: 28)
+            ]
+        )
+
+        let attachment = try store.exportScrapbookLayout(layout, title: "六月手帐", format: .pdf)
+        let exportURL = try XCTUnwrap(ScrapbookExportShareFile.url(for: attachment))
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: exportURL.path))
+
+        SharedAttachmentStore.delete(attachment)
+        XCTAssertNil(ScrapbookExportShareFile.url(for: attachment))
+    }
+
     func testPhotoCollageLayoutBuildsImageGrid() {
         let attachments = (1...4).map { index in
             SharedAttachment(
@@ -3469,6 +3488,31 @@ final class SomeTests: XCTestCase {
         )
         XCTAssertEqual(exportedAsset.kind, .attachment)
         XCTAssertTrue(UTType(exportedAsset.typeIdentifier ?? "")?.conforms(to: .pdf) == true)
+    }
+
+    func testExportScrapbookLayoutForSharingReturnsExistingFileURL() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let memo = try XCTUnwrap(store.addScrapbookPage(
+            title: "六月手帐",
+            template: "日记",
+            note: "分享 PDF"
+        ))
+        let layout = try XCTUnwrap(ScrapbookPageLayout.layout(in: memo.text))
+
+        let export = try store.exportScrapbookLayoutForSharing(
+            layout,
+            title: "六月手帐",
+            for: memo,
+            format: .pdf
+        )
+        defer { SharedAttachmentStore.delete(export.attachment) }
+
+        XCTAssertEqual(export.url, SharedAttachmentStore.url(for: export.attachment))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: export.url.path))
+        XCTAssertTrue(export.attachment.filename.hasSuffix(".pdf"))
+        let updatedMemo = try XCTUnwrap(store.memos.first { $0.id == memo.id })
+        XCTAssertTrue(updatedMemo.text.contains("导出PDF：\(export.attachment.displayName)"))
+        XCTAssertTrue(updatedMemo.text.contains(export.attachment.referenceLine))
     }
 
     func testAddAttachmentMemoDoesNotDuplicateAttachmentAlreadyInNote() throws {
