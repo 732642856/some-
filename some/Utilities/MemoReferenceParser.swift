@@ -38,14 +38,12 @@ enum MemoReferenceParser {
         let nsText = text as NSString
         let range = NSRange(location: 0, length: nsText.length)
         var references: [MemoReference] = []
-        var seenIDs: Set<UUID> = []
 
         expression.enumerateMatches(in: text, options: [], range: range) { result, _, _ in
             guard let result = result,
                   result.numberOfRanges == 3,
                   let idRange = Range(result.range(at: 2), in: text),
-                  let id = UUID(uuidString: String(text[idRange])),
-                  seenIDs.insert(id).inserted else {
+                  let id = UUID(uuidString: String(text[idRange])) else {
                 return
             }
 

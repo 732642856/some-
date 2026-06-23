@@ -1407,6 +1407,35 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(references.map(\.note), ["第一条依据", "第二条依据"])
     }
 
+    func testDuplicateReferenceNotesKeepOneRelationAndFirstAssetSummary() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.addMemo(text: "目标记录 #关系")
+
+        guard let target = store.memos.first(where: { $0.text.contains("目标记录") }) else {
+            return XCTFail("Expected target memo")
+        }
+
+        store.addMemo(
+            text: """
+            源记录 #关系
+
+            引用批注：第一条依据
+            [引用: 目标记录](some-memo://\(target.id.uuidString))
+
+            引用批注：第二条依据
+            [引用: 目标记录](some-memo://\(target.id.uuidString))
+            """
+        )
+        guard let source = store.memos.first(where: { $0.text.contains("源记录") }) else {
+            return XCTFail("Expected source memo")
+        }
+
+        XCTAssertEqual(store.referencedMemos(from: source).map(\.id), [target.id])
+
+        let referenceAsset = MemoAsset.assets(in: source).first { $0.kind == .reference }
+        XCTAssertEqual(referenceAsset?.summary, "第一条依据")
+    }
+
     func testStoreCanAddReferencesAndFindBacklinks() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "源记录 #关系")

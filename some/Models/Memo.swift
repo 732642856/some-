@@ -1610,6 +1610,7 @@ extension MemoAsset {
             append(
                 kind: .reference,
                 title: reference.title ?? reference.memoID.uuidString,
+                summary: reference.note,
                 uri: "\(MemoReferenceParser.scheme)://\(reference.memoID.uuidString)",
                 typeIdentifier: UTType.url.identifier,
                 stableKey: "reference:\(reference.memoID.uuidString)"

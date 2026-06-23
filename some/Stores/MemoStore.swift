@@ -951,7 +951,9 @@ final class MemoStore: ObservableObject {
 
     func referencedMemos(from memo: Memo) -> [Memo] {
         let referencedIDs = MemoReferenceParser.references(in: memo.text).map(\.memoID)
+        var seenIDs: Set<UUID> = []
         return referencedIDs.compactMap { id in
+            guard seenIDs.insert(id).inserted else { return nil }
             memos.first { $0.id == id }
         }
     }
@@ -1446,7 +1448,7 @@ final class MemoStore: ObservableObject {
             return !MemoReferenceParser.references(in: memo.text).isEmpty
         case .referenceNote:
             return MemoReferenceParser.references(in: memo.text).contains { reference in
-                reference.note?.isEmpty == false
+                reference.note?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
             }
         case .backlink:
             return !backlinkMemos(to: memo).isEmpty

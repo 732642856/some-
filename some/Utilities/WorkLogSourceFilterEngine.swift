@@ -121,7 +121,7 @@ enum WorkLogSourceFilterEngine {
             return !MemoReferenceParser.references(in: memo.text).isEmpty
         case .referenceNote:
             return MemoReferenceParser.references(in: memo.text).contains { reference in
-                reference.note?.isEmpty == false
+                reference.note?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
             }
         case .backlink:
             return false
