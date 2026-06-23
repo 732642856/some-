@@ -1739,6 +1739,36 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(same, 1, accuracy: 0.0001)
     }
 
+    func testLocalSemanticSearchWorksWithoutAPIKey() {
+        let older = Memo(
+            text: "今天整理产品路线和用户反馈 #产品",
+            createdAt: Date(timeIntervalSince1970: 1_700_000_000)
+        )
+        let newer = Memo(
+            text: "产品反馈复盘，继续整理路线 #产品",
+            createdAt: Date(timeIntervalSince1970: 1_700_000_100)
+        )
+        let archived = Memo(
+            text: "产品反馈归档",
+            createdAt: Date(timeIntervalSince1970: 1_700_000_200),
+            isArchived: true
+        )
+        let unrelated = Memo(
+            text: "晚餐记录 #生活",
+            createdAt: Date(timeIntervalSince1970: 1_700_000_300)
+        )
+
+        let results = SemanticSearchEngine.localSearch(
+            query: "产品反馈路线",
+            memos: [older, newer, archived, unrelated],
+            limit: 2
+        )
+
+        XCTAssertEqual(results.map(\.memo.id), [newer.id, older.id])
+        XCTAssertGreaterThan(results[0].score, 0)
+        XCTAssertFalse(results.contains { $0.memo.id == archived.id })
+    }
+
     func testInsightPromptKeepsProvidedMemoContent() {
         let memo = Memo(
             text: "下午整理产品灵感 #产品",
@@ -2558,6 +2588,30 @@ final class SomeTests: XCTestCase {
             """
         )
         XCTAssertNil(AudioTranscriber.memoText(for: attachment, transcript: "   "))
+    }
+
+    func testAudioTranscriptionLanguageBuildsLocaleAndMemoHeader() {
+        XCTAssertEqual(AudioTranscriptionLanguage.value(for: "unknown"), .automatic)
+        XCTAssertNil(AudioTranscriptionLanguage.automatic.locale)
+        XCTAssertEqual(AudioTranscriptionLanguage.mandarin.locale?.identifier, "zh_CN")
+        XCTAssertEqual(AudioTranscriptionLanguage.english.locale?.identifier, "en_US")
+
+        let attachment = SharedAttachment(
+            id: "voice.m4a",
+            filename: "voice.m4a",
+            relativePath: "voice.m4a",
+            typeIdentifier: UTType.mpeg4Audio.identifier,
+            byteCount: 42
+        )
+
+        XCTAssertEqual(
+            AudioTranscriber.memoText(for: attachment, transcript: "  product notes  ", language: .english),
+            """
+            语音转写：voice.m4a（英语）
+
+            product notes
+            """
+        )
     }
 
     func testVideoThumbnailGeneratorReturnsNilForMissingFile() {

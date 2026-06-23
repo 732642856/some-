@@ -60,6 +60,8 @@
 - 2026-06-23：阶段 59 继续补搜 `SwiftUI notes backlinks references MIT` 与 `Swift notes backlink annotation MIT`，GitHub Search 精确查询均返回 0；`usememos/memos` 为 MIT 且可继续参考 Markdown-native relation / reference / comment 设计，但 Go/React 架构不能直接复制进当前 SwiftUI 本地 App。本轮只修复 some 自有引用解析器的实例级解析与 UI/素材去重边界。
 - 2026-06-23：阶段 60 开工前检索 `swift daily standup report template license:mit`、`work log report generator markdown license:mit`、`project status report template markdown license:mit`，GitHub Search 精确查询均返回 0；本轮继续复用 some 现有 `WorkLogExporter` 字段抽取与纯文本导出，新增站会稿/项目简报模板，不引入第三方依赖。
 - 2026-06-23：阶段 61 开工前检索 `Swift AI memory journal profile MIT` 与 `SwiftUI personal knowledge memory profile MIT`，GitHub Search 精确查询均返回 0；本轮不复制第三方源码，先做本地确定性“AI 记忆档案”草稿，从标签、任务、工作日志字段和高频词提炼，不调用 OpenAI API、不需要用户密钥。
+- 2026-06-23：阶段 62 开工前检索 `Swift local fuzzy search note app MIT`、`Swift text similarity search notes MIT`、`Swift token overlap search engine MIT`；可找到 `fuse-swift`、NaturalLanguage 示例和通用相似度库，但直接引入会增加 SPM/Xcode/CI 变更。本轮先用项目内轻量词项重叠搜索，保证无 OpenAI Key 时 AI 工作台的搜索/相关仍可用。
+- 2026-06-23：阶段 63 开工前检索 `Swift SFSpeechRecognizer language picker MIT GitHub` 与 `iOS speech recognition locale picker Swift open source MIT`；WhisperKit 等 MIT 项目适合后续离线转写增强，但本轮只需 Apple Speech locale 选择，不引入模型包或第三方依赖。
 - 2026-06-23：CI 失败复查：runs `28018991662` / `28019499635` 的 Build for simulator 均通过，Run tests 失败 annotation 指向 `appintentsmetadataprocessor --module-name ZIPFoundation`。根因是 Xcode 16.4 测试构建仍会对 Swift Package 跑 App Intents metadata processor；正式 build 需要继续验证 ZIPFoundation，测试阶段可临时移除 package 引用并用 `CI_DISABLE_ZIP_BACKUP` stub 跳过 ZIP 专属测试。
 - 2026-06-23：CI 收口复查：run `28022556308` 的 Build for simulator 已通过，Run tests annotation 只剩搜索日期解析相关 `XCTAssertTrue failed`。本地发现 `MemoSearchQueryParser.dateRange` 使用 Gregorian calendar 但未显式设置 calendar 自身时区，只在 `DateComponents` 设置 `TimeZone.current`；在 CI 模拟器时区下可能让月份/日期范围起点与测试预期漂移。
 - 2026-06-23：CI 收口复查：run `28031203527` 已越过 AppIntents metadata processor，转而暴露 `testWorkLogExporterBuildsShareableReportDraft` 的真实业务断言失败。根因是汇报稿按记录时间/输入顺序汇总时，日报可能排在项目汇报之前；修复方向是让 `WorkLogExporter.reportDraft` 按模板优先级排序，项目汇报优先于日报，并把测试改为完整文本等值断言。
@@ -69,6 +71,8 @@
 - 媒体预览：视频附件已有本地缩略图缓存、媒体元数据摘要、视频缩略图预热/清理和图片/音频/视频元数据摘要批量预热；后续需用真实长列表验证滚动性能，并按需要继续细化缓存淘汰策略。
 - 工作日志：已有勾选记录生成结构化日志 v8；支持按标签、素材类型、时间和关键词筛选来源记录，支持项目字段、日期范围和日报/周报/项目汇报/复盘模板，工作日志列表支持项目/模板/日期筛选，并可把当前结果导出为带本地汇报摘要的 Markdown、结构化 CSV、通用汇报稿、站会稿或项目简报；后续可补可选 AI 润色和更细的团队模板。
 - 快速记录：已有普通快速输入、禅定专注记录 v2 和小组件快照 v1；专注模式提供大文本框、本地草稿、舒适/大字/紧凑文字偏好、实时字数/行数/标签统计和一键保存；小组件可查看今日/全部计数、最近记录并跳回记录/专注/详情；后续可补桌面快捷入口和更多禅定模式偏好。
+- AI 工作台：已有 API Key 驱动的洞察、语义搜索、相关记录，新增无 Key 可用的本地 AI 记忆档案与本地相关搜索；未配置 Key 时搜索/相关使用词项重叠评分，配置 Key 后继续使用 OpenAI embedding。后续可考虑接 Apple NaturalLanguage 或许可清晰的本机向量库提升质量。
+- 录音/语音：详情页音频附件已支持 Apple Speech 本机转写，并新增自动、普通话、英语、粤语、日语、韩语语言选择；语言偏好保存在本机 `AppStorage`，转写结果会在标题标注所选语言。
 - 电子手帐：已有图层 JSON、预览、详情页拖拽/缩放/旋转、独立编辑器图层新增/复制/删除/层级调整、图片素材追加、图片图层取景位置/放大微调、照片滤镜、相框颜色/线宽、画布底色、字体/贴纸/花边预设、颜色/字号/圆角/线宽编辑、PNG/PDF 导出、保存回原 memo 和导出后系统分享表；后续缺真实图片排版长页性能和真机手势验证。
 - 图片编辑：已完成素材库图片编辑入口、预设比例裁剪、拖拽定位/捏合缩放裁剪、裁剪状态边界统一、背景柔化/纯色画布、人物抠图、iOS 17+ 智能主体抠图、智能主体单实例点选、授权图片柔和修补/对象清理贴片、Core Image 滤镜、边框、文字、贴纸、版式模板/导出预设、多图拼贴 MVP、手帐图片图层构图微调、输出 PNG 附件、`imageEdit` / `scrapbookPage` 素材索引和相关搜索；更真实的复杂对象修复、完整裁剪器接入和真机复杂手势验证仍待补。
 - 电子衣橱：已完成衣橱洞察 v7，可从现有素材索引统计分类、颜色、季节、场景、材质、厚薄、未进入穿搭组合单品、常用单品、穿着次数、最近穿着和成本/次，并记录洗护状态、旅行打包清单、目的地、天气和行程天数；现在可根据最近穿着或打包清单天气生成天气穿搭、自动生成打包草稿，在炎热天气优先轻薄/透气材质，按行程天数扩展上装/下装和配件数量，用最新打包清单带出目的地/天气，用最新洗护状态提醒待清洗/送洗/待熨烫/待修补单品，并可安排本地系统通知。后续可接真实天气 API 和按目的地/天气更细化的数量规则。

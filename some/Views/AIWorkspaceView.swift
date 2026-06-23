@@ -172,7 +172,7 @@ struct AIWorkspaceView: View {
             actionButton(title: "搜索相关记录", systemImage: "magnifyingglass") {
                 Task { await runSemanticSearch() }
             }
-            .disabled(!settings.isConfigured || isWorking || query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(isWorking || query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
             resultList
             statusView
@@ -273,7 +273,7 @@ struct AIWorkspaceView: View {
                 actionButton(title: "找相关", systemImage: "link") {
                     Task { await findRelatedMemos() }
                 }
-                .disabled(!settings.isConfigured || isWorking || relatedSeed == nil)
+                .disabled(isWorking || relatedSeed == nil)
             }
 
             resultList
@@ -362,27 +362,44 @@ struct AIWorkspaceView: View {
     }
 
     private func runSemanticSearch() async {
-        await runAIAction {
-            semanticResults = try await SemanticSearchEngine.search(
+        if settings.isConfigured {
+            await runAIAction {
+                semanticResults = try await SemanticSearchEngine.search(
+                    query: query,
+                    memos: store.memos,
+                    client: settings.makeClient()
+                )
+                statusText = semanticResults.isEmpty ? "没有找到相关记录" : "找到 \(semanticResults.count) 条"
+            }
+        } else {
+            semanticResults = SemanticSearchEngine.localSearch(
                 query: query,
-                memos: store.memos,
-                client: settings.makeClient()
+                memos: store.memos
             )
-            statusText = semanticResults.isEmpty ? "没有找到相关记录" : "找到 \(semanticResults.count) 条"
+            statusText = semanticResults.isEmpty ? "本地没有找到相关记录" : "本地找到 \(semanticResults.count) 条"
         }
     }
 
     private func findRelatedMemos() async {
         guard let relatedSeed else { return }
 
-        await runAIAction {
-            semanticResults = try await SemanticSearchEngine.search(
+        if settings.isConfigured {
+            await runAIAction {
+                semanticResults = try await SemanticSearchEngine.search(
+                    query: relatedSeed.text,
+                    memos: store.memos,
+                    client: settings.makeClient(),
+                    excluding: relatedSeed.id
+                )
+                statusText = semanticResults.isEmpty ? "没有找到相关记录" : "找到 \(semanticResults.count) 条"
+            }
+        } else {
+            semanticResults = SemanticSearchEngine.localSearch(
                 query: relatedSeed.text,
                 memos: store.memos,
-                client: settings.makeClient(),
                 excluding: relatedSeed.id
             )
-            statusText = semanticResults.isEmpty ? "没有找到相关记录" : "找到 \(semanticResults.count) 条"
+            statusText = semanticResults.isEmpty ? "本地没有找到相关记录" : "本地找到 \(semanticResults.count) 条"
         }
     }
 

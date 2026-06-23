@@ -19,7 +19,12 @@ struct MemoDetailView: View {
     @State private var transcriptionStatusText: String?
     @State private var transcribingAttachmentID: String?
     @State private var imageTextStatusText: String?
+    @AppStorage("some.audioTranscriptionLanguage") private var transcriptionLanguageRawValue = AudioTranscriptionLanguage.automatic.rawValue
     @FocusState private var isFocused: Bool
+
+    private var transcriptionLanguage: AudioTranscriptionLanguage {
+        AudioTranscriptionLanguage.value(for: transcriptionLanguageRawValue)
+    }
 
     init(memo: Memo) {
         self.memo = memo
@@ -351,6 +356,24 @@ struct MemoDetailView: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Color.secondaryText)
 
+            Menu {
+                ForEach(AudioTranscriptionLanguage.allCases) { language in
+                    Button {
+                        transcriptionLanguageRawValue = language.rawValue
+                    } label: {
+                        if language == transcriptionLanguage {
+                            Label(language.title, systemImage: "checkmark")
+                        } else {
+                            Text(language.title)
+                        }
+                    }
+                }
+            } label: {
+                Label(transcriptionLanguage.title, systemImage: "globe.asia.australia")
+                    .font(.footnote.weight(.semibold))
+            }
+            .buttonStyle(.bordered)
+
             ForEach(attachments) { attachment in
                 Button {
                     transcribe(attachment, in: memo)
@@ -431,8 +454,9 @@ struct MemoDetailView: View {
 
         Task {
             do {
-                let transcript = try await AudioTranscriber.transcribe(fileURL: url)
-                let appendedText = AudioTranscriber.memoText(for: attachment, transcript: transcript)
+                let language = transcriptionLanguage
+                let transcript = try await AudioTranscriber.transcribe(fileURL: url, language: language)
+                let appendedText = AudioTranscriber.memoText(for: attachment, transcript: transcript, language: language)
                 await MainActor.run {
                     defer {
                         transcribingAttachmentID = nil

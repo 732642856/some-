@@ -617,3 +617,19 @@
 - AI 工作台新增“记忆”页，可按现有范围生成本地档案，并支持复制、分享或保存为普通记录 `#AI记忆档案`。
 - 禅定记录补舒适/大字/紧凑三种文字偏好，使用 `@AppStorage("some.zenWritingPreference")` 保存字号、行距和占位文案。
 - 本地验证通过：`xcrun swiftc -parse some/AI/AIMemoryProfile.swift some/AI/AIInsightComposer.swift some/Utilities/DateFormatters.swift some/Utilities/TagParser.swift some/Utilities/MemoTaskParser.swift some/Utilities/MemoReferenceParser.swift some/Utilities/SharedAttachmentStore.swift some/Models/Memo.swift SomeTests/SomeTests.swift`、`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist SomeWidget/Info.plist`。`AIWorkspaceView.swift` 单文件 parse 仍受本机 Swift 5.4 对既有 async/await 和新式 `if let` 语法限制，完整 UI 编译以 GitHub Actions/Xcode 16.4 为准。
+
+## 2026-06-23T23:03:00+08:00
+
+- 进入并完成阶段 62：AI 工作台本地相关搜索。开工前复查 `SemanticSearchEngine`、`AIWorkspaceView`、AI 相关测试和阶段 61 的无 Key 记忆档案。
+- 按用户要求检索 Swift 本地模糊搜索/文本相似度开源候选；存在通用库和 NaturalLanguage 示例，但本轮不引入 SPM，先做低风险本地 fallback。
+- 按 TDD 增加 `testLocalSemanticSearchWorksWithoutAPIKey`，锁定归档记录排除、相关记录排序、limit 和非零评分。
+- `SemanticSearchEngine.localSearch` 新增本地词项重叠评分，中文长词会补二字滑窗，按分数和时间排序；`AIWorkspaceView` 在没有 OpenAI Key 时让“搜索/相关”按钮仍可用并显示“本地找到”状态，配置 Key 后继续走 OpenAI embedding。
+- 本地 Swift 5.4 parser 的红灯探针被既有 `try await` 语法挡住，无法跑到缺失 `localSearch` 的真实编译错误；实现后用可解析文件、plist/scheme/workflow 和 diff 检查继续验证，完整 UI 编译仍以 GitHub Actions/Xcode 16.4 为准。
+
+## 2026-06-23T23:12:00+08:00
+
+- 进入并完成阶段 63：语音转写语言选择。开工前复查 `AudioTranscriber`、音频附件详情页、语音转写测试和 README 隐私说明。
+- 按用户要求检索 Apple Speech 语言选择相关开源候选；未引入 WhisperKit 等重依赖，本轮继续复用 Apple `SFSpeechRecognizer`。
+- 按 TDD 增加 `testAudioTranscriptionLanguageBuildsLocaleAndMemoHeader`，覆盖未知值回退自动、普通话/英语 locale，以及非自动语言的转写标题标注。
+- `AudioTranscriptionLanguage` 新增自动、普通话、英语、粤语、日语、韩语；`AudioTranscriber.transcribe(fileURL:language:)` 会把选择映射到 locale，`memoText` 在非自动语言时把语言写入标题。
+- 详情页语音转写区新增语言菜单，偏好保存在 `@AppStorage("some.audioTranscriptionLanguage")`，用户转写不同语言音频时不用反复去系统设置。

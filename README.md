@@ -27,7 +27,7 @@
 ## 已实现底座
 
 - 快速输入卡片
-- 禅定专注记录 v1：首页新增“专注”模式，提供大文本输入、自动聚焦、本地草稿保留、实时字数/行数/标签统计和一键保存，适合只想先写下想法时使用
+- 禅定专注记录 v2：首页新增“专注”模式，提供大文本输入、舒适/大字/紧凑文字偏好、自动聚焦、本地草稿保留、实时字数/行数/标签统计和一键保存，适合只想先写下想法时使用
 - 桌面小组件 v1：新增 Widget Extension，读取 App Group 内的轻量快照，显示今日/总记录数和最近记录；小组件可打开记录页、专注页、搜索页或深链到单条记录，视觉沿用浅粉、雾蓝、淡紫、柔白的小清新头像色系
 - 快速导入入口 v1：可从输入卡片拍照、拍视频，或导入相册图片/视频和文件，保存为本地附件素材
 - 录音入口 v1：快速输入卡片可录制本地 m4a 音频，保存为音频附件素材
@@ -61,8 +61,9 @@
 - URL Scheme：`some://home` 打开记录页，`some://zen` 打开专注页，`some://add?text=...` 快速保存，`some://search?q=...` 快速打开搜索，`some://open?id=<记录UUID>` 深链打开单条记录
 - 可选 OpenAI API Key，保存在 iOS Keychain
 - AI 洞察：周期复盘、困惑破局、自我觉察、主题研究、写作灵感
-- AI 自然语言语义搜索
-- AI 相关记录查找
+- 本地 AI 记忆档案：不需要 API Key，可从设备内记录提炼主题、任务和工作线索，并保存为普通记录
+- AI 自然语言语义搜索：未配置 Key 时走本地相关搜索，配置 Key 后走 OpenAI embedding
+- AI 相关记录查找：未配置 Key 时可用本地相关度，配置 Key 后走 OpenAI embedding
 - 隐私锁：支持 Face ID / Touch ID / 设备密码解锁
 - 每日回顾提醒：本地通知，可设置提醒时间
 - 链接识别：卡片显示链接，详情页可直接打开
@@ -134,7 +135,7 @@
 
 签名和发布相关 ID 已抽成 build settings：`APP_BUNDLE_ID`、`SHARE_EXTENSION_BUNDLE_ID`、`WIDGET_EXTENSION_BUNDLE_ID`、`APP_GROUP_IDENTIFIER`。本机 Xcode 可在 Build Settings 中修改；GitHub Actions 可通过 secrets 注入。
 
-AI 功能是可选能力：只有在设置里保存 OpenAI API Key，并主动点击 AI 洞察、AI 搜索或相关记录时，应用才会把本次操作需要的文本直接发送到 OpenAI API。API Key 保存在本机 Keychain，不写入完整备份。
+AI 功能是可选能力：本地 AI 记忆档案、本地相关搜索不需要 API Key，也不会离开设备；只有在设置里保存 OpenAI API Key，并主动点击 AI 洞察或使用增强语义搜索/相关记录时，应用才会把本次操作需要的文本直接发送到 OpenAI API。API Key 保存在本机 Keychain，不写入完整备份。
 
 Markdown 阅读渲染当前使用 iOS 系统 `AttributedString(markdown:)`，任务项勾选、引用/反链和引用批注使用项目内轻量解析器。后续若要做完整块级渲染、代码块和附件卡片，优先接入 `Textual`、`MarkdownUI` 或 `swift-markdown` 这类 MIT / Apache Swift Package。
 

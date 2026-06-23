@@ -12,6 +12,46 @@ struct SemanticMemoResult: Identifiable, Equatable {
 }
 
 enum SemanticSearchEngine {
+    static func localSearch(
+        query: String,
+        memos: [Memo],
+        limit: Int = 8,
+        excluding excludedID: UUID? = nil
+    ) -> [SemanticMemoResult] {
+        let queryTerms = localSearchTerms(in: query)
+        guard !queryTerms.isEmpty else {
+            return []
+        }
+
+        return memos
+            .filter { !$0.isArchived }
+            .filter { $0.id != excludedID }
+            .compactMap { memo -> SemanticMemoResult? in
+                let memoTerms = localSearchTerms(in: memo.text)
+                guard !memoTerms.isEmpty else {
+                    return nil
+                }
+
+                let sharedTerms = queryTerms.intersection(memoTerms)
+                guard !sharedTerms.isEmpty else {
+                    return nil
+                }
+
+                let coverage = Double(sharedTerms.count) / Double(queryTerms.count)
+                let density = Double(sharedTerms.count) / Double(memoTerms.count)
+                let score = min(1, (coverage * 0.75) + (density * 0.25))
+                return SemanticMemoResult(memo: memo, score: score)
+            }
+            .sorted { lhs, rhs in
+                if lhs.score == rhs.score {
+                    return lhs.memo.createdAt > rhs.memo.createdAt
+                }
+                return lhs.score > rhs.score
+            }
+            .prefix(limit)
+            .map { $0 }
+    }
+
     static func search(
         query: String,
         memos: [Memo],
@@ -69,5 +109,32 @@ enum SemanticSearchEngine {
         }
 
         return dot / (lhsMagnitude * rhsMagnitude)
+    }
+
+    private static func localSearchTerms(in text: String) -> Set<String> {
+        let separators = CharacterSet(charactersIn: " \n\t，。！？、；：,.!?;:()（）[]【】<>《》\"“”'‘’")
+        let rawTerms = text
+            .lowercased()
+            .components(separatedBy: separators)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        var terms = Set<String>()
+        rawTerms.forEach { term in
+            guard !term.hasPrefix("#") else {
+                terms.insert(String(term.dropFirst()))
+                return
+            }
+            guard term.count >= 2 else { return }
+            terms.insert(term)
+
+            if term.count >= 4 {
+                let characters = Array(term)
+                for index in 0..<(characters.count - 1) {
+                    terms.insert(String(characters[index...(index + 1)]))
+                }
+            }
+        }
+        return terms
     }
 }
