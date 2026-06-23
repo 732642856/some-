@@ -633,3 +633,9 @@
 - 按 TDD 增加 `testAudioTranscriptionLanguageBuildsLocaleAndMemoHeader`，覆盖未知值回退自动、普通话/英语 locale，以及非自动语言的转写标题标注。
 - `AudioTranscriptionLanguage` 新增自动、普通话、英语、粤语、日语、韩语；`AudioTranscriber.transcribe(fileURL:language:)` 会把选择映射到 locale，`memoText` 在非自动语言时把语言写入标题。
 - 详情页语音转写区新增语言菜单，偏好保存在 `@AppStorage("some.audioTranscriptionLanguage")`，用户转写不同语言音频时不用反复去系统设置。
+
+## 2026-06-23T23:24:00+08:00
+
+- 阶段 62/63 已由提交 `076e5cd`、`439808e`、`776160f` 落地并同步到 `origin/master`；恢复后重新校准 Git 状态，确认主功能代码已进入提交历史。
+- 补阶段 63 文档和提示收口：README 将本地语音转写更新为 v2，移除“转写语言选择”路线图项；AI 工作台无 Key banner 改为说明本地 AI 已可用；验证记录改成已经实际执行过的命令与旧 Swift parser 限制说明。
+- 远端 run `28035724252` 暴露 `MemoStore.referencedMemos(from:)` 在 Share Extension 编译路径下的闭包返回诊断，已在 `26bfbdb` 给 `compactMap` 闭包显式补 `return`，本地通过 `MemoStore.swift` parse、`git diff --check`、plist/scheme/workflow 校验，等待 run `28035841758` 复验。
