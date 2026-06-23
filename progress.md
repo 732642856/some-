@@ -475,3 +475,11 @@
 - 素材库的生命周期维护从 `maintainVideoThumbnailCache` 升级为 `maintainMediaCaches`：素材变化时后台预热图片/音频/视频元数据摘要，同时继续预热视频缩略图并清理孤儿缩略图缓存。
 - `MemoAsset.assets(in:)` 的图片文字解析从单块改为多块扫描；每个“图片文字/截图文字”块会优先匹配块内附件，其次按标题匹配现有图片附件，避免多图局部 OCR 被折叠成一条截图素材。
 - 本地验证通过：`xcrun swiftc -parse some/Utilities/MediaMetadataExtractor.swift some/Utilities/AttachmentReferenceResolver.swift some/Utilities/SharedAttachmentStore.swift some/Utilities/VideoThumbnailGenerator.swift some/Models/Memo.swift SomeTests/SomeTests.swift`、`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`。本机旧 Swift 5.4 parser 单独解析 `ContentView.swift` 仍被既有 `await` 语法挡住，完整 UI 类型检查继续依赖 GitHub Actions。
+
+## 2026-06-23T18:40:00+08:00
+
+- 进入并完成阶段 47：工作日志本地汇报稿导出。开工前复查 Git 状态、`WorkLogExporter`、工作日志导出菜单和现有 Markdown/CSV 测试。
+- 按用户要求检索 `Swift daily report generator markdown MIT`、`SwiftUI work log report export MIT`、`project status report markdown Swift MIT`，GitHub API 均返回 0 个可直接复制的 Swift/MIT 模块；本轮不调用 OpenAI API，也不需要用户提供密钥。
+- 按 TDD 增加 `testWorkLogExporterBuildsShareableReportDraft`，锁定纯文本汇报稿应包含项目、日期、进展、风险/问题和下一步，并按结构化字段去重。
+- `WorkLogExporter.reportDraft` 会从当前筛选日志生成可直接发送的“工作汇报”文本；工作日志导出菜单新增“汇报稿”，导出为 `.txt` 并复用系统分享表。
+- 本地验证通过：`xcrun swiftc -parse some/Utilities/WorkLogSourceFilterEngine.swift some/Views/ContentView.swift SomeTests/SomeTests.swift`、`git diff --check`。完整 XCTest 继续以 GitHub Actions 为准。
