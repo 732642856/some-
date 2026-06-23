@@ -105,7 +105,7 @@ enum SharedMemoStorage {
         return sharedDirectory
     }
 
-    private static func urls(
+    static func urls(
         filename: String,
         storageDirectory: URL,
         standardDirectory: URL

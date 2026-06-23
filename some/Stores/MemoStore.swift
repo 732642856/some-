@@ -51,6 +51,37 @@ enum MemoHomeMode: String, CaseIterable, Identifiable {
     }
 }
 
+enum AppShortcutRouteStore {
+    private static let destinationKey = "some.shortcut.destination"
+
+    static var defaultDefaults: UserDefaults {
+        UserDefaults(suiteName: SharedMemoStorage.appGroupIdentifier) ?? .standard
+    }
+
+    static func request(_ destination: MemoHomeMode) {
+        request(destination, defaults: defaultDefaults)
+    }
+
+    static func request(_ destination: MemoHomeMode, defaults: UserDefaults) {
+        defaults.set(destination.rawValue, forKey: destinationKey)
+    }
+
+    static func consume() -> MemoHomeMode? {
+        consume(defaults: defaultDefaults)
+    }
+
+    static func consume(defaults: UserDefaults) -> MemoHomeMode? {
+        guard let rawDestination = defaults.string(forKey: destinationKey),
+              let destination = MemoHomeMode(rawValue: rawDestination) else {
+            defaults.removeObject(forKey: destinationKey)
+            return nil
+        }
+
+        defaults.removeObject(forKey: destinationKey)
+        return destination
+    }
+}
+
 struct MemoTimelineEmptyState: Equatable {
     var title: String
     var subtitle: String
@@ -116,6 +147,27 @@ final class MemoStore: ObservableObject {
     var archivedMemos: [Memo] {
         filteredMemos(includeArchived: true)
             .filter(\.isArchived)
+    }
+
+    @discardableResult
+    func openPendingShortcutDestinationIfNeeded() -> Bool {
+        openPendingShortcutDestinationIfNeeded(defaults: AppShortcutRouteStore.defaultDefaults)
+    }
+
+    @discardableResult
+    func openPendingShortcutDestinationIfNeeded(defaults: UserDefaults) -> Bool {
+        guard let destination = AppShortcutRouteStore.consume(defaults: defaults) else {
+            return false
+        }
+
+        selectedTag = nil
+        searchText = ""
+        pendingOpenMemoID = nil
+        homeMode = destination
+        if destination == .review {
+            pickRandomReviewMemo()
+        }
+        return true
     }
 
     var activeMemos: [Memo] {

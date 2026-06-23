@@ -439,6 +439,42 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: standardDirectory.path))
     }
 
+    func testSharedStorageCopiesLegacyMemoFilesIntoSharedDirectoryWithoutOverwriting() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("shared-migration-\(UUID().uuidString)", isDirectory: true)
+        let standardDirectory = root.appendingPathComponent("Documents", isDirectory: true)
+        let sharedDirectory = root.appendingPathComponent("Shared", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: standardDirectory, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: sharedDirectory, withIntermediateDirectories: true)
+
+        let filename = "migration-\(UUID().uuidString).json"
+        let legacyFile = standardDirectory.appendingPathComponent(filename)
+        let legacyBackup = legacyFile.deletingPathExtension().appendingPathExtension("bak.json")
+        let legacyDatabase = legacyFile.deletingPathExtension().appendingPathExtension("sqlite")
+        try Data("legacy json".utf8).write(to: legacyFile)
+        try Data("legacy backup".utf8).write(to: legacyBackup)
+        try Data("legacy sqlite".utf8).write(to: legacyDatabase)
+        try Data("legacy wal".utf8).write(to: URL(fileURLWithPath: legacyDatabase.path + "-wal"))
+        try Data("legacy shm".utf8).write(to: URL(fileURLWithPath: legacyDatabase.path + "-shm"))
+
+        let sharedFile = sharedDirectory.appendingPathComponent(filename)
+        try Data("existing shared json".utf8).write(to: sharedFile)
+
+        let urls = SharedMemoStorage.urls(
+            filename: filename,
+            storageDirectory: sharedDirectory,
+            standardDirectory: standardDirectory
+        )
+
+        XCTAssertEqual(urls.fileURL, sharedFile)
+        XCTAssertEqual(try Data(contentsOf: urls.fileURL), Data("existing shared json".utf8))
+        XCTAssertEqual(try Data(contentsOf: urls.backupFileURL), Data("legacy backup".utf8))
+        XCTAssertEqual(try Data(contentsOf: urls.databaseURL), Data("legacy sqlite".utf8))
+        XCTAssertEqual(try Data(contentsOf: URL(fileURLWithPath: urls.databaseURL.path + "-wal")), Data("legacy wal".utf8))
+        XCTAssertEqual(try Data(contentsOf: URL(fileURLWithPath: urls.databaseURL.path + "-shm")), Data("legacy shm".utf8))
+    }
+
     func testSQLiteMigrationFallsBackToBackupWhenMainJSONIsCorrupt() throws {
         let filename = "test-\(UUID().uuidString).json"
         let fileURL = documentsURL().appendingPathComponent(filename)
@@ -638,6 +674,23 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(store.handleURL(URL(string: "some://zen")!))
         XCTAssertEqual(store.homeMode, .zen)
         XCTAssertEqual(store.searchText, "")
+    }
+
+    func testAppShortcutRouteStoreOpensAndConsumesDestination() {
+        let suiteName = "some-shortcut-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.searchText = "#旧筛选"
+        store.homeMode = .timeline
+
+        AppShortcutRouteStore.request(.workLog, defaults: defaults)
+
+        XCTAssertTrue(store.openPendingShortcutDestinationIfNeeded(defaults: defaults))
+        XCTAssertEqual(store.homeMode, .workLog)
+        XCTAssertEqual(store.searchText, "")
+        XCTAssertFalse(store.openPendingShortcutDestinationIfNeeded(defaults: defaults))
     }
 
     func testURLSchemeOpenSelectsExistingMemoWithoutCreatingMemo() {

@@ -31,6 +31,7 @@ struct SomeApp: App {
             }
             .animation(.easeInOut(duration: 0.18), value: appLock.isLocked)
                 .task {
+                    store.openPendingShortcutDestinationIfNeeded()
                     await reminders.refreshAuthorizationStatus()
                 }
                 .onOpenURL { url in
@@ -39,6 +40,7 @@ struct SomeApp: App {
                 .onChange(of: scenePhase) { newPhase in
                     if newPhase == .active {
                         store.reloadFromStorage()
+                        store.openPendingShortcutDestinationIfNeeded()
                         Task { await reminders.refreshAuthorizationStatus() }
                     } else {
                         appLock.lockIfNeeded()

@@ -724,3 +724,17 @@
 - 开工前检索 Swift/NaturalLanguage/本地模糊搜索候选，未找到可直接复制进当前笔记搜索链路的成熟模块；继续复用 Apple 系统 `NaturalLanguage`。
 - 按 TDD 增加 `testLocalSemanticSearchTokenizesCompactChinesePhrases`，要求“团队周报模板”能命中“工作日志团队周报导出”，并展示“团队/周报”命中词。
 - `SemanticSearchEngine.localSearchTerms` 新增 `NLTokenizer(unit: .word)` 分词结果，连续中文短语会补“团队、周报、模板”这类词；低权重二字碎片仍参与打分，但命中词展示优先隐藏碎片，减少 UI 噪音。
+
+## 2026-06-24T02:18:00+08:00
+
+- 进入并完成阶段 76：App Group 旧存储迁移测试。阶段 75 最新 CI 仍在运行，本轮继续处理 P0 的 Share Extension/App Group 边界测试缺口。
+- 开工前检索 App Group 共享容器迁移、Share Extension 数据共享和 SQLite 伴随文件迁移讨论；本轮不引入 GRDB/Realm/CoreData 迁移库，只覆盖项目已有文件拷贝逻辑。
+- 按 TDD 增加 `testSharedStorageCopiesLegacyMemoFilesIntoSharedDirectoryWithoutOverwriting`，锁定旧 Documents 中的 JSON 备份、SQLite、WAL、SHM 会迁入共享目录，且已有共享主 JSON 不会被旧文件覆盖。
+- `SharedMemoStorage.urls(filename:storageDirectory:standardDirectory:)` 从私有放宽为模块内可见，方便单元测试直接覆盖纯迁移逻辑，不改变主 App/Extension 运行路径。
+
+## 2026-06-24T02:30:00+08:00
+
+- 进入并完成阶段 77：App Shortcuts 打开常用工作区。阶段 76 后继续处理快速入口缺口，让快捷指令不只可保存随记，也能打开高频页。
+- 开工前复查 App Intents、URL Scheme、Widget 深链和 `MemoHomeMode`；检索 App Intents 打开指定 tab/route 候选，未找到可直接复制进当前状态模型的模块。
+- 新增 `OpenZenIntent`、`OpenWorkLogIntent`、`OpenWardrobeIntent` 和 `OpenAIWorkspaceIntent`，通过 App Group `UserDefaults` 写入待打开目标，App 激活时消费并切换首页模式。
+- 新增 `testAppShortcutRouteStoreOpensAndConsumesDestination`，覆盖快捷指令目标只消费一次，并清空旧搜索条件。
