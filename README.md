@@ -120,6 +120,7 @@
 - App 名称：默认 `some`
 - Bundle ID：默认 `com.732642856.some`
 - Share Extension Bundle ID：默认 `com.732642856.some.share`
+- Widget Extension Bundle ID：默认 `com.732642856.some.widget`
 - App Group：默认 `group.com.732642856.some`
 - Copyright：在 App Store Connect 中填你的个人或公司主体
 - 支持 URL：需要一个公开网页
@@ -127,11 +128,11 @@
 
 ## 技术说明
 
-当前版本不接入账号、云同步、广告或第三方分析。笔记内容默认以 SQLite 保存在用户设备本地；启用 App Group 后，主 App 与 Share Extension 会共用同一个本地 SQLite 数据库。Markdown 导出和完整备份导出由用户主动触发系统分享表。视频缩略图通过 Apple AVFoundation 在本机生成并缓存到 App Group 本地 `ThumbnailCache` 目录；媒体元数据摘要也在本机读取，不上传原视频、音频或图片。
+当前版本不接入账号、云同步、广告或第三方分析。笔记内容默认以 SQLite 保存在用户设备本地；启用 App Group 后，主 App 与 Share Extension 会共用同一个本地 SQLite 数据库，小组件只读取主 App 写入 App Group 的轻量快照 JSON。Markdown 导出和完整备份导出由用户主动触发系统分享表。视频缩略图通过 Apple AVFoundation 在本机生成并缓存到 App Group 本地 `ThumbnailCache` 目录；媒体元数据摘要也在本机读取，不上传原视频、音频或图片。
 
 附件当前保存在 App Group 的本地 `Attachments` 目录，memo 正文只保存轻量引用。删除或编辑 memo 时，只会删除已不再被任何 memo 引用的本地附件文件，避免多个 memo 共用同一附件时误删。
 
-签名和发布相关 ID 已抽成 build settings：`APP_BUNDLE_ID`、`SHARE_EXTENSION_BUNDLE_ID`、`APP_GROUP_IDENTIFIER`。本机 Xcode 可在 Build Settings 中修改；GitHub Actions 可通过 secrets 注入。
+签名和发布相关 ID 已抽成 build settings：`APP_BUNDLE_ID`、`SHARE_EXTENSION_BUNDLE_ID`、`WIDGET_EXTENSION_BUNDLE_ID`、`APP_GROUP_IDENTIFIER`。本机 Xcode 可在 Build Settings 中修改；GitHub Actions 可通过 secrets 注入。
 
 AI 功能是可选能力：只有在设置里保存 OpenAI API Key，并主动点击 AI 洞察、AI 搜索或相关记录时，应用才会把本次操作需要的文本直接发送到 OpenAI API。API Key 保存在本机 Keychain，不写入完整备份。
 

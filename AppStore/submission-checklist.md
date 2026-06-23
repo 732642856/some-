@@ -6,10 +6,12 @@
 - 在 App Store Connect 创建新 App。
 - 在 Apple Developer 后台创建或确认 Bundle ID。
 - 为 Share Extension 创建独立 Bundle ID，建议为主 App Bundle ID 加 `.share`。
-- 创建 App Group，并确认主 App 和 Share Extension 都启用同一个 group。
+- 为 Widget Extension 创建独立 Bundle ID，建议为主 App Bundle ID 加 `.widget`。
+- 创建 App Group，并确认主 App、Share Extension 和 Widget Extension 都启用同一个 group。
 - 用 Xcode 打开 `some.xcodeproj`。
 - 修改 Bundle Identifier，不能继续使用示例 ID `com.732642856.some`，除非它已属于你的 Apple Developer 账号。
 - 修改 Share Extension Bundle Identifier，不能继续使用示例 ID `com.732642856.some.share`。
+- 修改 Widget Extension Bundle Identifier，不能继续使用示例 ID `com.732642856.some.widget`。
 - 修改 `APP_GROUP_IDENTIFIER`，不能继续使用示例 group `group.com.732642856.some`，除非它已属于你的 Apple Developer 账号。
 - 在 Signing & Capabilities 选择你的 Team。
 - 真机和模拟器都跑一遍核心流程。
@@ -36,7 +38,7 @@
 
 - 把当前工程推到 GitHub 仓库。
 - 先运行 `iOS CI` workflow，确认模拟器编译和测试通过。
-- 在 GitHub Actions secrets 配置 Apple Team、主 App Bundle ID、Share Extension Bundle ID、App Group、Distribution 证书、主 App 和扩展的 App Store provisioning profile、App Store Connect API Key。
+- 在 GitHub Actions secrets 配置 Apple Team、主 App Bundle ID、Share Extension Bundle ID、Widget Extension Bundle ID、App Group、Distribution 证书、主 App 和两个扩展的 App Store provisioning profile、App Store Connect API Key。
 - 手动触发 `iOS TestFlight` workflow。
 - 等 App Store Connect 处理 build。
 - 等 Apple 处理 build，处理完成后在 App Store Connect 选择该 build。
@@ -61,6 +63,7 @@
 - Safari 分享链接到 some。
 - 照片 App 分享图片到 some。
 - 文件 App 分享文件到 some。
+- 桌面小组件显示记录计数，并能打开首页、专注页、搜索页和单条记录。
 - 完整备份导出后，重装 App 再导入恢复。
 - 快捷指令保存随记。
 - 隐私锁和每日提醒。

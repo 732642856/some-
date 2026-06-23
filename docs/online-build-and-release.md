@@ -20,9 +20,10 @@
 2. 在 Xcode 工程里确认 scheme `some` 是 shared scheme，当前已包含。
 3. 在 Apple Developer 后台创建唯一主 App Bundle ID。
 4. 创建 Share Extension Bundle ID，建议格式为主 App ID 加 `.share`。
-5. 创建 App Group，并同时勾选主 App 与 Share Extension。
-6. 在 App Store Connect 创建同主 App Bundle ID 的 App。
-7. 在 GitHub 仓库 Settings > Secrets and variables > Actions 添加以下 secrets。
+5. 创建 Widget Extension Bundle ID，建议格式为主 App ID 加 `.widget`。
+6. 创建 App Group，并同时勾选主 App、Share Extension 与 Widget Extension。
+7. 在 App Store Connect 创建同主 App Bundle ID 的 App。
+8. 在 GitHub 仓库 Settings > Secrets and variables > Actions 添加以下 secrets。
 
 ## CI workflow
 
@@ -45,6 +46,7 @@
 - `APPLE_TEAM_ID`：Apple Developer Team ID
 - `APP_BUNDLE_ID`：正式 Bundle ID，例如 `com.yourname.some`
 - `SHARE_EXTENSION_BUNDLE_ID`：分享扩展 Bundle ID，例如 `com.yourname.some.share`；不填时 workflow 默认使用 `${APP_BUNDLE_ID}.share`
+- `WIDGET_EXTENSION_BUNDLE_ID`：小组件扩展 Bundle ID，例如 `com.yourname.some.widget`；不填时 workflow 默认使用 `${APP_BUNDLE_ID}.widget`
 - `APP_GROUP_IDENTIFIER`：App Group，例如 `group.com.yourname.some`
 - `IOS_DISTRIBUTION_CERTIFICATE_BASE64`：Apple Distribution `.p12` 文件的 base64
 - `IOS_DISTRIBUTION_CERTIFICATE_PASSWORD`：导出 `.p12` 时设置的密码
@@ -53,6 +55,8 @@
 - `IOS_APP_STORE_PROVISIONING_PROFILE_NAME`：profile 在 Apple Developer 后台显示的名称
 - `IOS_SHARE_EXTENSION_APP_STORE_PROVISIONING_PROFILE_BASE64`：Share Extension App Store provisioning profile 的 base64
 - `IOS_SHARE_EXTENSION_APP_STORE_PROVISIONING_PROFILE_NAME`：Share Extension profile 在 Apple Developer 后台显示的名称
+- `IOS_WIDGET_EXTENSION_APP_STORE_PROVISIONING_PROFILE_BASE64`：Widget Extension App Store provisioning profile 的 base64
+- `IOS_WIDGET_EXTENSION_APP_STORE_PROVISIONING_PROFILE_NAME`：Widget Extension profile 在 Apple Developer 后台显示的名称
 - `ASC_API_KEY_ID`：App Store Connect API Key ID
 - `ASC_API_ISSUER_ID`：Issuer ID
 - `ASC_API_PRIVATE_KEY_BASE64`：`AuthKey_XXXX.p8` 的 base64
@@ -79,6 +83,7 @@ base64 -i AuthKey_XXXX.p8 | pbcopy
 - 标签筛选、FTS 搜索、`tag:` / `is:` 搜索语法正常。
 - 从 Safari、照片、文件 App 分享文本、链接、图片和文件到 some。
 - 分享扩展保存后，主 App 立即能看到同一条记录和附件。
+- 桌面小组件能显示最新记录计数，点击首页、专注、搜索和单条记录入口能回到 App。
 - 删除其中一条引用附件的 memo，不会误删仍被其他 memo 引用的附件。
 - 完整备份导出、删除 App 后重装、导入完整备份，记录和附件都能恢复。
 - 隐私锁、每日提醒、快捷指令保存新随记均能在真机运行。
@@ -87,5 +92,5 @@ base64 -i AuthKey_XXXX.p8 | pbcopy
 ## 当前工程注意事项
 
 - 本地 `CFBundleDisplayName` 仍是 `some`。
-- 默认主 App Bundle ID、Share Extension Bundle ID 和 App Group 仍是示例值，CI 上传时可用 `APP_BUNDLE_ID`、`SHARE_EXTENSION_BUNDLE_ID`、`APP_GROUP_IDENTIFIER` 覆盖，但最好最终也在 Xcode 工程 Build Settings 里改成正式值。
+- 默认主 App Bundle ID、Share Extension Bundle ID、Widget Extension Bundle ID 和 App Group 仍是示例值，CI 上传时可用 `APP_BUNDLE_ID`、`SHARE_EXTENSION_BUNDLE_ID`、`WIDGET_EXTENSION_BUNDLE_ID`、`APP_GROUP_IDENTIFIER` 覆盖，但最好最终也在 Xcode 工程 Build Settings 里改成正式值。
 - AI 功能是用户自带 OpenAI API Key。保留 AI 功能时，App Privacy 和审核说明需要披露：用户主动触发 AI 时，相关笔记文本会发送给 OpenAI API 用于 App 功能。
