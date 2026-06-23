@@ -704,3 +704,9 @@
 - 复查 `AppStore/privacy-policy.md`、`app-store-metadata.md`、`submission-checklist.md` 和 2026-06-20/21 旧快照；旧文案只写可选 OpenAI API，没有说明本机 `AICache`。
 - 隐私政策新增 App Group 本地容器、AI embedding 缓存位置、模型名 + SHA-256 文本指纹 key、1000 条上限、不保存笔记明文、设置页可查看/清除和清除不影响笔记/API Key 的说明。
 - App Store metadata 和 submission checklist 同步审核说明、App Privacy 提醒和 TestFlight 自测项。
+
+## 2026-06-24T01:18:00+08:00
+
+- 进入并完成阶段 73：工作日志 AI 润色导出。开工前复查工作日志导出器、AI composer 和当前未提交测试碎片，发现 `WorkLogPolishComposer` 已有测试引用，继续补齐并记录。
+- 按 TDD 增加 `testWorkLogPolishPromptPreservesFactsAndStructure`，锁定目标读者、不要编造、保留项目名/日期/数字等约束。
+- `WorkLogPolishComposer.prompt` 生成中文工作日志汇报润色 prompt，只基于草稿润色，要求保留原小节结构和事实，信息不足时不补细节；工作日志导出菜单新增“AI 润色汇报”，配置 OpenAI Key 后会生成 txt 导出稿。

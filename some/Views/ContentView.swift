@@ -903,6 +903,7 @@ private struct ScrapbookPagePreview: View {
 
 private struct WorkLogView: View {
     @EnvironmentObject private var store: MemoStore
+    @ObservedObject private var aiSettings = OpenAISettings.shared
     @State private var logTitle = ""
     @State private var scope = "今日"
     @State private var project = ""
@@ -922,6 +923,7 @@ private struct WorkLogView: View {
     @State private var sourceSearchText = ""
     @State private var exportedWorkLog: ExportedDocument?
     @State private var statusText: String?
+    @State private var isPolishingWorkLog = false
 
     private let scopes = ["今日", "本周", "项目", "复盘"]
     private let templates = ["日报", "周报", "项目汇报", "复盘"]
@@ -1275,6 +1277,17 @@ private struct WorkLogView: View {
                             Label(format.title, systemImage: format.systemImage)
                         }
                     }
+
+                    Divider()
+
+                    Button {
+                        Task {
+                            await exportAIPolishedWorkLog()
+                        }
+                    } label: {
+                        Label("AI 润色汇报", systemImage: "sparkles")
+                    }
+                    .disabled(!aiSettings.isConfigured || isPolishingWorkLog)
                 } label: {
                     Image(systemName: "square.and.arrow.up")
                         .frame(width: 34, height: 30)
@@ -1525,26 +1538,31 @@ private struct WorkLogView: View {
         )
     }
 
-    private func exportFilteredWorkLogs(format: WorkLogExportFormat = .markdown) {
+    private func selectedExportPayload() -> (memos: [Memo], assets: [MemoAsset]) {
         let records = filteredWorkLogRecords
-        let selectedMemoIDs = Set(records.map(\.memo.id))
-        let selectedMemos = store.memos.filter { selectedMemoIDs.contains($0.id) }
-        let selectedAssetIDs = Set(records.map(\.asset.id))
-        let selectedAssets = store.assets.filter { selectedAssetIDs.contains($0.id) }
+        let memoIDs = Set(records.map(\.memo.id))
+        let selectedMemos = store.memos.filter { memoIDs.contains($0.id) }
+        let assetIDs = Set(records.map(\.asset.id))
+        let selectedAssets = store.assets.filter { assetIDs.contains($0.id) }
+        return (selectedMemos, selectedAssets)
+    }
+
+    private func exportFilteredWorkLogs(format: WorkLogExportFormat = .markdown) {
+        let payload = selectedExportPayload()
         let content: String
         switch format {
         case .markdown:
-            content = WorkLogExporter.markdown(memos: selectedMemos, assets: selectedAssets)
+            content = WorkLogExporter.markdown(memos: payload.memos, assets: payload.assets)
         case .csv:
-            content = WorkLogExporter.csv(memos: selectedMemos, assets: selectedAssets)
+            content = WorkLogExporter.csv(memos: payload.memos, assets: payload.assets)
         case .reportDraft:
-            content = WorkLogExporter.reportDraft(memos: selectedMemos, assets: selectedAssets)
+            content = WorkLogExporter.reportDraft(memos: payload.memos, assets: payload.assets)
         case .standupDraft:
-            content = WorkLogExporter.reportDraft(memos: selectedMemos, assets: selectedAssets, style: .standup)
+            content = WorkLogExporter.reportDraft(memos: payload.memos, assets: payload.assets, style: .standup)
         case .projectBriefDraft:
-            content = WorkLogExporter.reportDraft(memos: selectedMemos, assets: selectedAssets, style: .projectBrief)
+            content = WorkLogExporter.reportDraft(memos: payload.memos, assets: payload.assets, style: .projectBrief)
         case .actionReviewDraft:
-            content = WorkLogExporter.reportDraft(memos: selectedMemos, assets: selectedAssets, style: .actionReview)
+            content = WorkLogExporter.reportDraft(memos: payload.memos, assets: payload.assets, style: .actionReview)
         }
 
         do {
@@ -1556,6 +1574,29 @@ private struct WorkLogView: View {
             statusText = "已准备导出\(format.title)"
         } catch {
             statusText = "导出失败：\(error.localizedDescription)"
+        }
+    }
+
+    @MainActor
+    private func exportAIPolishedWorkLog() async {
+        let payload = selectedExportPayload()
+        let draft = WorkLogExporter.reportDraft(memos: payload.memos, assets: payload.assets)
+        let prompt = WorkLogPolishComposer.prompt(draft: draft)
+
+        isPolishingWorkLog = true
+        statusText = "AI 正在润色汇报..."
+        defer { isPolishingWorkLog = false }
+
+        do {
+            let polished = try await aiSettings.makeClient().generateText(prompt: prompt)
+            exportedWorkLog = try ExportedDocument(
+                prefix: "some-worklog-ai",
+                fileExtension: "txt",
+                content: polished
+            )
+            statusText = "已准备导出 AI 润色汇报"
+        } catch {
+            statusText = error.localizedDescription
         }
     }
 

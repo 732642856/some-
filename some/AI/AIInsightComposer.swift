@@ -168,26 +168,3 @@ enum WorkLogPolishComposer {
         """
     }
 }
-
-enum WorkLogPolishComposer {
-    static func prompt(draft: String, audience: String) -> String {
-        let trimmedAudience = audience.trimmingCharacters(in: .whitespacesAndNewlines)
-        let audienceText = trimmedAudience.isEmpty ? "默认读者" : trimmedAudience
-        let trimmedDraft = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        return """
-        你是一个中文工作日志汇报润色助手。
-        目标读者：\(audienceText)
-
-        请润色下面的工作汇报草稿，让表达更清晰、简洁、适合发送给目标读者。
-        必须遵守：
-        - 不要编造、补充或推测草稿中没有的事实。
-        - 保留项目名、日期、数字、任务名称、风险和下一步。
-        - 保留原有小节结构；如需合并重复表述，只做措辞优化。
-        - 如果草稿信息不足，请直接说明“信息不足”，不要替用户补细节。
-
-        草稿：
-        \(trimmedDraft)
-        """
-    }
-}
