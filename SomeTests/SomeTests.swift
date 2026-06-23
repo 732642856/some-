@@ -1229,6 +1229,83 @@ final class SomeTests: XCTestCase {
         XCTAssertFalse(draft.contains("普通记录"))
     }
 
+    func testWorkLogExporterBuildsStandupReportDraft() {
+        let date = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+        let log = Memo(
+            text: """
+            工作日志：日报
+            范围：今日
+            项目：some
+            日期：2026-06-23
+            模板：日报
+            进展：完成引用批注筛选
+            问题：等待 CI
+            下一步：补团队模板
+            """,
+            createdAt: date,
+            updatedAt: date
+        )
+
+        let draft = WorkLogExporter.reportDraft(memos: [log], style: .standup)
+
+        XCTAssertEqual(
+            draft,
+            """
+            站会同步
+
+            昨天/已完成：
+            1. 完成引用批注筛选
+
+            阻塞：
+            1. 等待 CI
+
+            今天/下一步：
+            1. 补团队模板
+
+            """
+        )
+    }
+
+    func testWorkLogExporterBuildsProjectBriefReportDraft() {
+        let date = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+        let log = Memo(
+            text: """
+            工作日志：项目汇报
+            范围：项目
+            项目：some
+            日期：2026-06-23
+            模板：项目汇报
+            进展：补齐团队汇报模板
+            问题：缺少真机验证
+            下一步：观察远端复验
+            """,
+            createdAt: date,
+            updatedAt: date
+        )
+
+        let draft = WorkLogExporter.reportDraft(memos: [log], style: .projectBrief)
+
+        XCTAssertEqual(
+            draft,
+            """
+            项目简报
+
+            项目：some
+            日期：2026-06-23
+
+            本期完成：
+            1. 补齐团队汇报模板
+
+            风险/待协助：
+            1. 缺少真机验证
+
+            后续计划：
+            1. 观察远端复验
+
+            """
+        )
+    }
+
     func testSearchCanExcludeContentTypes() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "资料带链接 https://example.com/a")

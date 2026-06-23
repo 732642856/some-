@@ -193,6 +193,12 @@ enum WorkLogSourceFilterEngine {
 }
 
 enum WorkLogExporter {
+    enum ReportDraftStyle: String, CaseIterable, Hashable {
+        case standard
+        case standup
+        case projectBrief
+    }
+
     static func markdown(
         memos: [Memo],
         assets: [MemoAsset]? = nil
@@ -257,23 +263,78 @@ enum WorkLogExporter {
 
     static func reportDraft(
         memos: [Memo],
-        assets: [MemoAsset]? = nil
+        assets: [MemoAsset]? = nil,
+        style: ReportDraftStyle = .standard
     ) -> String {
         let resolvedAssets = assets ?? memos.flatMap { MemoAsset.assets(in: $0) }
         let records = workLogRecords(from: memos, assets: resolvedAssets)
         guard !records.isEmpty else {
-            return "工作汇报\n\n暂无可汇总日志。\n"
+            return emptyReportDraft(style: style)
         }
 
         let fieldValues = records
             .map { fields(in: $0.asset.summary, fallbackText: $0.memo.text) }
             .sorted(by: sortReportDraftFields)
+        switch style {
+        case .standard:
+            return standardReportDraft(from: fieldValues)
+        case .standup:
+            return styledReportDraft(
+                title: "站会同步",
+                inlineKeys: [],
+                sections: [
+                    ("昨天/已完成", ["进展"]),
+                    ("阻塞", ["问题", "风险"]),
+                    ("今天/下一步", ["下一步"])
+                ],
+                from: fieldValues
+            )
+        case .projectBrief:
+            return styledReportDraft(
+                title: "项目简报",
+                inlineKeys: ["项目", "日期"],
+                sections: [
+                    ("本期完成", ["进展"]),
+                    ("风险/待协助", ["问题", "风险"]),
+                    ("后续计划", ["下一步"])
+                ],
+                from: fieldValues
+            )
+        }
+    }
+
+    private static func emptyReportDraft(style: ReportDraftStyle) -> String {
+        switch style {
+        case .standard:
+            return "工作汇报\n\n暂无可汇总日志。\n"
+        case .standup:
+            return "站会同步\n\n暂无可汇总日志。\n"
+        case .projectBrief:
+            return "项目简报\n\n暂无可汇总日志。\n"
+        }
+    }
+
+    private static func standardReportDraft(from fieldValues: [[String: String]]) -> String {
         var lines = ["工作汇报", ""]
         appendDraftInline("项目", from: fieldValues, to: &lines)
         appendDraftInline("日期", from: fieldValues, to: &lines)
         appendDraftList("进展", from: fieldValues, to: &lines)
         appendDraftList("风险/问题", keys: ["问题", "风险"], from: fieldValues, to: &lines)
         appendDraftList("下一步", from: fieldValues, to: &lines)
+        return lines.joined(separator: "\n") + "\n"
+    }
+
+    private static func styledReportDraft(
+        title: String,
+        inlineKeys: [String],
+        sections: [(title: String, keys: [String])],
+        from fieldValues: [[String: String]]
+    ) -> String {
+        var lines = [title, ""]
+        inlineKeys.forEach { appendDraftInline($0, from: fieldValues, to: &lines) }
+        sections.forEach { section in
+            appendDraftList(section.title, keys: section.keys, from: fieldValues, to: &lines)
+        }
         return lines.joined(separator: "\n") + "\n"
     }
 

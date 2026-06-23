@@ -599,3 +599,12 @@
 - `has:引用批注` 与工作日志来源筛选改为按 trim 后非空判断；`MemoAsset.reference` 会把第一条引用批注写入摘要，素材库能看到引用上下文。
 - 按 TDD 补 `testDuplicateReferenceNotesKeepOneRelationAndFirstAssetSummary`，覆盖“重复批注保留解析顺序、关系卡片唯一、素材摘要显示第一条批注”。
 - 本地验证通过：重复引用批注 Swift 探针、`xcrun swiftc -parse some/Utilities/MemoReferenceParser.swift some/Utilities/MemoSearchQuery.swift some/Stores/MemoStore.swift some/Models/Memo.swift SomeTests/SomeTests.swift`、`xcrun swiftc -parse some/Utilities/WorkLogSourceFilterEngine.swift some/Utilities/MemoReferenceParser.swift SomeTests/SomeTests.swift`、`git diff --check`、plist/scheme/workflow 校验。GitHub 公共 API 已触发 rate limit，最新 run `28033567402` 只能待窗口恢复后继续复验。
+
+## 2026-06-23T22:40:57+08:00
+
+- 进入并完成阶段 60：工作日志团队汇报模板导出。开工前复查 `WorkLogExporter.reportDraft`、工作日志导出菜单、工作日志测试和当前 CI 状态。
+- 按用户要求检索 `swift daily standup report template license:mit`、`work log report generator markdown license:mit`、`project status report template markdown license:mit`，GitHub Search 精确查询均返回 0；本轮不复制第三方源码，继续复用项目内导出器。
+- 用 TDD 补 `testWorkLogExporterBuildsStandupReportDraft` 和 `testWorkLogExporterBuildsProjectBriefReportDraft`，锁定站会稿与项目简报的纯文本格式。
+- `WorkLogExporter.reportDraft` 新增 `ReportDraftStyle`，默认 `standard` 保持原汇报稿不变，新增 `.standup` 输出“昨天/已完成、阻塞、今天/下一步”，新增 `.projectBrief` 输出“本期完成、风险/待协助、后续计划”。
+- 工作日志导出菜单新增“站会稿”和“项目简报”，两者复用当前筛选结果和系统分享表，导出为 `.txt`。
+- 本地验证通过：`xcrun swiftc -parse some/Utilities/WorkLogSourceFilterEngine.swift SomeTests/SomeTests.swift`、`xcrun swiftc -parse some/Utilities/MemoSearchQuery.swift some/Utilities/MemoReferenceParser.swift some/Utilities/WorkLogSourceFilterEngine.swift some/Models/Memo.swift some/Utilities/SharedAttachmentStore.swift SomeTests/SomeTests.swift`、`git diff --check`、plist/scheme/workflow 校验。
