@@ -200,6 +200,7 @@ enum WorkLogExporter {
             return "# 工作日志导出\n\n共 0 条日志\n"
         }
 
+        let summary = reportSummary(for: records)
         let body = records.map { record -> String in
             let fields = fields(in: record.asset.summary, fallbackText: record.memo.text)
             var metadata = [
@@ -220,7 +221,7 @@ enum WorkLogExporter {
             """
         }.joined(separator: "\n\n---\n\n")
 
-        return "# 工作日志导出\n\n共 \(records.count) 条日志\n\n\(body)\n"
+        return "# 工作日志导出\n\n共 \(records.count) 条日志\n\n\(summary)\n\n---\n\n\(body)\n"
     }
 
     private static func workLogRecords(
@@ -252,6 +253,38 @@ enum WorkLogExporter {
             return lhs.title < rhs.title
         }
         return lhs.createdAt > rhs.createdAt
+    }
+
+    private static func reportSummary(for records: [(memo: Memo, asset: MemoAsset)]) -> String {
+        let fieldValues = records.map { fields(in: $0.asset.summary, fallbackText: $0.memo.text) }
+        var lines = ["## 汇报摘要"]
+
+        appendSummaryLine("项目", from: fieldValues, to: &lines)
+        appendSummaryLine("日期", from: fieldValues, to: &lines)
+        appendSummaryLine("进展", from: fieldValues, to: &lines)
+        appendSummaryLine("风险/问题", keys: ["问题", "风险"], from: fieldValues, to: &lines)
+        appendSummaryLine("下一步", from: fieldValues, to: &lines)
+
+        if lines.count == 1 {
+            lines.append("- 暂无可汇总字段。")
+        }
+
+        return lines.joined(separator: "\n")
+    }
+
+    private static func appendSummaryLine(
+        _ title: String,
+        keys: [String]? = nil,
+        from fieldValues: [[String: String]],
+        to lines: inout [String]
+    ) {
+        let values = uniqueValues(
+            fieldValues.flatMap { fields -> [String] in
+                (keys ?? [title]).compactMap { fields[$0] }
+            }
+        )
+        guard !values.isEmpty else { return }
+        lines.append("- \(title)：\(values.joined(separator: "；"))")
     }
 
     private static func appendMetadata(
@@ -290,6 +323,19 @@ enum WorkLogExporter {
             return (key, value)
         }
         return nil
+    }
+
+    private static func uniqueValues(_ values: [String]) -> [String] {
+        var seen = Set<String>()
+        var result: [String] = []
+
+        for value in values {
+            let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !normalized.isEmpty, seen.insert(normalized).inserted else { continue }
+            result.append(normalized)
+        }
+
+        return result
     }
 
     private static func headingTitle(_ title: String) -> String {

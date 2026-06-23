@@ -505,6 +505,8 @@ enum WardrobeInsightEngine {
         let weather = latestPackingContext?.weather ?? wearLogs.first(where: { $0.weather?.isEmpty == false })?.weather
         let season = seasonStats.first?.label
         let scene = sceneStats.first?.label ?? "旅行"
+        let packingTitleContext = latestPackingContext?.destination?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let titleContext = packingTitleContext?.isEmpty == false ? packingTitleContext! : scene
         let tripDays = latestPackingContext?.tripDays
             ?? packingLists.first(where: { ($0.tripDays ?? 0) > 0 })?.tripDays
         let weatherItems = weather.map { weatherValue in
@@ -534,7 +536,7 @@ enum WardrobeInsightEngine {
             suggestions.append(
                 WardrobePackingSuggestion(
                     id: "packing-weather",
-                    title: "\(scene) 快速打包",
+                    title: "\(titleContext) 快速打包",
                     destination: latestPackingContext?.destination,
                     weather: weather,
                     itemNames: selectedItemNames,

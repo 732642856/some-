@@ -889,6 +889,32 @@ final class SomeTests: XCTestCase {
         XCTAssertFalse(markdown.contains("普通记录"))
     }
 
+    func testWorkLogExporterAddsLocalReportSummary() {
+        let date = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+        let log = Memo(
+            text: """
+            工作日志：日报
+            范围：今日
+            项目：some
+            日期：2026-06-23
+            模板：日报
+            进展：完成筛选、导出 Markdown
+            问题：等待 CI
+            下一步：观察复验、继续打包建议
+            """,
+            createdAt: date,
+            updatedAt: date
+        )
+        let markdown = WorkLogExporter.markdown(memos: [log])
+
+        XCTAssertTrue(markdown.contains("## 汇报摘要"))
+        XCTAssertTrue(markdown.contains("- 项目：some"))
+        XCTAssertTrue(markdown.contains("- 日期：2026-06-23"))
+        XCTAssertTrue(markdown.contains("- 进展：完成筛选、导出 Markdown"))
+        XCTAssertTrue(markdown.contains("- 风险/问题：等待 CI"))
+        XCTAssertTrue(markdown.contains("- 下一步：观察复验、继续打包建议"))
+    }
+
     func testSearchCanExcludeContentTypes() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "资料带链接 https://example.com/a")
@@ -2840,6 +2866,7 @@ final class SomeTests: XCTestCase {
         let insights = WardrobeInsightEngine.insights(for: store.assets)
         let suggestion = insights.packingSuggestions.first { $0.id == "packing-weather" }
 
+        XCTAssertEqual(suggestion?.title, "厦门 快速打包")
         XCTAssertEqual(suggestion?.destination, "厦门")
         XCTAssertEqual(suggestion?.weather, "晴 热 30C")
         XCTAssertTrue(suggestion?.itemNames.contains("亚麻衬衫") == true)

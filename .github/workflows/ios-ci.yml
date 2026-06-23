@@ -115,6 +115,7 @@ jobs:
           fi
 
       - name: Run tests
+        timeout-minutes: 12
         run: |
           set -euo pipefail
           DESTINATION="${{ steps.simulator.outputs.destination }}"
