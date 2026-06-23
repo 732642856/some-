@@ -358,4 +358,5 @@
 
 - 补齐衣橱增强的 UI 入口：衣橱单品表单新增“材质”“厚薄”，打包清单表单新增“天数”。
 - 保存后会把这些字段传入已实现的结构化存储与洞察逻辑，并清空表单状态。
-- 本地验证通过：`git diff --check`、`.github/workflows/ios-ci.yml` YAML 解析、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、旧 Swift parser 覆盖 `ContentView.swift`。
+- 本地验证通过：`git diff --check`、`.github/workflows/ios-ci.yml` YAML 解析、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`。
+- 本机只有 CommandLineTools，无法运行 Xcode 模拟器 XCTest；旧 Swift parser 检查 `ContentView.swift` 时仍卡在既有 `await reminders.scheduleWardrobeCareReminder(...)`，不是本次 UI 字段改动新增的问题，完整编译继续依赖远端 GitHub Actions。
