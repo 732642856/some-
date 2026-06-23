@@ -2851,10 +2851,11 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(updatedMemo.text.contains("导出图片：\(attachment.displayName)"))
         XCTAssertTrue(updatedMemo.text.contains(attachment.referenceLine))
         XCTAssertEqual(updatedLayout.layers.last?.text, "已导出")
-        let assets = store.assets(for: updatedMemo)
-        XCTAssertTrue(assets.contains { asset in
-            asset.kind == .attachment && asset.uri?.contains(attachment.relativePath) == true
-        }, "Expected exported scrapbook image attachment asset, got: \(assets)")
+        let exportedAsset = try XCTUnwrap(
+            store.assets(for: updatedMemo).first { $0.uri == attachment.referenceURI }
+        )
+        XCTAssertEqual(exportedAsset.kind, .attachment)
+        XCTAssertTrue(UTType(exportedAsset.typeIdentifier ?? "")?.conforms(to: .image) == true)
     }
 
     func testExportScrapbookPDFReferencesAttachmentInMemo() throws {
@@ -2872,11 +2873,11 @@ final class SomeTests: XCTestCase {
 
         XCTAssertTrue(updatedMemo.text.contains("导出PDF：\(attachment.displayName)"))
         XCTAssertTrue(updatedMemo.text.contains(attachment.referenceLine))
-        let assets = store.assets(for: updatedMemo)
-        XCTAssertTrue(assets.contains { asset in
-            asset.kind == .attachment
-                && UTType(asset.typeIdentifier ?? "")?.conforms(to: .pdf) == true
-        }, "Expected exported scrapbook PDF attachment asset, got: \(assets)")
+        let exportedAsset = try XCTUnwrap(
+            store.assets(for: updatedMemo).first { $0.uri == attachment.referenceURI }
+        )
+        XCTAssertEqual(exportedAsset.kind, .attachment)
+        XCTAssertTrue(UTType(exportedAsset.typeIdentifier ?? "")?.conforms(to: .pdf) == true)
     }
 
     func testAddAttachmentMemoDoesNotDuplicateAttachmentAlreadyInNote() throws {

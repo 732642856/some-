@@ -327,6 +327,13 @@
 - 衣橱天气洞察改为保留“天气”原始字段，避免 `多云，午后阵雨 22C` 被通用字段拆分逻辑切碎；新增回归测试覆盖天气穿搭、打包建议和说明文案保留完整天气短语。
 - 本地验证通过：`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、旧 Swift parser 覆盖 `MemoSearchQuery.swift` / `VideoThumbnailGenerator.swift` / `WardrobeInsightEngine.swift` / `SomeTests.swift`。
 
+## 2026-06-23T15:59:47+08:00
+
+- 继续阶段 17。GitHub Actions run `28010154822` 对应 `8f4d241`，Run tests 失败；annotation 只暴露 `XCTAssertEqual failed: ("false") is not equal to ("true")`，未给具体测试名。
+- 按 Superpowers 系统化调试缩小范围：枚举旧提交内所有会产生布尔 `XCTAssertEqual` 的断言，定位最可能失败点为手帐 PNG/PDF 导出附件素材断言。
+- 根因：导出标题包含中文时，`SharedAttachment.referenceLine` / `MemoAsset.uri` 会 percent-encode 附件路径；旧断言用 raw `attachment.relativePath` 去 `contains` 编码后的 URI，CI 上稳定得到 `false`。
+- 修复断言为按 `attachment.referenceURI` 精确匹配导出附件素材，再检查素材类型；同时保留并整合素材库视频缩略图生命周期改动：`VideoThumbnailGenerator.sourceURLs(in:)` 从素材索引提取、去重、限制视频 URL，素材库出现或变化时后台预热并清理缩略图缓存。
+
 ## 2026-06-23T15:43:00+08:00
 
 - 继续阶段 17：GitHub Actions run `28010154822` 的 Build for simulator 已通过，Run tests 失败摘要只剩 `XCTAssertEqual failed: ("false") is not equal to ("true")`，不再是 AppIntents 或测试编译错误。
