@@ -835,6 +835,62 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(candidates.map(\.id), [newest.id])
     }
 
+    func testWorkLogExporterBuildsMarkdownForFilteredRecords() {
+        let calendar = Calendar(identifier: .gregorian)
+        let olderDate = DateFormatters.wardrobeDay.date(from: "2026-06-20")!
+        let newerDate = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+        let olderLog = Memo(
+            text: """
+            工作日志：周报
+            范围：本周
+            项目：some
+            日期：2026-06-17~2026-06-23
+            模板：周报
+            进展：完成 URL Scheme
+            下一步：导出工作日志
+            """,
+            createdAt: olderDate,
+            updatedAt: olderDate
+        )
+        let newerLog = Memo(
+            text: """
+            工作日志：日报
+            范围：今日
+            项目：some
+            日期：2026-06-23
+            模板：日报
+            进展：完成筛选
+            问题：CI 等待中
+            """,
+            createdAt: newerDate,
+            updatedAt: newerDate
+        )
+        let plainMemo = Memo(
+            text: "普通记录，不应该出现在工作日志导出里",
+            createdAt: newerDate,
+            updatedAt: newerDate
+        )
+        let memos = [olderLog, plainMemo, newerLog]
+        let assets = memos.flatMap { MemoAsset.assets(in: $0) }
+        let markdown = WorkLogExporter.markdown(
+            memos: memos,
+            assets: assets,
+            calendar: calendar
+        )
+
+        XCTAssertTrue(markdown.hasPrefix("# 工作日志导出\n\n共 2 条日志\n\n"))
+        XCTAssertLessThan(
+            markdown.range(of: "## 日报")!.lowerBound,
+            markdown.range(of: "## 周报")!.lowerBound
+        )
+        XCTAssertTrue(markdown.contains("- 创建时间：\(DateFormatters.export.string(from: newerDate))"))
+        XCTAssertTrue(markdown.contains("- 项目：some"))
+        XCTAssertTrue(markdown.contains("- 日期：2026-06-23"))
+        XCTAssertTrue(markdown.contains("- 模板：日报"))
+        XCTAssertTrue(markdown.contains("进展：完成筛选"))
+        XCTAssertFalse(markdown.contains("普通记录"))
+    }
+
     func testSearchCanExcludeContentTypes() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "资料带链接 https://example.com/a")
@@ -944,6 +1000,23 @@ final class SomeTests: XCTestCase {
 
         let reloaded = MemoStore(filename: "test-\(UUID().uuidString).json", defaults: defaults)
         XCTAssertEqual(reloaded.savedSearches, ["#项目 is:active 复盘"])
+    }
+
+    func testTimelineEmptyStateGuidesFirstLaunch() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+
+        XCTAssertEqual(store.timelineEmptyState.title, "从第一条随记开始")
+        XCTAssertTrue(store.timelineEmptyState.subtitle.contains("写文字"))
+        XCTAssertTrue(store.timelineEmptyState.subtitle.contains("本机"))
+    }
+
+    func testTimelineEmptyStateDistinguishesSearchNoResults() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.addMemo(text: "已有记录 #日常")
+        store.searchText = "不存在的关键词"
+
+        XCTAssertEqual(store.timelineEmptyState.title, "还没有匹配的闪念")
+        XCTAssertTrue(store.timelineEmptyState.subtitle.contains("换个关键词"))
     }
 
     func testSearchSnippetUsesMatchingTermContext() {

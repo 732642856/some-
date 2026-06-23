@@ -45,6 +45,11 @@ enum MemoHomeMode: String, CaseIterable, Identifiable {
     }
 }
 
+struct MemoTimelineEmptyState: Equatable {
+    var title: String
+    var subtitle: String
+}
+
 @MainActor
 final class MemoStore: ObservableObject {
     @Published private(set) var memos: [Memo] = []
@@ -139,6 +144,20 @@ final class MemoStore: ObservableObject {
                     && components.year != today.year
             }
             .sorted { sortMemos($0, $1) }
+    }
+
+    var timelineEmptyState: MemoTimelineEmptyState {
+        if activeMemos.isEmpty && searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && selectedTag == nil {
+            return MemoTimelineEmptyState(
+                title: "从第一条随记开始",
+                subtitle: "写文字、贴链接、导入图片/录音/文件；内容默认只保存在本机。"
+            )
+        }
+
+        return MemoTimelineEmptyState(
+            title: "还没有匹配的闪念",
+            subtitle: "换个关键词，或者清除筛选后再看看。"
+        )
     }
 
     func filteredMemos(includeArchived: Bool) -> [Memo] {

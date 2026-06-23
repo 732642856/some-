@@ -370,3 +370,11 @@
 - 衣橱打包建议会解析最近打包清单的“天数”，按行程天数扩展上装、下装、鞋履和包包数量，并在说明中写明“按 N 天行程”。
 - 新增测试覆盖 URL Scheme 保存、搜索不创建记录、空内容和非 `some` scheme 忽略；README 同步补充 `some://search?q=...` 用法。
 - 本地验证通过：`git diff --check`、衣橱打包临时探针 red/green、`xcrun swiftc -parse some/Utilities/WorkLogSourceFilterEngine.swift some/Utilities/WardrobeInsightEngine.swift some/Stores/MemoStore.swift SomeTests/SomeTests.swift`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`。
+
+## 2026-06-23T16:58:00+08:00
+
+- 继续可用性收口，优先处理首次打开体验。开工前复查全量文件、最新提交和 GitHub Actions；#91 仍在运行，#90 已通过。
+- 按用户要求检索 `SwiftUI notes app onboarding empty state open source MIT GitHub`、`SwiftUI privacy permissions onboarding notes app MIT GitHub`、`Flomo alternative open source iOS SwiftUI onboarding notes MIT`；本轮不引入通用 onboarding/permission 依赖，先复用现有快速输入和空状态组件。
+- `MemoStore` 新增 `timelineEmptyState`，首次无记录时提示“写文字、贴链接、导入图片/录音/文件；内容默认只保存在本机”，搜索或筛选无结果时保留“换个关键词/清除筛选”的恢复提示。
+- `ContentView` 的时间线和归档列表改为传入完整空状态文案，避免所有空列表都只显示同一标题。
+- 新增测试覆盖首次打开空状态和搜索无结果空状态。本地验证通过：`git diff --check`、`xcrun swiftc -parse some/Stores/MemoStore.swift SomeTests/SomeTests.swift`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`。本机缺 iPhone simulator SDK，`ContentView.swift` parse 仍被既有 `await` 语法误判挡住，完整类型检查继续依赖 GitHub Actions。

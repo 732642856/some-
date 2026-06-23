@@ -21,7 +21,10 @@ struct ContentView: View {
                         case .timeline:
                             QuickCaptureView()
                             TagFilterView()
-                            MemoListView(memos: store.filteredMemos, emptyTitle: "还没有匹配的闪念")
+                            MemoListView(
+                                memos: store.filteredMemos,
+                                emptyState: store.timelineEmptyState
+                            )
                         case .assets:
                             AssetLibraryView()
                         case .scrapbook:
@@ -38,7 +41,13 @@ struct ContentView: View {
                             StatsDashboardView()
                         case .archive:
                             TagFilterView()
-                            MemoListView(memos: store.archivedMemos, emptyTitle: "归档里还没有内容")
+                            MemoListView(
+                                memos: store.archivedMemos,
+                                emptyState: MemoTimelineEmptyState(
+                                    title: "归档里还没有内容",
+                                    subtitle: "归档后的记录会在这里集中查看。"
+                                )
+                            )
                         }
                     }
                     .padding(.horizontal, 18)
@@ -2332,11 +2341,11 @@ private struct HomeModePicker: View {
 
 private struct MemoListView: View {
     let memos: [Memo]
-    let emptyTitle: String
+    let emptyState: MemoTimelineEmptyState
 
     var body: some View {
         if memos.isEmpty {
-            EmptyStateView(title: emptyTitle)
+            EmptyStateView(title: emptyState.title, subtitle: emptyState.subtitle)
                 .padding(.top, 12)
         } else {
             ForEach(memos) { memo in
