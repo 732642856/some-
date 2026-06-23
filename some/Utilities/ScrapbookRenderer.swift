@@ -253,6 +253,19 @@ enum ScrapbookRenderer {
     }
 }
 
+enum ScrapbookExportShareFile {
+    static func url(for attachment: SharedAttachment, fileManager: FileManager = .default) -> URL? {
+        guard
+            let url = SharedAttachmentStore.url(for: attachment, fileManager: fileManager),
+            fileManager.fileExists(atPath: url.path)
+        else {
+            return nil
+        }
+
+        return url
+    }
+}
+
 private extension UIFont {
     func withRoundedDesign() -> UIFont {
         guard let descriptor = fontDescriptor.withDesign(.rounded) else {

@@ -712,7 +712,7 @@ final class MemoStore: ObservableObject {
         format: ScrapbookRenderer.ExportFormat = .png
     ) throws -> ScrapbookShareExport {
         let attachment = try exportScrapbookLayout(layout, title: title, for: memo, format: format)
-        guard let url = SharedAttachmentStore.url(for: attachment) else {
+        guard let url = ScrapbookExportShareFile.url(for: attachment) else {
             SharedAttachmentStore.delete(attachment)
             throw ScrapbookExportError.shareURLUnavailable
         }
