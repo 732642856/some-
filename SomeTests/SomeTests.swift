@@ -631,23 +631,20 @@ final class SomeTests: XCTestCase {
 
     func testSearchQueryParserExtractsDateFilters() {
         let query = MemoSearchQueryParser.parse("created:2026-06 updated:>=2026-06-22 复盘")
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone.current
-        let juneStart = calendar.date(from: DateComponents(calendar: calendar, timeZone: .current, year: 2026, month: 6, day: 1))
-        let june22Start = calendar.date(from: DateComponents(calendar: calendar, timeZone: .current, year: 2026, month: 6, day: 22))
+        let juneStart = makeDate(year: 2026, month: 6, day: 1)
+        let june22Start = makeDate(year: 2026, month: 6, day: 22)
 
         XCTAssertEqual(query.textTerms, ["复盘"])
         XCTAssertEqual(query.dateFilters.count, 2)
-        XCTAssertTrue(query.dateFilters.contains { filter in
-            filter.field == .created
-                && filter.operation == .on
-                && filter.start == juneStart
-        }, "Expected created month filter, got \(query.dateFilters)")
-        XCTAssertTrue(query.dateFilters.contains { filter in
-            filter.field == .updated
-                && filter.operation == .onOrAfter
-                && filter.start == june22Start
-        }, "Expected updated day filter, got \(query.dateFilters)")
+        let createdFilter = query.dateFilters.first { $0.field == .created }
+        XCTAssertNotNil(createdFilter, "Expected created month filter, got \(query.dateFilters)")
+        XCTAssertEqual(createdFilter?.operation, .on)
+        XCTAssertEqual(createdFilter?.start, juneStart)
+
+        let updatedFilter = query.dateFilters.first { $0.field == .updated }
+        XCTAssertNotNil(updatedFilter, "Expected updated day filter, got \(query.dateFilters)")
+        XCTAssertEqual(updatedFilter?.operation, .onOrAfter)
+        XCTAssertEqual(updatedFilter?.start, june22Start)
     }
 
     func testSearchQueryParserKeepsInvalidDateFiltersAsText() {
@@ -4211,13 +4208,15 @@ final class SomeTests: XCTestCase {
     }
 
     private func makeDate(year: Int, month: Int, day: Int) -> Date {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone.current
         var components = DateComponents()
-        components.calendar = Calendar(identifier: .gregorian)
+        components.calendar = calendar
         components.timeZone = TimeZone.current
         components.year = year
         components.month = month
         components.day = day
-        return components.date ?? Date(timeIntervalSince1970: 0)
+        return calendar.date(from: components) ?? Date(timeIntervalSince1970: 0)
     }
 
     private func testImage(size: CGSize) -> UIImage {

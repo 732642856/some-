@@ -546,3 +546,10 @@
 - 按 TDD 增加 `testBackupPackageSummaryReadsManifestWithoutImporting`，要求 `.somebackup` 可只读 manifest 生成 `MemoBackupSummary`，覆盖记录数、历史版本数、附件数和附件字节数。受本机旧工具链限制，`swiftc -typecheck` 先因缺 ZIPFoundation 模块失败，无法本地跑到缺失 API 红灯；已记录该环境限制，并保持测试先于生产实现。
 - `MemoBackupPackage.summary(at:)` 现在只读 ZIP 包 `manifest.json` 并返回 `MemoBackupSummary`；`importPackage` 和 `summary` 共用 manifest 解析 helper，避免导入路径和预览路径漂移。`CI_DISABLE_ZIP_BACKUP` stub 同步增加 `summary(at:)`，CI 测试构建移除 ZIPFoundation 时仍可解析。
 - `SettingsView.ImportView.importFile` 在选择 `.somebackup` 后先读取 summary 再执行恢复，恢复成功反馈会显示完整备份摘要，不再只给通用“附件和历史版本会一起恢复”文案。
+
+## 2026-06-23T21:05:00+08:00
+
+- 继续收口远端 run `28023921262`：Build and test job 仍失败，公开日志只能定位到测试阶段仍有 `XCTAssertTrue failed`，且 GitHub logs API 对当前权限返回 403，无法下载完整日志包。
+- 将搜索日期解析的测试断言从闭包式 `XCTAssertTrue` 改为先取出 created/updated filter，再逐项 `XCTNotNil` / `XCTEqual`，让下一次 CI annotation 能直接暴露 operation 或 start 日期差异。
+- `MemoSearchQueryParser.dateRange` 抽出 `localGregorianCalendar()`，测试 helper `makeDate` 也改为同样先设置 Gregorian calendar 的 `timeZone` 再调用 `calendar.date(from:)`，进一步消除 `DateComponents.date` 的隐式 calendar 差异。
+- 扩大 `.github/workflows/ios-ci.yml` 的测试失败摘要 grep 范围，失败时会附带更多前后相邻 passed/failed test case，避免 GitHub 页面只显示孤立断言。

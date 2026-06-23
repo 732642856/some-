@@ -296,8 +296,7 @@ enum MemoSearchQueryParser {
             return nil
         }
 
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone.current
+        let calendar = localGregorianCalendar()
         var components = DateComponents()
         components.calendar = calendar
         components.timeZone = TimeZone.current
@@ -337,6 +336,12 @@ enum MemoSearchQueryParser {
         }
 
         return (start, end)
+    }
+
+    private static func localGregorianCalendar() -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone.current
+        return calendar
     }
 
     private static func uniqueDateFilters(_ filters: [MemoDateFilter]) -> [MemoDateFilter] {
