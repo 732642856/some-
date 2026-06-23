@@ -13,6 +13,7 @@ struct AIWorkspaceView: View {
     @State private var selectedInsightMode: AIInsightMode = .weeklyReview
     @State private var focusText = ""
     @State private var insightOutput = ""
+    @State private var memoryProfile: AIMemoryProfile?
     @State private var isWorking = false
     @State private var statusText: String?
 
@@ -35,6 +36,8 @@ struct AIWorkspaceView: View {
                 searchPanel
             case .related:
                 relatedPanel
+            case .memory:
+                memoryPanel
             }
         }
         .onAppear {
@@ -172,6 +175,68 @@ struct AIWorkspaceView: View {
             .disabled(!settings.isConfigured || isWorking || query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
             resultList
+            statusView
+        }
+    }
+
+    private var memoryPanel: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Picker("范围", selection: $selectedRange) {
+                ForEach(AIInsightRange.allCases) { range in
+                    Text(range.title).tag(range)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            actionButton(title: "生成记忆档案", systemImage: "person.text.rectangle") {
+                generateMemoryProfile()
+            }
+
+            if let memoryProfile {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(memoryProfile.markdown)
+                        .font(.body)
+                        .lineSpacing(5)
+                        .textSelection(.enabled)
+                        .foregroundStyle(Color.primaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    HStack(spacing: 10) {
+                        Button {
+                            UIPasteboard.general.string = memoryProfile.markdown
+                            statusText = "已复制"
+                        } label: {
+                            Label("复制", systemImage: "doc.on.doc")
+                        }
+                        .buttonStyle(.bordered)
+
+                        ShareLink(item: memoryProfile.markdown) {
+                            Label("分享", systemImage: "square.and.arrow.up")
+                        }
+                        .buttonStyle(.bordered)
+
+                        Button {
+                            if store.addMemo(text: "\(memoryProfile.markdown)\n\n#AI记忆档案") != nil {
+                                statusText = "已保存为新记录"
+                            } else {
+                                statusText = "保存失败，请稍后再试。"
+                            }
+                        } label: {
+                            Label("保存", systemImage: "tray.and.arrow.down")
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                    .font(.footnote.weight(.semibold))
+                }
+                .padding(14)
+                .background(Color.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Color.border, lineWidth: 1)
+                )
+            }
+
             statusView
         }
     }
@@ -321,6 +386,14 @@ struct AIWorkspaceView: View {
         }
     }
 
+    private func generateMemoryProfile() {
+        memoryProfile = AIMemoryProfileBuilder.profile(
+            from: store.memos,
+            range: selectedRange
+        )
+        statusText = "已生成本地记忆档案"
+    }
+
     private func runAIAction(_ action: @escaping @MainActor () async throws -> Void) async {
         isWorking = true
         statusText = nil
@@ -339,6 +412,7 @@ private enum AITool: String, CaseIterable, Identifiable {
     case insight
     case search
     case related
+    case memory
 
     var id: String { rawValue }
 
@@ -347,6 +421,7 @@ private enum AITool: String, CaseIterable, Identifiable {
         case .insight: return "洞察"
         case .search: return "搜索"
         case .related: return "相关"
+        case .memory: return "记忆"
         }
     }
 
@@ -355,6 +430,7 @@ private enum AITool: String, CaseIterable, Identifiable {
         case .insight: return "brain.head.profile"
         case .search: return "magnifyingglass"
         case .related: return "link"
+        case .memory: return "person.text.rectangle"
         }
     }
 }

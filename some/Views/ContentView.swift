@@ -274,6 +274,7 @@ private struct ZenCaptureView: View {
     @EnvironmentObject private var store: MemoStore
     @Environment(\.dismiss) private var dismiss
     @AppStorage("some.zenDraft") private var text = ""
+    @AppStorage("some.zenWritingPreference") private var writingPreferenceRawValue = ZenWritingPreference.calm.rawValue
     @State private var statusText: String?
     @FocusState private var isFocused: Bool
 
@@ -281,6 +282,10 @@ private struct ZenCaptureView: View {
 
     private var stats: ZenDraftStats {
         ZenDraftStats(text: text)
+    }
+
+    private var writingPreference: ZenWritingPreference {
+        ZenWritingPreference.value(for: writingPreferenceRawValue)
     }
 
     var body: some View {
@@ -292,18 +297,20 @@ private struct ZenCaptureView: View {
                     topBar
                 }
 
+                preferencePicker
+
                 ZStack(alignment: .topLeading) {
                     TextEditor(text: $text)
                         .focused($isFocused)
                         .scrollContentBackground(.hidden)
-                        .font(.system(size: 22, weight: .regular, design: .rounded))
-                        .lineSpacing(7)
+                        .font(.system(size: writingPreference.fontSize, weight: .regular, design: .rounded))
+                        .lineSpacing(writingPreference.lineSpacing)
                         .foregroundStyle(Color.primaryText)
                         .padding(.horizontal, 2)
 
                     if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Text("只写这一条。")
-                            .font(.system(size: 22, weight: .regular, design: .rounded))
+                        Text(writingPreference.placeholder)
+                            .font(.system(size: writingPreference.fontSize, weight: .regular, design: .rounded))
                             .foregroundStyle(Color.secondaryText.opacity(0.72))
                             .padding(.top, 8)
                             .padding(.leading, 7)
@@ -320,6 +327,16 @@ private struct ZenCaptureView: View {
         .task {
             isFocused = true
         }
+    }
+
+    private var preferencePicker: some View {
+        Picker("专注偏好", selection: $writingPreferenceRawValue) {
+            ForEach(ZenWritingPreference.allCases) { preference in
+                Text(preference.title).tag(preference.rawValue)
+            }
+        }
+        .pickerStyle(.segmented)
+        .accessibilityLabel("专注记录文字偏好")
     }
 
     private var topBar: some View {

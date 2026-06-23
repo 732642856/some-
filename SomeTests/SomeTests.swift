@@ -487,6 +487,14 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(stats.summaryText, "空白草稿")
     }
 
+    func testZenWritingPreferenceControlsEditorRhythm() {
+        XCTAssertEqual(ZenWritingPreference.value(for: "unknown"), .calm)
+        XCTAssertEqual(ZenWritingPreference.calm.fontSize, 22)
+        XCTAssertEqual(ZenWritingPreference.large.fontSize, 28)
+        XCTAssertEqual(ZenWritingPreference.compact.lineSpacing, 4)
+        XCTAssertEqual(ZenWritingPreference.large.placeholder, "慢慢写。")
+    }
+
     func testWidgetSnapshotSummarizesRecentActiveMemos() {
         let older = makeMemo(
             text: "旧记录 #归档",
@@ -1752,6 +1760,49 @@ final class SomeTests: XCTestCase {
         let filtered = AIInsightRange.all.filter([active, archived])
 
         XCTAssertEqual(filtered.map(\.text), ["保留"])
+    }
+
+    func testAIMemoryProfileSummarizesLocalSignalsWithoutAPIKey() {
+        let date = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+        let memos = [
+            Memo(
+                text: "今天整理产品路线 #产品 #写作\n- [ ] 复盘用户反馈",
+                createdAt: date,
+                updatedAt: date,
+                tags: ["产品", "写作"]
+            ),
+            Memo(
+                text: """
+                工作日志：项目汇报
+                项目：some
+                日期：2026-06-23
+                进展：完成工作日志模板
+                问题：等待 CI
+                下一步：继续 AI 记忆档案
+                """,
+                createdAt: date,
+                updatedAt: date,
+                tags: ["工作"]
+            ),
+            Memo(
+                text: "归档记录 #忽略",
+                createdAt: date,
+                updatedAt: date,
+                tags: ["忽略"],
+                isArchived: true
+            )
+        ]
+
+        let profile = AIMemoryProfileBuilder.profile(from: memos, range: .all, calendar: Calendar(identifier: .gregorian))
+
+        XCTAssertEqual(profile.memoCount, 2)
+        XCTAssertTrue(profile.topTags.contains(AIMemoryProfile.WeightedItem(name: "产品", count: 1)))
+        XCTAssertTrue(profile.openTasks.contains("复盘用户反馈"))
+        XCTAssertTrue(profile.workLogSignals.contains("完成工作日志模板"))
+        XCTAssertTrue(profile.markdown.contains("## 常见主题"))
+        XCTAssertTrue(profile.markdown.contains("产品"))
+        XCTAssertTrue(profile.markdown.contains("继续 AI 记忆档案"))
+        XCTAssertFalse(profile.markdown.contains("归档记录"))
     }
 
     func testAppLockStartsLockedWhenPreviouslyEnabled() {

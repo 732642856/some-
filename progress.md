@@ -608,3 +608,12 @@
 - `WorkLogExporter.reportDraft` 新增 `ReportDraftStyle`，默认 `standard` 保持原汇报稿不变，新增 `.standup` 输出“昨天/已完成、阻塞、今天/下一步”，新增 `.projectBrief` 输出“本期完成、风险/待协助、后续计划”。
 - 工作日志导出菜单新增“站会稿”和“项目简报”，两者复用当前筛选结果和系统分享表，导出为 `.txt`。
 - 本地验证通过：`xcrun swiftc -parse some/Utilities/WorkLogSourceFilterEngine.swift SomeTests/SomeTests.swift`、`xcrun swiftc -parse some/Utilities/MemoSearchQuery.swift some/Utilities/MemoReferenceParser.swift some/Utilities/WorkLogSourceFilterEngine.swift some/Models/Memo.swift some/Utilities/SharedAttachmentStore.swift SomeTests/SomeTests.swift`、`git diff --check`、plist/scheme/workflow 校验。
+
+## 2026-06-23T22:52:00+08:00
+
+- 进入并完成阶段 61：本地 AI 记忆档案与禅定偏好。开工前复查 AI 工作台、AI 洞察/语义搜索、禅定记录、当前缺口和 Git 状态；GitHub Actions 公共 API 仍被 rate limit，远端 CI 待窗口恢复后继续查。
+- 按用户要求检索 `Swift AI memory journal profile MIT` 与 `SwiftUI personal knowledge memory profile MIT`，GitHub Search 精确查询均返回 0；本轮不复制第三方源码。
+- 新增 `AIMemoryProfile` / `AIMemoryProfileBuilder`，从本地活跃记录提炼标签、重复词、未完成/已完成任务、工作日志进展/问题/下一步，输出可保存的 Markdown“AI 记忆档案”；该功能不调用 OpenAI API、不需要 Key。
+- AI 工作台新增“记忆”页，可按现有范围生成本地档案，并支持复制、分享或保存为普通记录 `#AI记忆档案`。
+- 禅定记录补舒适/大字/紧凑三种文字偏好，使用 `@AppStorage("some.zenWritingPreference")` 保存字号、行距和占位文案。
+- 本地验证通过：`xcrun swiftc -parse some/AI/AIMemoryProfile.swift some/AI/AIInsightComposer.swift some/Utilities/DateFormatters.swift some/Utilities/TagParser.swift some/Utilities/MemoTaskParser.swift some/Utilities/MemoReferenceParser.swift some/Utilities/SharedAttachmentStore.swift some/Models/Memo.swift SomeTests/SomeTests.swift`、`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist SomeWidget/Info.plist`。`AIWorkspaceView.swift` 单文件 parse 仍受本机 Swift 5.4 对既有 async/await 和新式 `if let` 语法限制，完整 UI 编译以 GitHub Actions/Xcode 16.4 为准。
