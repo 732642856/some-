@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 struct SemanticMemoResult: Identifiable, Equatable {
@@ -19,16 +20,26 @@ struct SemanticMemoResult: Identifiable, Equatable {
 }
 
 struct SemanticEmbeddingCache: Sendable {
-    private var storage: [Key: [Double]] = [:]
+    private var storage: [String: [Double]] = [:]
+
+    init(snapshot: Snapshot = Snapshot()) {
+        storage = snapshot.entries
+    }
 
     mutating func lookup(inputs: [String], modelID: String) -> Lookup {
-        let requests = inputs.map { input in
-            Request(input: normalizedInput(input), modelID: normalizedModelID(modelID))
+        let requests: [Request] = inputs.map { input in
+            let normalizedInput = normalizedInput(input)
+            let normalizedModelID = normalizedModelID(modelID)
+            return Request(
+                input: normalizedInput,
+                modelID: normalizedModelID,
+                cacheKey: cacheKey(input: normalizedInput, modelID: normalizedModelID)
+            )
         }
         var missingRequests: [Request] = []
         var seenMissing = Set<Request>()
         let embeddings = requests.map { request -> [Double]? in
-            guard let embedding = storage[Key(request: request)] else {
+            guard let embedding = storage[request.cacheKey] else {
                 if !request.input.isEmpty, seenMissing.insert(request).inserted {
                     missingRequests.append(request)
                 }
@@ -49,12 +60,20 @@ struct SemanticEmbeddingCache: Sendable {
         }
 
         zip(requests, embeddings).forEach { request, embedding in
-            storage[Key(request: request)] = embedding
+            storage[request.cacheKey] = embedding
         }
+    }
+
+    func snapshot() -> Snapshot {
+        Snapshot(entries: storage)
     }
 
     mutating func removeAll() {
         storage.removeAll()
+    }
+
+    struct Snapshot: Codable, Equatable, Sendable {
+        var entries: [String: [Double]] = [:]
     }
 
     struct Lookup: Sendable {
@@ -69,16 +88,7 @@ struct SemanticEmbeddingCache: Sendable {
     struct Request: Hashable, Sendable {
         let input: String
         let modelID: String
-    }
-
-    private struct Key: Hashable, Sendable {
-        let input: String
-        let modelID: String
-
-        init(request: Request) {
-            input = request.input
-            modelID = request.modelID
-        }
+        fileprivate let cacheKey: String
     }
 
     private func normalizedInput(_ input: String) -> String {
@@ -89,10 +99,68 @@ struct SemanticEmbeddingCache: Sendable {
         let trimmed = modelID.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? "text-embedding-3-small" : trimmed
     }
+
+    private func cacheKey(input: String, modelID: String) -> String {
+        let payload = "\(modelID)\u{1F}some.semantic.embedding.v1\u{1F}\(input)"
+        let digest = SHA256.hash(data: Data(payload.utf8))
+        let fingerprint = digest.map { String(format: "%02x", $0) }.joined()
+        return "\(modelID)#\(fingerprint)"
+    }
+}
+
+struct SemanticEmbeddingDiskCache: Sendable {
+    let fileURL: URL
+
+    init(
+        directory: URL = SharedMemoStorage.storageDirectory()
+            .appendingPathComponent("AICache", isDirectory: true),
+        filename: String = "semantic-embeddings.json"
+    ) {
+        fileURL = directory.appendingPathComponent(filename, isDirectory: false)
+    }
+
+    func load() -> SemanticEmbeddingCache.Snapshot {
+        guard let data = try? Data(contentsOf: fileURL),
+              let file = try? JSONDecoder().decode(File.self, from: data),
+              file.version == Self.currentVersion else {
+            return SemanticEmbeddingCache.Snapshot()
+        }
+        return file.snapshot
+    }
+
+    func save(_ snapshot: SemanticEmbeddingCache.Snapshot) throws {
+        try FileManager.default.createDirectory(
+            at: fileURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        let file = File(version: Self.currentVersion, snapshot: snapshot)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        let data = try encoder.encode(file)
+        try data.write(to: fileURL, options: [.atomic])
+    }
+
+    func remove() throws {
+        guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
+        try FileManager.default.removeItem(at: fileURL)
+    }
+
+    private static let currentVersion = 1
+
+    private struct File: Codable, Equatable, Sendable {
+        let version: Int
+        let snapshot: SemanticEmbeddingCache.Snapshot
+    }
 }
 
 private actor SemanticEmbeddingCacheStore {
-    private var cache = SemanticEmbeddingCache()
+    private var cache: SemanticEmbeddingCache
+    private let diskCache: SemanticEmbeddingDiskCache
+
+    init(diskCache: SemanticEmbeddingDiskCache = SemanticEmbeddingDiskCache()) {
+        self.diskCache = diskCache
+        cache = SemanticEmbeddingCache(snapshot: diskCache.load())
+    }
 
     func lookup(inputs: [String], modelID: String) -> SemanticEmbeddingCache.Lookup {
         cache.lookup(inputs: inputs, modelID: modelID)
@@ -100,10 +168,12 @@ private actor SemanticEmbeddingCacheStore {
 
     func store(_ embeddings: [[Double]], for requests: [SemanticEmbeddingCache.Request]) throws {
         try cache.store(embeddings, for: requests)
+        try? diskCache.save(cache.snapshot())
     }
 
-    func removeAll() {
+    func removeAll() throws {
         cache.removeAll()
+        try diskCache.remove()
     }
 }
 
@@ -204,7 +274,7 @@ enum SemanticSearchEngine {
     }
 
     static func clearEmbeddingCache() async {
-        await embeddingCacheStore.removeAll()
+        try? await embeddingCacheStore.removeAll()
     }
 
     static func cosineSimilarity(_ lhs: [Double], _ rhs: [Double]) -> Double {

@@ -1888,6 +1888,48 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(secondLookup.embeddings, [[1, 0], [0, 1], [0, 1]])
     }
 
+    func testSemanticEmbeddingCacheSnapshotRestoresWithoutPersistingRawInputs() throws {
+        var cache = SemanticEmbeddingCache()
+        let firstLookup = cache.lookup(inputs: [" 产品路线 "], modelID: "text-embedding-3-small")
+        try cache.store([[0.5, 0.25]], for: firstLookup.missingRequests)
+
+        let snapshot = cache.snapshot()
+        let snapshotJSON = String(data: try JSONEncoder().encode(snapshot), encoding: .utf8) ?? ""
+        XCTAssertFalse(snapshotJSON.contains("产品路线"))
+
+        var restored = SemanticEmbeddingCache(snapshot: snapshot)
+        let restoredLookup = restored.lookup(inputs: ["产品路线"], modelID: "text-embedding-3-small")
+        XCTAssertTrue(restoredLookup.missingInputs.isEmpty)
+        XCTAssertEqual(restoredLookup.embeddings, [[0.5, 0.25]])
+
+        let differentModelLookup = restored.lookup(inputs: ["产品路线"], modelID: "text-embedding-3-large")
+        XCTAssertEqual(differentModelLookup.missingInputs, ["产品路线"])
+    }
+
+    func testSemanticEmbeddingDiskCacheRoundTripsSnapshot() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("semantic-cache-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let diskCache = SemanticEmbeddingDiskCache(directory: directory)
+
+        var cache = SemanticEmbeddingCache()
+        let lookup = cache.lookup(inputs: ["用户反馈"], modelID: "text-embedding-3-small")
+        try cache.store([[0, 1]], for: lookup.missingRequests)
+
+        try diskCache.save(cache.snapshot())
+
+        var restored = SemanticEmbeddingCache(snapshot: diskCache.load())
+        let restoredLookup = restored.lookup(inputs: [" 用户反馈 "], modelID: "text-embedding-3-small")
+        XCTAssertTrue(restoredLookup.missingInputs.isEmpty)
+        XCTAssertEqual(restoredLookup.embeddings, [[0, 1]])
+
+        let storedJSON = String(
+            data: try Data(contentsOf: diskCache.fileURL),
+            encoding: .utf8
+        ) ?? ""
+        XCTAssertFalse(storedJSON.contains("用户反馈"))
+    }
+
     func testInsightPromptKeepsProvidedMemoContent() {
         let memo = Memo(
             text: "下午整理产品灵感 #产品",

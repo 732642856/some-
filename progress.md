@@ -663,3 +663,10 @@
 - 按用户要求补做开源检索：Swift/OpenAI embedding cache、语义搜索缓存、工作日志行动复盘模板方向未找到可直接复制进当前 SwiftUI/iOS 工程的成熟 MIT 模块；本轮继续复用项目内 `SemanticSearchEngine` 和 `WorkLogExporter`。
 - 按 TDD 增加 `testSemanticEmbeddingCacheReusesRepeatedInputs`，实现 `SemanticEmbeddingCache`，对同一模型和同一 memo 文本在本次运行内复用记录 embedding；查询文本仍每次请求，避免把临时问题长期缓存。
 - 发现并保留并行/遗留的 `testWorkLogExporterBuildsActionReviewReportDraft` 正向测试，补 `ReportDraftStyle.actionReview` 和工作日志导出菜单“行动复盘”，不回滚其他窗口留下的改动。
+
+## 2026-06-24T00:18:00+08:00
+
+- 进入并完成阶段 67：AI embedding 跨启动本地缓存。开工前补检索持久化 embedding cache、iOS 语义搜索缓存和 Core Spotlight 示例，未找到能直接复制进当前 OpenAI embedding 调用链的轻量模块。
+- 按 TDD 增加 `testSemanticEmbeddingCacheSnapshotRestoresWithoutPersistingRawInputs` 和 `testSemanticEmbeddingDiskCacheRoundTripsSnapshot`，先用聚焦 typecheck 探针确认缺少 `snapshot` / `SemanticEmbeddingDiskCache` 的红灯。
+- `SemanticEmbeddingCache` 的内部 key 从原文改为模型名 + SHA-256 指纹，支持 `Snapshot` 导出/恢复；新增 `SemanticEmbeddingDiskCache`，把缓存写入 App Group `AICache/semantic-embeddings.json`。
+- 语义搜索 actor 初始化时加载本地缓存，成功获取缺失记录 embedding 后写回磁盘；`clearEmbeddingCache()` 同步清理内存和磁盘文件。查询文本仍不缓存，只缓存记录文本 embedding，降低临时搜索词长期留存风险。
