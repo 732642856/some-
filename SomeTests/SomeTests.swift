@@ -331,7 +331,12 @@ final class SomeTests: XCTestCase {
                 )
             ],
             revisions: [
-                MemoRevision(memoID: UUID(), text: "旧版本", tags: [])
+                MemoRevision(
+                    memoID: UUID(),
+                    text: "旧版本",
+                    tags: [],
+                    memoUpdatedAt: Date(timeIntervalSince1970: 0)
+                )
             ]
         )
 
