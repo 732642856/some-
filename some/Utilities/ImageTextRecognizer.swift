@@ -86,7 +86,7 @@ enum ImageTextRecognizer {
             "\(titlePrefix)：\(attachment.displayName)"
         ]
 
-        if let pageNumber {
+        if let pageNumber = pageNumber {
             lines.append("扫描页：第 \(pageNumber) 页")
         }
 
