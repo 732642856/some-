@@ -499,6 +499,15 @@
 - `MemoStore.exportScrapbookLayoutForSharing` 复用现有导出逻辑返回 `ScrapbookShareExport`；`ScrapbookEditorView` 在 PNG/PDF 导出成功后把文件 URL 交给 `ShareSheet`，用户可立刻发送或保存。
 - 本地验证通过：`xcrun swiftc -parse some/Stores/MemoStore.swift some/Views/ScrapbookEditorView.swift some/Utilities/ScrapbookRenderer.swift SomeTests/SomeTests.swift`、`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`。本机缺 iOS/UIKit SDK，`swiftc -typecheck` 会在 `import UIKit` 失败，完整 XCTest 继续以 GitHub Actions 为准。
 
+## 2026-06-23T18:34:53+08:00
+
+- 进入并完成阶段 50：手帐图片构图微调。阶段 49 已在最新历史中完成并同步远端，本轮继续推进照片拼贴/手帐排版缺口。
+- 按用户要求检索 `SwiftUI photo collage crop editor open source`、`GitHub iOS image cropper SwiftUI open source`、`GitHub Swift photo editor filter crop frame open source`，并复核 `Mantis`、`TOCropViewController`、`SwiftyCrop` 的 MIT 许可和近期维护状态；当前不引入大型裁剪器，先补 some 内置图片图层取景控制。
+- 按 TDD 增加 `testScrapbookImageLayerCompositionRoundTripsAndDefaults`，先确认 `ScrapbookLayer` 尚不支持 `imageCropX` / `imageCropY` / `imageCropScale` 后再实现；同时补照片拼贴默认图片图层的中性构图断言。
+- `ScrapbookLayer` 新增向后兼容的图片构图字段，旧手帐 JSON 解码默认居中、原始取景；异常值会限制在安全范围内。
+- `ScrapbookRenderer` 导出图片图层时按取景中心和放大倍率做 aspect-fill；`ScrapbookEditorView` 的图片预览也使用同一取景算法，并在图片图层 Inspector 中提供横向取景、纵向取景、取景放大和复位控制。
+- 本地验证通过：`xcrun swiftc -parse some/Models/Memo.swift some/Utilities/ScrapbookRenderer.swift some/Views/ScrapbookEditorView.swift SomeTests/SomeTests.swift`、`git diff --check`、`plutil -lint some/Info.plist some.xcodeproj/project.pbxproj`。完整类型检查探针被 `MemoStore` 需要额外数据库/备份类型依赖挡住，完整 XCTest 继续以 GitHub Actions 为准。
+
 ## 2026-06-23T19:45:00+08:00
 
 - 回到 CI 阻塞：公开 check-run annotations 显示 `ef86208`、`ac846ab`、`fe06e85` 的 Build for simulator 通过，但 Run tests 因 `appintentsmetadataprocessor --module-name ZIPFoundation` 退出 65；`fe06e85` 另有分享 helper 漏提交问题，已由 `9eafad8` 补齐。

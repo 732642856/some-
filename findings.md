@@ -50,14 +50,15 @@
 - 2026-06-23：阶段 47 开工前检索 `Swift daily report generator markdown MIT`、`SwiftUI work log report export MIT`、`project status report markdown Swift MIT`，GitHub API 均返回 0 个可直接复制的 Swift/MIT 工作汇报生成模块。本轮不调用 OpenAI API、不需要用户密钥，继续复用 `WorkLogExporter` 的结构化字段生成本地纯文本汇报稿。
 - 2026-06-23：阶段 48 开工前复查 GitHub 官方 `actions/checkout` 远端 tags，确认 `v5` / `v5.0.1` 存在；本项目 `ios-ci.yml` 已使用 `actions/checkout@v5`，`ios-testflight.yml` 仍停在 `v4`。本轮不复制业务源码，只把发布 workflow 对齐到官方 v5 action。
 - 2026-06-23：阶段 49 开工前检索 `SwiftUI PDF export share sheet GitHub MIT iOS scrapbook`、`SwiftUI UIActivityViewController share sheet PDF export GitHub MIT`、`SwiftUI collage editor export PDF share GitHub MIT`、`TPPDF Swift PDF generator MIT GitHub`。存在 MIT 的通用分享表或 PDF 生成参考，但 some 已有 `ShareSheet`、`ScrapbookRenderer`、`SharedAttachmentStore` 和回写 memo 链路；本轮不新增依赖，复用现有系统分享表与 Apple PDF renderer。
+- 2026-06-23：阶段 50 开工前检索 `SwiftUI photo collage crop editor open source`、`GitHub iOS image cropper SwiftUI open source`、`GitHub Swift photo editor filter crop frame open source`，并复核 `guoyingtao/Mantis`（MIT、2026-06-09 推送）、`TimOliver/TOCropViewController`（MIT、2026-04-07 推送）、`benedom/SwiftyCrop`（MIT、2026-06-23 推送）。三者适合作为后续完整裁剪器候选，但当前手帐拼贴只缺图片图层取景微调，引入大型裁剪库会增加 SPM/桥接/状态同步成本；本轮复用 `ScrapbookLayer` 和 `ScrapbookRenderer`，新增项目内构图字段与控件。
 - 2026-06-23：CI 失败复查：runs `28018991662` / `28019499635` 的 Build for simulator 均通过，Run tests 失败 annotation 指向 `appintentsmetadataprocessor --module-name ZIPFoundation`。根因是 Xcode 16.4 测试构建仍会对 Swift Package 跑 App Intents metadata processor；正式 build 需要继续验证 ZIPFoundation，测试阶段可临时移除 package 引用并用 `CI_DISABLE_ZIP_BACKUP` stub 跳过 ZIP 专属测试。
 
 ## 当前缺口
 
 - 媒体预览：视频附件已有本地缩略图缓存、媒体元数据摘要、视频缩略图预热/清理和图片/音频/视频元数据摘要批量预热；后续需用真实长列表验证滚动性能，并按需要继续细化缓存淘汰策略。
 - 工作日志：已有勾选记录生成结构化日志 v7；支持按标签、素材类型、时间和关键词筛选来源记录，支持项目字段、日期范围和日报/周报/项目汇报/复盘模板，工作日志列表支持项目/模板/日期筛选，并可把当前结果导出为带本地汇报摘要的 Markdown、结构化 CSV 或可直接发送的纯文本汇报稿；后续可补可选 AI 润色和更细的团队模板。
-- 电子手帐：已有图层 JSON、预览、详情页拖拽/缩放/旋转、独立编辑器图层新增/复制/删除/层级调整、图片素材追加、画布底色、字体/贴纸/花边预设、颜色/字号/圆角/线宽编辑、PNG/PDF 导出、保存回原 memo 和导出后系统分享表；后续缺真实图片排版长页性能和真机手势验证。
-- 图片编辑：已完成素材库图片编辑入口、预设比例裁剪、拖拽定位/捏合缩放裁剪、裁剪状态边界统一、背景柔化/纯色画布、人物抠图、iOS 17+ 智能主体抠图、智能主体单实例点选、授权图片柔和修补/对象清理贴片、Core Image 滤镜、边框、文字、贴纸、版式模板/导出预设、多图拼贴 MVP、输出 PNG 附件、`imageEdit` / `scrapbookPage` 素材索引和相关搜索；更真实的复杂对象修复、更自由的多图拼贴编辑和真机复杂手势验证仍待补。
+- 电子手帐：已有图层 JSON、预览、详情页拖拽/缩放/旋转、独立编辑器图层新增/复制/删除/层级调整、图片素材追加、图片图层取景位置/放大微调、画布底色、字体/贴纸/花边预设、颜色/字号/圆角/线宽编辑、PNG/PDF 导出、保存回原 memo 和导出后系统分享表；后续缺真实图片排版长页性能和真机手势验证。
+- 图片编辑：已完成素材库图片编辑入口、预设比例裁剪、拖拽定位/捏合缩放裁剪、裁剪状态边界统一、背景柔化/纯色画布、人物抠图、iOS 17+ 智能主体抠图、智能主体单实例点选、授权图片柔和修补/对象清理贴片、Core Image 滤镜、边框、文字、贴纸、版式模板/导出预设、多图拼贴 MVP、手帐图片图层构图微调、输出 PNG 附件、`imageEdit` / `scrapbookPage` 素材索引和相关搜索；更真实的复杂对象修复、完整裁剪器接入和真机复杂手势验证仍待补。
 - 电子衣橱：已完成衣橱洞察 v7，可从现有素材索引统计分类、颜色、季节、场景、材质、厚薄、未进入穿搭组合单品、常用单品、穿着次数、最近穿着和成本/次，并记录洗护状态、旅行打包清单、目的地、天气和行程天数；现在可根据最近穿着或打包清单天气生成天气穿搭、自动生成打包草稿，在炎热天气优先轻薄/透气材质，按行程天数扩展上装/下装和配件数量，用最新打包清单带出目的地/天气，用最新洗护状态提醒待清洗/送洗/待熨烫/待修补单品，并可安排本地系统通知。后续可接真实天气 API 和按目的地/天气更细化的数量规则。
 - 网页摘录/OCR：已有标题/description、正文清洗、段落评分、来源、摘录卡、重点候选、网页/OCR 统一摘录片段、快速输入片段勾选、摘录片段独立素材索引、`has:clip` 搜索和多链接批量网页摘录；截图/OCR 已有区域识别和框选 UI，同一记录的多张图片/多段局部 OCR 可分别进入截图素材索引。
 - 导入/备份：设置页已说明 `.somebackup`、旧 JSON 和普通文本三类导入路径，并用结构化反馈区分完整备份恢复、普通文本导入、重复/空导入和失败原因；后续可在真机文件选择流程中继续验证大备份与缺失附件边界。
