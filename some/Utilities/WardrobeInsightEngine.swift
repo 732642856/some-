@@ -53,6 +53,19 @@ struct WardrobeLaundryLogInsight: Identifiable, Equatable {
     var createdAt: Date
 }
 
+struct WardrobePackingListInsight: Identifiable, Equatable {
+    var id: UUID
+    var memoID: UUID
+    var title: String
+    var destination: String?
+    var dateRange: String?
+    var tripDays: Int?
+    var itemNames: [String]
+    var weather: String?
+    var note: String?
+    var createdAt: Date
+}
+
 struct WardrobeInsightMetric: Identifiable, Equatable {
     var label: String
     var count: Int
@@ -102,6 +115,7 @@ struct WardrobeInsights: Equatable {
     var outfits: [WardrobeOutfitInsight]
     var wearLogs: [WardrobeWearLogInsight]
     var laundryLogs: [WardrobeLaundryLogInsight]
+    var packingLists: [WardrobePackingListInsight]
     var categoryStats: [WardrobeInsightMetric]
     var colorStats: [WardrobeInsightMetric]
     var seasonStats: [WardrobeInsightMetric]
@@ -117,6 +131,7 @@ struct WardrobeInsights: Equatable {
         outfits: [],
         wearLogs: [],
         laundryLogs: [],
+        packingLists: [],
         categoryStats: [],
         colorStats: [],
         seasonStats: [],
@@ -143,6 +158,10 @@ enum WardrobeInsightEngine {
             .filter { $0.kind == .laundryLog }
             .compactMap(laundryLog(from:))
             .sorted { $0.loggedAt == $1.loggedAt ? $0.title < $1.title : $0.loggedAt > $1.loggedAt }
+        let packingLists = assets
+            .filter { $0.kind == .packingList }
+            .compactMap(packingList(from:))
+            .sorted { $0.createdAt == $1.createdAt ? $0.title < $1.title : $0.createdAt > $1.createdAt }
 
         let usageByName = itemUsageCounts(in: outfits)
         let wearStatsByName = wearStats(in: wearLogs)
@@ -190,6 +209,7 @@ enum WardrobeInsightEngine {
             outfits: outfits,
             wearLogs: wearLogs,
             laundryLogs: laundryLogs,
+            packingLists: packingLists,
             categoryStats: categoryStats,
             colorStats: colorStats,
             seasonStats: seasonStats,
@@ -209,6 +229,7 @@ enum WardrobeInsightEngine {
                 items: items,
                 outfits: outfits,
                 wearLogs: wearLogs,
+                packingLists: packingLists,
                 unavailableNames: unavailableNames,
                 sceneStats: sceneStats,
                 seasonStats: seasonStats
@@ -305,6 +326,23 @@ enum WardrobeInsightEngine {
             itemNames: fields["单品"] ?? [],
             scenes: fields["场景"] ?? [],
             seasons: fields["季节"] ?? [],
+            note: fields["备注"]?.joined(separator: "、"),
+            createdAt: asset.createdAt
+        )
+    }
+
+    private static func packingList(from asset: MemoAsset) -> WardrobePackingListInsight? {
+        guard asset.kind == .packingList else { return nil }
+        let fields = fields(in: asset.summary)
+        return WardrobePackingListInsight(
+            id: asset.id,
+            memoID: asset.memoID,
+            title: asset.title,
+            destination: rawField("目的地", in: asset.summary),
+            dateRange: rawField("日期", in: asset.summary),
+            tripDays: parsedTripDays(fields["天数"]?.first),
+            itemNames: fields["单品"] ?? [],
+            weather: rawField("天气", in: asset.summary),
             note: fields["备注"]?.joined(separator: "、"),
             createdAt: asset.createdAt
         )
@@ -454,6 +492,7 @@ enum WardrobeInsightEngine {
         items: [WardrobeItemInsight],
         outfits: [WardrobeOutfitInsight],
         wearLogs: [WardrobeWearLogInsight],
+        packingLists: [WardrobePackingListInsight],
         unavailableNames: Set<String>,
         sceneStats: [WardrobeInsightMetric],
         seasonStats: [WardrobeInsightMetric]
@@ -465,6 +504,7 @@ enum WardrobeInsightEngine {
         let weather = wearLogs.first(where: { $0.weather?.isEmpty == false })?.weather
         let season = seasonStats.first?.label
         let scene = sceneStats.first?.label ?? "旅行"
+        let tripDays = packingLists.first(where: { ($0.tripDays ?? 0) > 0 })?.tripDays
         let weatherItems = weather.map { weatherValue in
             availableItems
                 .filter { weatherScore($0, weather: weatherValue) > 0 }
@@ -482,7 +522,12 @@ enum WardrobeInsightEngine {
                     || item.scenes.contains("旅行")
             }
             : weatherItems
-        let selectedItemNames = categoryBalancedItems(from: baseItems.isEmpty ? availableItems : baseItems).map(\.name)
+        let selectedItems = packingItems(
+            from: baseItems.isEmpty ? availableItems : baseItems,
+            fallbackItems: availableItems,
+            tripDays: tripDays
+        )
+        let selectedItemNames = selectedItems.map(\.name)
         if !selectedItemNames.isEmpty {
             suggestions.append(
                 WardrobePackingSuggestion(
@@ -495,7 +540,8 @@ enum WardrobeInsightEngine {
                         weather: weather,
                         season: season,
                         scene: scene,
-                        items: selectedWardrobeItems(in: availableItems, named: selectedItemNames)
+                        tripDays: tripDays,
+                        items: selectedItems
                     )
                 )
             )
@@ -667,6 +713,46 @@ enum WardrobeInsightEngine {
         return selected
     }
 
+    private static func packingItems(
+        from preferredItems: [WardrobeItemInsight],
+        fallbackItems: [WardrobeItemInsight],
+        tripDays: Int?
+    ) -> [WardrobeItemInsight] {
+        guard let tripDays = tripDays, tripDays > 1 else {
+            return categoryBalancedItems(from: preferredItems)
+        }
+
+        let allCandidates = (preferredItems + fallbackItems).uniquedByName()
+        var selected: [WardrobeItemInsight] = []
+        var selectedKeys = Set<String>()
+
+        func appendCategory(_ category: String, limit: Int) {
+            guard limit > 0 else { return }
+            for item in allCandidates where item.category == category {
+                guard selectedKeys.insert(wardrobeNormalizedName(item.name)).inserted else { continue }
+                selected.append(item)
+                if selected.filter({ $0.category == category }).count >= limit { return }
+            }
+        }
+
+        appendCategory("上装", limit: min(tripDays, 5))
+        appendCategory("连衣裙", limit: selected.contains(where: { $0.category == "上装" }) ? 0 : min(tripDays, 3))
+        appendCategory("下装", limit: max(1, Int(ceil(Double(tripDays) / 2.0))))
+        appendCategory("外套", limit: 1)
+        appendCategory("鞋履", limit: 1)
+        appendCategory("包包", limit: 1)
+        appendCategory("饰品", limit: 2)
+
+        if selected.count < min(allCandidates.count, 4) {
+            for item in categoryBalancedItems(from: allCandidates) {
+                guard selectedKeys.insert(wardrobeNormalizedName(item.name)).inserted else { continue }
+                selected.append(item)
+            }
+        }
+
+        return selected
+    }
+
     private static func missingAccessoryCategories(in items: [WardrobeItemInsight]) -> Bool {
         guard items.count >= 3 else { return false }
         let categories = Set(items.map(\.category))
@@ -712,8 +798,11 @@ enum WardrobeInsightEngine {
         return "thermometer.medium"
     }
 
-    private static func packingNote(weather: String?, season: String?, scene: String, items: [WardrobeItemInsight] = []) -> String {
+    private static func packingNote(weather: String?, season: String?, scene: String, tripDays: Int? = nil, items: [WardrobeItemInsight] = []) -> String {
         var parts = ["按 \(scene) 场景生成，已避开待洗待修单品。"]
+        if let tripDays = tripDays, tripDays > 1 {
+            parts.append("按 \(tripDays) 天行程扩展上装和下装数量。")
+        }
         if let weather = weather, !weather.isEmpty {
             parts.append("天气参考：\(weather)。")
             if containsAny(weather.lowercased(), ["热", "高温", "晴", "sun", "hot"]),
@@ -823,6 +912,16 @@ enum WardrobeInsightEngine {
             .replacingOccurrences(of: ",", with: "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return Double(normalized)
+    }
+
+    private static func parsedTripDays(_ text: String?) -> Int? {
+        guard let text = text else { return nil }
+        let digits = text.filter { $0.isNumber }
+        guard let value = Int(digits), value > 0 else {
+            return nil
+        }
+
+        return value
     }
 
     private static func costPerWear(price: Double?, wearCount: Int) -> Double? {

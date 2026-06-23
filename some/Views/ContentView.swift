@@ -723,10 +723,15 @@ private struct WorkLogView: View {
     @State private var selectedProjectFilter = ""
     @State private var selectedTemplateFilter = ""
     @State private var workLogDateFilter = ""
+    @State private var sourceTagFilter = ""
+    @State private var sourceKindFilter: MemoContentFilter?
+    @State private var sourceDateScope: WorkLogSourceFilter.DateScope = .all
+    @State private var sourceSearchText = ""
     @State private var statusText: String?
 
     private let scopes = ["今日", "本周", "项目", "复盘"]
     private let templates = ["日报", "周报", "项目汇报", "复盘"]
+    private let sourceKindOptions: [MemoContentFilter] = [.task, .openTask, .completedTask, .link, .webClip, .clipFragment, .attachment, .audio, .video, .screenshot, .imageEdit, .scrapbook, .wardrobe, .outfit, .wearLog, .laundryLog, .packingList]
 
     private var workLogAssets: [MemoAsset] {
         store.assets.filter { $0.kind == .workLog }
@@ -762,14 +767,25 @@ private struct WorkLogView: View {
         uniqueValues(workLogRecords.map(\.template))
     }
 
+    private var sourceTagOptions: [String] {
+        uniqueValues(store.activeMemos.flatMap(\.tags))
+    }
+
+    private var sourceFilter: WorkLogSourceFilter {
+        WorkLogSourceFilter(
+            tag: sourceTagFilter,
+            kind: sourceKindFilter,
+            dateScope: sourceDateScope,
+            searchText: sourceSearchText
+        )
+    }
+
     private var candidateMemos: [Memo] {
-        store.activeMemos
-            .filter { memo in
-                !store.assets(for: memo).contains { $0.kind == .workLog }
-            }
-            .sorted { $0.createdAt > $1.createdAt }
-            .prefix(24)
-            .map { $0 }
+        WorkLogSourceFilterEngine.candidates(
+            from: store.memos,
+            assets: store.assets,
+            filter: sourceFilter
+        )
     }
 
     private var selectedMemos: [Memo] {
@@ -925,16 +941,22 @@ private struct WorkLogView: View {
 
                 Spacer()
 
+                Text("\(candidateMemos.count)")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.tertiaryText)
+
                 Button {
-                    toggleRecentToday()
+                    toggleVisibleCandidates()
                 } label: {
-                    Image(systemName: "calendar.badge.checkmark")
+                    Image(systemName: "checklist.checked")
                         .frame(width: 34, height: 30)
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(Color.accentGreen)
-                .accessibilityLabel("选择今日记录")
+                .accessibilityLabel("选择当前筛选记录")
             }
+
+            sourceFilterBar
 
             if candidateMemos.isEmpty {
                 EmptyStateView(title: "还没有可汇总的记录")
@@ -984,6 +1006,55 @@ private struct WorkLogView: View {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(Color.border, lineWidth: 1)
         )
+    }
+
+    @ViewBuilder
+    private var sourceFilterBar: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Picker("标签", selection: $sourceTagFilter) {
+                    Text("全部标签").tag("")
+                    ForEach(sourceTagOptions, id: \.self) { tag in
+                        Text(tag).tag(tag)
+                    }
+                }
+                .pickerStyle(.menu)
+
+                Picker("类型", selection: $sourceKindFilter) {
+                    Text("全部类型").tag(Optional<MemoContentFilter>.none)
+                    ForEach(sourceKindOptions, id: \.self) { kind in
+                        Text(sourceKindTitle(kind)).tag(Optional(kind))
+                    }
+                }
+                .pickerStyle(.menu)
+            }
+
+            HStack(spacing: 8) {
+                Picker("时间", selection: $sourceDateScope) {
+                    ForEach(WorkLogSourceFilter.DateScope.allCases) { scope in
+                        Text(scope.title).tag(scope)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Button {
+                    clearSourceFilters()
+                } label: {
+                    Image(systemName: "line.3.horizontal.decrease.circle")
+                        .frame(width: 32, height: 30)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.secondaryText)
+                .accessibilityLabel("清除来源筛选")
+                .disabled(sourceFilter.isEmpty)
+            }
+
+            TextField("筛选可汇总记录", text: $sourceSearchText)
+                .textFieldStyle(.plain)
+                .padding(10)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
     }
 
     private var workLogList: some View {
@@ -1083,16 +1154,14 @@ private struct WorkLogView: View {
         }
     }
 
-    private func toggleRecentToday() {
-        let todayIDs = candidateMemos
-            .filter { Calendar.current.isDateInToday($0.createdAt) }
-            .map(\.id)
-        let allSelected = !todayIDs.isEmpty && todayIDs.allSatisfy { selectedMemoIDs.contains($0) }
+    private func toggleVisibleCandidates() {
+        let visibleIDs = candidateMemos.map(\.id)
+        let allSelected = !visibleIDs.isEmpty && visibleIDs.allSatisfy { selectedMemoIDs.contains($0) }
 
         if allSelected {
-            todayIDs.forEach { selectedMemoIDs.remove($0) }
+            visibleIDs.forEach { selectedMemoIDs.remove($0) }
         } else {
-            todayIDs.forEach { selectedMemoIDs.insert($0) }
+            visibleIDs.forEach { selectedMemoIDs.insert($0) }
         }
     }
 
@@ -1220,6 +1289,13 @@ private struct WorkLogView: View {
         workLogDateFilter = ""
     }
 
+    private func clearSourceFilters() {
+        sourceTagFilter = ""
+        sourceKindFilter = nil
+        sourceDateScope = .all
+        sourceSearchText = ""
+    }
+
     private func inferredProgress() -> [String] {
         let completedTasks = selectedMemos
             .flatMap { MemoTaskParser.taskItems(in: displayText(for: $0)) }
@@ -1283,6 +1359,31 @@ private struct WorkLogView: View {
         }
 
         return result
+    }
+
+    private func sourceKindTitle(_ kind: MemoContentFilter) -> String {
+        switch kind {
+        case .link: return "链接"
+        case .attachment: return "附件"
+        case .task: return "任务"
+        case .openTask: return "未完成"
+        case .completedTask: return "已完成"
+        case .reference: return "引用"
+        case .backlink: return "被引用"
+        case .webClip: return "网页"
+        case .clipFragment: return "摘录"
+        case .imageEdit: return "图片"
+        case .screenshot: return "OCR"
+        case .scrapbook: return "手帐"
+        case .audio: return "音频"
+        case .video: return "视频"
+        case .wardrobe: return "衣橱"
+        case .outfit: return "穿搭"
+        case .wearLog: return "穿着"
+        case .laundryLog: return "洗护"
+        case .packingList: return "打包"
+        case .workLog: return "日志"
+        }
     }
 
     private func currentWeekRange() -> String {

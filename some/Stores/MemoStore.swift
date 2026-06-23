@@ -1243,17 +1243,24 @@ final class MemoStore: ObservableObject {
     }
 
     func addMemo(from url: URL) {
-        guard storageError == nil else {
-            return
+        _ = handleURL(url)
+    }
+
+    @discardableResult
+    func handleURL(_ url: URL) -> Bool {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              components.scheme?.lowercased() == "some" else {
+            return false
         }
 
-        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
-
-        let text = components.queryItems?.first(where: { $0.name == "text" })?.value
-            ?? components.queryItems?.first(where: { $0.name == "content" })?.value
-            ?? components.host
-            ?? ""
-        addMemo(text: text)
+        switch urlAction(in: components) {
+        case "add", "new", "memo", "capture":
+            return addMemo(from: components)
+        case "search", "find":
+            return applySearch(from: components)
+        default:
+            return addMemo(from: components)
+        }
     }
 
     func reloadFromStorage() {
@@ -1504,6 +1511,63 @@ final class MemoStore: ObservableObject {
             .components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
             .joined(separator: " ")
+    }
+
+    private func urlAction(in components: URLComponents) -> String {
+        if let host = components.host?.lowercased(),
+           ["add", "new", "memo", "capture", "search", "find"].contains(host) {
+            return host
+        }
+
+        return components.path
+            .split(separator: "/")
+            .first
+            .map { String($0).lowercased() } ?? ""
+    }
+
+    private func addMemo(from components: URLComponents) -> Bool {
+        guard storageError == nil else {
+            return false
+        }
+
+        let text = urlQueryValue(named: ["text", "content", "body"], in: components)
+            ?? fallbackURLMemoText(in: components)
+            ?? ""
+        guard addMemo(text: text) != nil else {
+            return false
+        }
+
+        selectedTag = nil
+        homeMode = .timeline
+        return true
+    }
+
+    private func applySearch(from components: URLComponents) -> Bool {
+        guard let query = urlQueryValue(named: ["q", "query", "text", "content"], in: components),
+              !normalizedSearch(query).isEmpty else {
+            return false
+        }
+
+        selectedTag = nil
+        applySearch(query)
+        homeMode = .timeline
+        return true
+    }
+
+    private func urlQueryValue(named names: [String], in components: URLComponents) -> String? {
+        components.queryItems?
+            .first { item in names.contains { $0.caseInsensitiveCompare(item.name) == .orderedSame } }?
+            .value
+    }
+
+    private func fallbackURLMemoText(in components: URLComponents) -> String? {
+        if let host = components.host,
+           !["add", "new", "memo", "capture", "search", "find"].contains(host.lowercased()) {
+            return host
+        }
+
+        let path = components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        return path.isEmpty ? nil : path
     }
 
     private func containsSearch(_ query: String, in searches: [String]) -> Bool {

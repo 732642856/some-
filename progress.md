@@ -360,3 +360,12 @@
 - 保存后会把这些字段传入已实现的结构化存储与洞察逻辑，并清空表单状态。
 - 本地验证通过：`git diff --check`、`.github/workflows/ios-ci.yml` YAML 解析、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`。
 - 本机只有 CommandLineTools，无法运行 Xcode 模拟器 XCTest；旧 Swift parser 检查 `ContentView.swift` 时仍卡在既有 `await reminders.scheduleWardrobeCareReminder(...)`，不是本次 UI 字段改动新增的问题，完整编译继续依赖远端 GitHub Actions。
+
+## 2026-06-23T16:42:00+08:00
+
+- 进入并完成阶段 36：URL Scheme 快速入口增强。开工前复查 Git 状态、`SomeApp.onOpenURL`、`Info.plist`、`MemoStore.addMemo(from:)`、搜索状态和快捷输入相关测试；发现 `SomeTests.swift` 有未提交正向回归测试碎片，已保留并继续整合。
+- 按用户要求检索 `SwiftUI onOpenURL custom URL scheme quick note app GitHub MIT`、`iOS notes app URL scheme add note open source MIT SwiftUI`、`MoeMemos iOS URL scheme shortcuts save memo GitHub`；未找到可直接复制进当前 SwiftUI/本地 SQLite 架构的许可清晰实现。本轮继续复用 Apple `onOpenURL` 与项目已有 URL Scheme。
+- `MemoStore` 新增可测试的 `handleURL(_:)` 路由：`some://add?text=...` / `some://new?text=...` / `some://memo?text=...` / `some://capture?text=...` 保存新记录，`some://search?q=...` / `some://find?q=...` 打开时间线搜索，并保留旧版未知 host 写入行为。
+- 同步收束此前其他窗口留下的正向碎片：`WorkLogSourceFilterEngine.swift` 已被工程文件引用但未进入 Git 跟踪，本轮确认逻辑并纳入提交，避免远端 CI 因缺文件失败。
+- 新增测试覆盖 URL Scheme 保存、搜索不创建记录、空内容和非 `some` scheme 忽略；README 同步补充 `some://search?q=...` 用法。
+- 本地验证通过：`git diff --check`、`xcrun swiftc -parse some/Utilities/WorkLogSourceFilterEngine.swift some/Utilities/WardrobeInsightEngine.swift some/Stores/MemoStore.swift SomeTests/SomeTests.swift`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`。

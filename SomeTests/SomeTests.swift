@@ -413,6 +413,38 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(store.memos.isEmpty)
     }
 
+    func testURLSchemeAddCreatesMemoFromTextQuery() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let handled = store.handleURL(URL(string: "some://add?text=%E5%BF%AB%E9%80%9F%E8%AE%B0%E5%BD%95%20%23url")!)
+
+        XCTAssertTrue(handled)
+        XCTAssertEqual(store.memos.first?.text, "快速记录 #url")
+        XCTAssertEqual(store.memos.first?.tags, ["url"])
+        XCTAssertEqual(store.homeMode, .timeline)
+    }
+
+    func testURLSchemeSearchAppliesQueryWithoutCreatingMemo() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.addMemo(text: "项目记录 #项目")
+
+        let handled = store.handleURL(URL(string: "some://search?q=%23%E9%A1%B9%E7%9B%AE%20is:active")!)
+
+        XCTAssertTrue(handled)
+        XCTAssertEqual(store.searchText, "#项目 is:active")
+        XCTAssertEqual(store.recentSearches.first, "#项目 is:active")
+        XCTAssertEqual(store.activeCount, 1)
+        XCTAssertEqual(store.homeMode, .timeline)
+    }
+
+    func testURLSchemeIgnoresEmptyAndUnknownActions() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+
+        XCTAssertFalse(store.handleURL(URL(string: "some://add?text=%20%20")!))
+        XCTAssertFalse(store.handleURL(URL(string: "some://search?q=%20")!))
+        XCTAssertFalse(store.handleURL(URL(string: "other://add?text=%E8%AE%B0%E5%BD%95")!))
+        XCTAssertTrue(store.memos.isEmpty)
+    }
+
     func testSearchQueryParserExtractsTagsAndStateFilters() {
         let query = MemoSearchQueryParser.parse(#""输入体验" #产品/输入 is:pinned is:active"#)
 
@@ -724,6 +756,83 @@ final class SomeTests: XCTestCase {
 
         store.searchText = "has:worklog some 2026-06-23 日报"
         XCTAssertEqual(store.filteredMemos.first?.id, log.id)
+    }
+
+    func testWorkLogSourceFilterEngineFiltersByTagKindDateAndSearch() {
+        let calendar = Calendar(identifier: .gregorian)
+        let now = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+        let recentDate = calendar.date(byAdding: .day, value: -1, to: now)!
+        let oldDate = calendar.date(byAdding: .day, value: -20, to: now)!
+        let matchingMemo = Memo(
+            text: "完成视频预览\n- [x] 接入缩略图 #产品/iOS",
+            createdAt: recentDate,
+            updatedAt: recentDate,
+            tags: ["产品/iOS"]
+        )
+        let linkMemo = Memo(
+            text: "资料 https://example.com #资料",
+            createdAt: recentDate,
+            updatedAt: recentDate,
+            tags: ["资料"]
+        )
+        let oldTaskMemo = Memo(
+            text: "旧任务\n- [x] 整理缩略图 #产品",
+            createdAt: oldDate,
+            updatedAt: oldDate,
+            tags: ["产品"]
+        )
+        let generatedLog = Memo(
+            text: "工作日志：旧汇总\n范围：今日",
+            createdAt: recentDate,
+            updatedAt: recentDate
+        )
+        let archivedMemo = Memo(
+            text: "归档任务\n- [x] 接入缩略图 #产品",
+            createdAt: recentDate,
+            updatedAt: recentDate,
+            tags: ["产品"],
+            isArchived: true
+        )
+        let memos = [matchingMemo, linkMemo, oldTaskMemo, generatedLog, archivedMemo]
+        let assets = memos.flatMap { MemoAsset.assets(in: $0) }
+
+        let candidates = WorkLogSourceFilterEngine.candidates(
+            from: memos,
+            assets: assets,
+            filter: WorkLogSourceFilter(
+                tag: "产品",
+                kind: .task,
+                dateScope: .last7Days,
+                searchText: "缩略图"
+            ),
+            now: now,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(candidates.map(\.id), [matchingMemo.id])
+    }
+
+    func testWorkLogSourceFilterEngineLimitsNewestCandidates() {
+        let calendar = Calendar(identifier: .gregorian)
+        let now = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+        let olderDate = calendar.date(byAdding: .day, value: -2, to: now)!
+        let newest = Memo(text: "今天进展", createdAt: now, updatedAt: now)
+        let older = Memo(text: "前天进展", createdAt: olderDate, updatedAt: olderDate)
+        let generatedLog = Memo(text: "工作日志：今日", createdAt: now, updatedAt: now)
+        let archived = Memo(text: "归档进展", createdAt: now, updatedAt: now, isArchived: true)
+        let memos = [older, generatedLog, newest, archived]
+        let assets = memos.flatMap { MemoAsset.assets(in: $0) }
+
+        let candidates = WorkLogSourceFilterEngine.candidates(
+            from: memos,
+            assets: assets,
+            filter: .empty,
+            now: now,
+            calendar: calendar,
+            limit: 1
+        )
+
+        XCTAssertEqual(candidates.map(\.id), [newest.id])
     }
 
     func testSearchCanExcludeContentTypes() {
@@ -2595,6 +2704,44 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(insights.packingSuggestions.first?.weather, "多云 22C")
         let outfitPacking = insights.packingSuggestions.first { $0.title == "杭州周末 打包" }
         XCTAssertEqual(outfitPacking?.itemNames, ["白衬衫", "小白鞋"])
+    }
+
+    func testWardrobePackingSuggestionsScaleItemsForTripDays() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let wornDate = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+        store.addWardrobeItem(name: "亚麻衬衫", category: "上装", colors: ["白"], seasons: ["夏"], scenes: ["旅行"], materials: ["亚麻"], thickness: "轻薄")
+        store.addWardrobeItem(name: "棉T恤", category: "上装", colors: ["蓝"], seasons: ["夏"], scenes: ["旅行"], materials: ["棉"], thickness: "轻薄")
+        store.addWardrobeItem(name: "防晒衫", category: "上装", colors: ["米"], seasons: ["夏"], scenes: ["旅行"], materials: ["棉"], thickness: "轻薄")
+        store.addWardrobeItem(name: "牛仔短裤", category: "下装", colors: ["蓝"], seasons: ["夏"], scenes: ["旅行"])
+        store.addWardrobeItem(name: "半身裙", category: "下装", colors: ["黑"], seasons: ["夏"], scenes: ["旅行"])
+        store.addWardrobeItem(name: "小白鞋", category: "鞋履", colors: ["白"], seasons: ["夏"], scenes: ["旅行"])
+        store.addWardrobeItem(name: "帆布包", category: "包包", colors: ["米"], seasons: ["夏"], scenes: ["旅行"])
+        store.addWearLog(
+            itemNames: ["亚麻衬衫"],
+            date: wornDate,
+            scenes: ["旅行"],
+            weather: "晴 热 30C"
+        )
+        store.addPackingList(
+            title: "三天旅行",
+            destination: "厦门",
+            dateRange: "7/1-7/3",
+            tripDays: 3,
+            itemNames: ["亚麻衬衫"],
+            weather: "晴 热 30C"
+        )
+
+        let insights = WardrobeInsightEngine.insights(for: store.assets)
+        let suggestion = insights.packingSuggestions.first { $0.id == "packing-weather" }
+
+        XCTAssertTrue(suggestion?.itemNames.contains("亚麻衬衫") == true)
+        XCTAssertTrue(suggestion?.itemNames.contains("棉T恤") == true)
+        XCTAssertTrue(suggestion?.itemNames.contains("防晒衫") == true)
+        XCTAssertTrue(suggestion?.itemNames.contains("牛仔短裤") == true)
+        XCTAssertTrue(suggestion?.itemNames.contains("半身裙") == true)
+        XCTAssertTrue(suggestion?.itemNames.contains("小白鞋") == true)
+        XCTAssertTrue(suggestion?.itemNames.contains("帆布包") == true)
+        XCTAssertTrue(suggestion?.note?.contains("按 3 天行程") == true)
     }
 
     func testAddScrapbookPageCreatesStructuredMemoAndAsset() throws {
