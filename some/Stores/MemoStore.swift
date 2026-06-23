@@ -954,7 +954,7 @@ final class MemoStore: ObservableObject {
         var seenIDs: Set<UUID> = []
         return referencedIDs.compactMap { id in
             guard seenIDs.insert(id).inserted else { return nil }
-            memos.first { $0.id == id }
+            return memos.first { $0.id == id }
         }
     }
 

@@ -54,10 +54,10 @@ struct AIWorkspaceView: View {
                 .foregroundStyle(settings.isConfigured ? Color.accentGreen : Color.secondaryText)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(settings.isConfigured ? "AI 已就绪" : "先在设置里保存 OpenAI API Key")
+                Text(settings.isConfigured ? "AI 已就绪" : "本地 AI 已可用")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.primaryText)
-                Text(settings.isConfigured ? "\(settings.responsesModel) / \(settings.embeddingModel)" : "Key 只存在本机 Keychain。")
+                Text(settings.isConfigured ? "\(settings.responsesModel) / \(settings.embeddingModel)" : "记忆、搜索和相关记录不需要 Key。")
                     .font(.caption)
                     .foregroundStyle(Color.secondaryText)
             }
