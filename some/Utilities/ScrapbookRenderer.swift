@@ -282,14 +282,14 @@ enum ScrapbookImageFilterRenderer {
     static func image(_ image: UIImage, applying filter: ScrapbookLayer.ImageFilter) -> UIImage {
         guard filter != .original,
               let cgImage = image.cgImage,
-              let filtered = cgImage(cgImage, applying: filter) else {
+              let filtered = renderedCGImage(cgImage, applying: filter) else {
             return image
         }
 
         return UIImage(cgImage: filtered, scale: image.scale, orientation: image.imageOrientation)
     }
 
-    private static func cgImage(_ image: CGImage, applying filter: ScrapbookLayer.ImageFilter) -> CGImage? {
+    private static func renderedCGImage(_ image: CGImage, applying filter: ScrapbookLayer.ImageFilter) -> CGImage? {
         let input = CIImage(cgImage: image)
         let output: CIImage?
 
