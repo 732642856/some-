@@ -340,3 +340,9 @@
 - 按系统化调试复查失败候选后，修正手帐 PDF 导出附件测试的类型判断：不再要求 `UTType.pdf.identifier` 精确字符串，而是使用 `UTType(...).conforms(to: .pdf)`，兼容不同系统返回的等价 PDF 类型标识；同时给手帐导出附件资产断言补充失败上下文。
 - 纳入视频缩略图缓存维护碎片：`VideoThumbnailGenerator.sourceURLs(in:)` 从素材索引中提取、去重并限制视频源；素材库页进入/素材变化时会预热视频缩略图并清理孤儿缓存。
 - 本地验证通过：`git diff --check`、`.github/workflows/ios-ci.yml` YAML 解析、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、旧 Swift parser 覆盖 `SharedAttachmentStore.swift` / `AttachmentReferenceResolver.swift` / `VideoThumbnailGenerator.swift` / `ContentView.swift` / `SomeTests.swift`。
+
+## 2026-06-23T16:10:00+08:00
+
+- 完成阶段 17：GitHub Actions run `28011472819` 对应 `3951815` 已通过 Build and test，远端 Xcode 16.4 完整构建和 XCTest 恢复绿色。
+- 继续处理 CI 警告：GitHub Actions 仍提示 `actions/checkout@v4` 运行在 Node 20 deprecation 路径；检索官方 `actions/checkout` release，v5 已升级 Node 24，且 GitHub-hosted `macos-15` runner 满足兼容方向。
+- `.github/workflows/ios-ci.yml` 升级 `actions/checkout@v5`，用于消除 Node 20 deprecation 警告。
