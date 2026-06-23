@@ -1362,6 +1362,8 @@ private struct WorkLogView: View {
             content = WorkLogExporter.markdown(memos: selectedMemos, assets: selectedAssets)
         case .csv:
             content = WorkLogExporter.csv(memos: selectedMemos, assets: selectedAssets)
+        case .reportDraft:
+            content = WorkLogExporter.reportDraft(memos: selectedMemos, assets: selectedAssets)
         }
 
         do {
@@ -1518,11 +1520,13 @@ private struct WorkLogRecord: Identifiable {
 private enum WorkLogExportFormat: String, CaseIterable, Hashable {
     case markdown
     case csv
+    case reportDraft
 
     var title: String {
         switch self {
         case .markdown: return "Markdown"
         case .csv: return "CSV"
+        case .reportDraft: return "汇报稿"
         }
     }
 
@@ -1530,6 +1534,7 @@ private enum WorkLogExportFormat: String, CaseIterable, Hashable {
         switch self {
         case .markdown: return "md"
         case .csv: return "csv"
+        case .reportDraft: return "txt"
         }
     }
 
@@ -1537,6 +1542,7 @@ private enum WorkLogExportFormat: String, CaseIterable, Hashable {
         switch self {
         case .markdown: return "doc.text"
         case .csv: return "tablecells"
+        case .reportDraft: return "text.quote"
         }
     }
 }

@@ -1001,6 +1001,45 @@ final class SomeTests: XCTestCase {
         XCTAssertFalse(csv.contains("普通记录"))
     }
 
+    func testWorkLogExporterBuildsShareableReportDraft() {
+        let date = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+        let firstLog = Memo(
+            text: """
+            工作日志：日报
+            范围：今日
+            项目：some
+            日期：2026-06-23
+            模板：日报
+            进展：完成媒体摘要预热
+            问题：等待 CI
+            下一步：观察远端复验
+            """,
+            createdAt: date,
+            updatedAt: date
+        )
+        let secondLog = Memo(
+            text: """
+            工作日志：项目汇报
+            范围：项目
+            项目：some
+            日期：2026-06-23
+            模板：项目汇报
+            进展：补齐多 OCR 块素材索引
+            下一步：继续工作日志汇报稿
+            """,
+            createdAt: date,
+            updatedAt: date
+        )
+
+        let draft = WorkLogExporter.reportDraft(memos: [firstLog, secondLog])
+
+        XCTAssertTrue(draft.hasPrefix("工作汇报\n\n项目：some\n日期：2026-06-23\n"))
+        XCTAssertTrue(draft.contains("进展：\n1. 补齐多 OCR 块素材索引\n2. 完成媒体摘要预热"))
+        XCTAssertTrue(draft.contains("风险/问题：\n1. 等待 CI"))
+        XCTAssertTrue(draft.contains("下一步：\n1. 继续工作日志汇报稿\n2. 观察远端复验"))
+        XCTAssertFalse(draft.contains("普通记录"))
+    }
+
     func testSearchCanExcludeContentTypes() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "资料带链接 https://example.com/a")

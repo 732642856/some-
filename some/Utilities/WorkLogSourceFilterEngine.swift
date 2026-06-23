@@ -251,6 +251,26 @@ enum WorkLogExporter {
             .joined(separator: "\n") + "\n"
     }
 
+    static func reportDraft(
+        memos: [Memo],
+        assets: [MemoAsset]? = nil
+    ) -> String {
+        let resolvedAssets = assets ?? memos.flatMap { MemoAsset.assets(in: $0) }
+        let records = workLogRecords(from: memos, assets: resolvedAssets)
+        guard !records.isEmpty else {
+            return "工作汇报\n\n暂无可汇总日志。\n"
+        }
+
+        let fieldValues = records.map { fields(in: $0.asset.summary, fallbackText: $0.memo.text) }
+        var lines = ["工作汇报", ""]
+        appendDraftInline("项目", from: fieldValues, to: &lines)
+        appendDraftInline("日期", from: fieldValues, to: &lines)
+        appendDraftList("进展", from: fieldValues, to: &lines)
+        appendDraftList("风险/问题", keys: ["问题", "风险"], from: fieldValues, to: &lines)
+        appendDraftList("下一步", from: fieldValues, to: &lines)
+        return lines.joined(separator: "\n") + "\n"
+    }
+
     private static func workLogRecords(
         from memos: [Memo],
         assets: [MemoAsset]
@@ -312,6 +332,37 @@ enum WorkLogExporter {
         )
         guard !values.isEmpty else { return }
         lines.append("- \(title)：\(values.joined(separator: "；"))")
+    }
+
+    private static func appendDraftInline(
+        _ title: String,
+        from fieldValues: [[String: String]],
+        to lines: inout [String]
+    ) {
+        let values = uniqueValues(fieldValues.compactMap { $0[title] })
+        guard !values.isEmpty else { return }
+        lines.append("\(title)：\(values.joined(separator: "；"))")
+    }
+
+    private static func appendDraftList(
+        _ title: String,
+        keys: [String]? = nil,
+        from fieldValues: [[String: String]],
+        to lines: inout [String]
+    ) {
+        let values = uniqueValues(
+            fieldValues.flatMap { fields -> [String] in
+                (keys ?? [title]).compactMap { fields[$0] }
+            }
+        )
+        guard !values.isEmpty else { return }
+        if let lastLine = lines.last, !lastLine.isEmpty {
+            lines.append("")
+        }
+        lines.append("\(title)：")
+        lines.append(contentsOf: values.enumerated().map { index, value in
+            "\(index + 1). \(value)"
+        })
     }
 
     private static func appendMetadata(
