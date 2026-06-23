@@ -720,6 +720,9 @@ private struct WorkLogView: View {
     @State private var nextSteps = ""
     @State private var note = ""
     @State private var selectedMemoIDs = Set<UUID>()
+    @State private var selectedProjectFilter = ""
+    @State private var selectedTemplateFilter = ""
+    @State private var workLogDateFilter = ""
     @State private var statusText: String?
 
     private let scopes = ["今日", "本周", "项目", "复盘"]
@@ -727,6 +730,36 @@ private struct WorkLogView: View {
 
     private var workLogAssets: [MemoAsset] {
         store.assets.filter { $0.kind == .workLog }
+    }
+
+    private var workLogRecords: [WorkLogRecord] {
+        workLogAssets.compactMap { asset in
+            guard let memo = store.memos.first(where: { $0.id == asset.memoID }) else {
+                return nil
+            }
+            return WorkLogRecord(asset: asset, memo: memo)
+        }
+    }
+
+    private var filteredWorkLogRecords: [WorkLogRecord] {
+        let dateNeedle = workLogDateFilter.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return workLogRecords.filter { record in
+            let matchesProject = selectedProjectFilter.isEmpty || record.project == selectedProjectFilter
+            let matchesTemplate = selectedTemplateFilter.isEmpty || record.template == selectedTemplateFilter
+            let matchesDate = dateNeedle.isEmpty
+                || record.dateRange.localizedCaseInsensitiveContains(dateNeedle)
+                || record.asset.summary?.localizedCaseInsensitiveContains(dateNeedle) == true
+            return matchesProject && matchesTemplate && matchesDate
+        }
+    }
+
+    private var projectFilterOptions: [String] {
+        uniqueValues(workLogRecords.map(\.project))
+    }
+
+    private var templateFilterOptions: [String] {
+        uniqueValues(workLogRecords.map(\.template))
     }
 
     private var candidateMemos: [Memo] {
@@ -745,9 +778,13 @@ private struct WorkLogView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 10) {
-                StatBadge(title: "日志", value: "\(workLogAssets.count)", systemImage: "doc.text")
-                StatBadge(title: "已选", value: "\(selectedMemoIDs.count)", systemImage: "checklist")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    StatBadge(title: "日志", value: "\(workLogAssets.count)", systemImage: "doc.text")
+                    StatBadge(title: "项目", value: "\(projectFilterOptions.count)", systemImage: "folder")
+                    StatBadge(title: "模板", value: "\(templateFilterOptions.count)", systemImage: "doc.on.doc")
+                    StatBadge(title: "已选", value: "\(selectedMemoIDs.count)", systemImage: "checklist")
+                }
             }
 
             logForm
@@ -951,22 +988,74 @@ private struct WorkLogView: View {
 
     private var workLogList: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("工作日志", systemImage: "square.grid.2x2")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(Color.secondaryText)
+            HStack {
+                Label("工作日志", systemImage: "square.grid.2x2")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.secondaryText)
 
-            let assets = workLogAssets.sorted {
-                $0.createdAt == $1.createdAt ? $0.title < $1.title : $0.createdAt > $1.createdAt
+                Spacer()
+
+                Text("\(filteredWorkLogRecords.count)/\(workLogRecords.count)")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.tertiaryText)
             }
 
-            if assets.isEmpty {
+            workLogFilterBar
+
+            let records = filteredWorkLogRecords.sorted {
+                $0.asset.createdAt == $1.asset.createdAt
+                    ? $0.asset.title < $1.asset.title
+                    : $0.asset.createdAt > $1.asset.createdAt
+            }
+
+            if records.isEmpty {
                 EmptyStateView(title: "还没有工作日志")
             } else {
-                ForEach(assets) { asset in
-                    if let memo = store.memos.first(where: { $0.id == asset.memoID }) {
-                        AssetNavigationRow(asset: asset, memo: memo)
-                    }
+                ForEach(records) { record in
+                    AssetNavigationRow(asset: record.asset, memo: record.memo)
                 }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var workLogFilterBar: some View {
+        if !workLogRecords.isEmpty {
+            VStack(spacing: 8) {
+                HStack(spacing: 8) {
+                    Picker("项目", selection: $selectedProjectFilter) {
+                        Text("全部项目").tag("")
+                        ForEach(projectFilterOptions, id: \.self) { option in
+                            Text(option).tag(option)
+                        }
+                    }
+                    .pickerStyle(.menu)
+
+                    Picker("模板", selection: $selectedTemplateFilter) {
+                        Text("全部模板").tag("")
+                        ForEach(templateFilterOptions, id: \.self) { option in
+                            Text(option).tag(option)
+                        }
+                    }
+                    .pickerStyle(.menu)
+
+                    Button {
+                        clearLogFilters()
+                    } label: {
+                        Image(systemName: "xmark.circle")
+                            .frame(width: 32, height: 30)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.secondaryText)
+                    .accessibilityLabel("清除工作日志筛选")
+                    .disabled(selectedProjectFilter.isEmpty && selectedTemplateFilter.isEmpty && workLogDateFilter.isEmpty)
+                }
+
+                TextField("日期或周期筛选", text: $workLogDateFilter)
+                    .textFieldStyle(.plain)
+                    .padding(10)
+                    .background(Color.subtleSurface)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
         }
     }
@@ -1125,6 +1214,12 @@ private struct WorkLogView: View {
         statusText = "已保存工作日志"
     }
 
+    private func clearLogFilters() {
+        selectedProjectFilter = ""
+        selectedTemplateFilter = ""
+        workLogDateFilter = ""
+    }
+
     private func inferredProgress() -> [String] {
         let completedTasks = selectedMemos
             .flatMap { MemoTaskParser.taskItems(in: displayText(for: $0)) }
@@ -1196,6 +1291,61 @@ private struct WorkLogView: View {
         let start = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
         let end = calendar.date(byAdding: .day, value: 6, to: start) ?? now
         return "\(DateFormatters.wardrobeDay.string(from: start))~\(DateFormatters.wardrobeDay.string(from: end))"
+    }
+}
+
+private struct WorkLogRecord: Identifiable {
+    let asset: MemoAsset
+    let memo: Memo
+    let scope: String
+    let project: String
+    let dateRange: String
+    let template: String
+
+    var id: UUID { asset.id }
+
+    init(asset: MemoAsset, memo: Memo) {
+        self.asset = asset
+        self.memo = memo
+
+        let fields = Self.fields(in: asset.summary)
+        self.scope = fields["范围"] ?? ""
+        self.project = fields["项目"] ?? ""
+        self.dateRange = fields["日期"] ?? ""
+        self.template = fields["模板"] ?? ""
+    }
+
+    private static func fields(in summary: String?) -> [String: String] {
+        guard let summary = summary else {
+            return [:]
+        }
+
+        var result: [String: String] = [:]
+        for part in summary.components(separatedBy: " · ") {
+            let trimmed = part.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let parsed = field(in: trimmed) else {
+                continue
+            }
+            result[parsed.label] = parsed.value
+        }
+        return result
+    }
+
+    private static func field(in text: String) -> (label: String, value: String)? {
+        let separators = ["：", ":"]
+        for separator in separators {
+            guard let range = text.range(of: separator) else {
+                continue
+            }
+
+            let label = text[..<range.lowerBound].trimmingCharacters(in: .whitespacesAndNewlines)
+            let value = text[range.upperBound...].trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !label.isEmpty, !value.isEmpty else {
+                return nil
+            }
+            return (String(label), String(value))
+        }
+        return nil
     }
 }
 

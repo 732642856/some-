@@ -423,7 +423,7 @@ final class SomeTests: XCTestCase {
     }
 
     func testSearchQueryParserExtractsContentFilters() {
-        let query = MemoSearchQueryParser.parse("has:link has:web has:clip has:ocr has:image-edit has:attachment has:reference has:scrapbook has:worklog has:audio has:video has:wardrobe has:outfit has:wear-log has:laundry-log has:packing-list no:task without:backlink 复盘")
+        let query = MemoSearchQueryParser.parse("has:link has:web has:clip has:ocr has:image-edit has:attachment has:reference has:scrapbook has:worklog has:project-report has:audio has:video has:wardrobe has:outfit has:wear-log has:laundry-log has:packing-list no:task without:backlink 复盘")
 
         XCTAssertEqual(query.textTerms, ["复盘"])
         XCTAssertEqual(
@@ -434,6 +434,13 @@ final class SomeTests: XCTestCase {
             query.excludedContentFilters,
             [.backlink, .task]
         )
+    }
+
+    func testSearchQueryParserExtractsChineseWorkLogAliases() {
+        let query = MemoSearchQueryParser.parse("has:项目汇报 has:复盘日志")
+
+        XCTAssertEqual(query.requiredContentFilters, [.workLog])
+        XCTAssertTrue(query.textTerms.isEmpty)
     }
 
     func testSearchQueryParserKeepsUnknownContentFiltersAsText() {
@@ -712,7 +719,11 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(asset?.title, "今日工作日志")
         XCTAssertTrue(asset?.summary?.contains("项目：some") == true)
         XCTAssertTrue(asset?.summary?.contains("日期：2026-06-23") == true)
+        XCTAssertTrue(asset?.summary?.contains("模板：日报") == true)
         XCTAssertTrue(asset?.summary?.contains("进展：接入缩略图") == true)
+
+        store.searchText = "has:worklog some 2026-06-23 日报"
+        XCTAssertEqual(store.filteredMemos.first?.id, log.id)
     }
 
     func testSearchCanExcludeContentTypes() {
@@ -1899,6 +1910,43 @@ final class SomeTests: XCTestCase {
             [附件: receipt.png](some-attachment://receipt.png)
             """
         )
+    }
+
+    func testImageTextRecognizerBuildsMemoTextWithRegion() {
+        let attachment = SharedAttachment(
+            id: "receipt.png",
+            filename: "receipt.png",
+            relativePath: "receipt.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 128
+        )
+        let region = ImageTextRegion(x: 0.1, y: 0.2, width: 0.5, height: 0.4)
+
+        let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: ["区域文字"],
+            region: region
+        )
+
+        XCTAssertTrue(text?.contains("图片文字：receipt.png") == true)
+        XCTAssertTrue(text?.contains("区域：x10 y20 w50 h40") == true)
+        XCTAssertTrue(text?.contains("区域文字") == true)
+        XCTAssertTrue(text?.contains(attachment.referenceLine) == true)
+
+        let memo = Memo(text: text ?? "")
+        let imageTextAsset = MemoAsset.assets(in: memo).first { $0.kind == .screenshot }
+        XCTAssertEqual(imageTextAsset?.summary, "区域文字")
+    }
+
+    func testImageTextRegionClampsAndBuildsRect() {
+        let region = ImageTextRegion(x: -0.2, y: 0.25, width: 1.4, height: 0.5)
+        let rect = region.rect(in: CGSize(width: 200, height: 100))
+
+        XCTAssertEqual(region.x, 0)
+        XCTAssertEqual(region.y, 0.25)
+        XCTAssertEqual(region.width, 1)
+        XCTAssertEqual(region.height, 0.5)
+        XCTAssertEqual(rect, CGRect(x: 0, y: 25, width: 200, height: 50))
     }
 
     func testImageTextRecognizerExtractsHighlightsFromMemoText() {

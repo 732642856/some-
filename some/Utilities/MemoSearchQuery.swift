@@ -215,7 +215,7 @@ enum MemoSearchQueryParser {
             return .laundryLog
         case "packing", "packing-list", "packinglist", "pack", "travel-pack", "travel-packing", "travel-list", "打包", "打包清单", "旅行打包", "旅行清单", "行李", "行李清单":
             return .packingList
-        case "worklog", "work-log", "worklogs", "daily-report", "weekly-report", "report", "reports", "log", "logs", "工作日志", "工作记录", "日报", "周报", "项目日志", "汇总":
+        case "worklog", "work-log", "worklogs", "daily-report", "weekly-report", "project-report", "retro", "retrospective", "report", "reports", "log", "logs", "工作日志", "工作记录", "日报", "周报", "项目汇报", "项目日志", "复盘日志", "汇总":
             return .workLog
         default:
             return nil

@@ -263,3 +263,13 @@
 
 - 完成阶段 28：工作日志 v2 已支持项目、日期范围和常用模板。
 - 本地验证通过：`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`、旧 Swift parser 覆盖 `DateFormatters.swift` / `LinkExtractor.swift` / `ClipFragmentExtractor.swift` / `MemoReferenceParser.swift` / `MemoTaskParser.swift` / `SharedAttachmentStore.swift` / `MemoSearchQuery.swift` / `Memo.swift` / `MemoStore.swift` / `SomeTests.swift`，并用 `-D SOME_SHARE_EXTENSION` 覆盖分享扩展路径。
+
+## 2026-06-23T13:12:00+08:00
+
+- 进入阶段 29：截图/OCR 区域识别底座。继续前复查 `ImageTextRecognizer`、详情页附件/OCR/转写链路、图片编辑裁切逻辑和 OCR 相关测试。
+- 本轮不引入新第三方依赖，复用 Apple Vision 和 UIKit 裁图能力。
+- 新增 `ImageTextRegion`，用归一化 x/y/width/height 表示识别区域，支持裁切 rect 计算和区域摘要。
+- `ImageTextRecognizer` 新增按区域裁切后识别的入口，并让 OCR memo 可写入“区域：x.. y.. w.. h..”信息；完整框选 UI 留到后续接入。
+- 修复 OCR 素材摘要过滤，避免把“区域”元数据和附件引用混进识别正文摘要。
+- 新增测试覆盖区域 memo 文本、区域 rect clamp 和区域 OCR 素材摘要。
+- 完成阶段 29。本地验证通过：`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`、旧 Swift parser 覆盖 `ImageTextRecognizer.swift` / `Memo.swift` / `SharedAttachmentStore.swift` / `AttachmentReferenceResolver.swift` / `LinkExtractor.swift` / `ClipFragmentExtractor.swift` / `MemoReferenceParser.swift` / `MemoTaskParser.swift` / `MemoSearchQuery.swift` / `SomeTests.swift`，并用 `-D SOME_SHARE_EXTENSION` 覆盖分享扩展路径。
