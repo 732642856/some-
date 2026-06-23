@@ -5,6 +5,7 @@ import UIKit
 struct ContentView: View {
     @EnvironmentObject private var store: MemoStore
     @State private var isShowingSettings = false
+    @State private var isShowingZenCapture = false
     @State private var navigationPath: [UUID] = []
 
     var body: some View {
@@ -26,6 +27,8 @@ struct ContentView: View {
                                 memos: store.filteredMemos,
                                 emptyState: store.timelineEmptyState
                             )
+                        case .zen:
+                            ZenCaptureView(isModal: false)
                         case .assets:
                             AssetLibraryView()
                         case .scrapbook:
@@ -63,6 +66,15 @@ struct ContentView: View {
                 store.recordCurrentSearch()
             }
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        isShowingZenCapture = true
+                    } label: {
+                        Image(systemName: "leaf")
+                    }
+                    .accessibilityLabel("禅定记录")
+                }
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         isShowingSettings = true
@@ -79,6 +91,9 @@ struct ContentView: View {
             }
             .sheet(isPresented: $isShowingSettings) {
                 SettingsView()
+            }
+            .fullScreenCover(isPresented: $isShowingZenCapture) {
+                ZenCaptureView(isModal: true)
             }
             .onChange(of: store.pendingOpenMemoID) { id in
                 guard let id = id,
@@ -242,6 +257,7 @@ private struct HeaderView: View {
     private var headerTitle: String {
         switch store.homeMode {
         case .timeline: return "今天先记下来"
+        case .zen: return "只写这一刻"
         case .assets: return "整理素材"
         case .scrapbook: return "排一页手帐"
         case .workLog: return "汇总工作"
@@ -251,6 +267,148 @@ private struct HeaderView: View {
         case .stats: return "看见记录习惯"
         case .archive: return "暂时收进抽屉"
         }
+    }
+}
+
+private struct ZenCaptureView: View {
+    @EnvironmentObject private var store: MemoStore
+    @Environment(\.dismiss) private var dismiss
+    @AppStorage("some.zenDraft") private var text = ""
+    @State private var statusText: String?
+    @FocusState private var isFocused: Bool
+
+    let isModal: Bool
+
+    private var stats: ZenDraftStats {
+        ZenDraftStats(text: text)
+    }
+
+    var body: some View {
+        ZStack {
+            Color.appBackground.ignoresSafeArea()
+
+            VStack(alignment: .leading, spacing: 18) {
+                if isModal {
+                    topBar
+                }
+
+                ZStack(alignment: .topLeading) {
+                    TextEditor(text: $text)
+                        .focused($isFocused)
+                        .scrollContentBackground(.hidden)
+                        .font(.system(size: 22, weight: .regular, design: .rounded))
+                        .lineSpacing(7)
+                        .foregroundStyle(Color.primaryText)
+                        .padding(.horizontal, 2)
+
+                    if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text("只写这一条。")
+                            .font(.system(size: 22, weight: .regular, design: .rounded))
+                            .foregroundStyle(Color.secondaryText.opacity(0.72))
+                            .padding(.top, 8)
+                            .padding(.leading, 7)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                bottomBar
+            }
+            .padding(.horizontal, 22)
+            .padding(.top, isModal ? 18 : 4)
+            .padding(.bottom, 18)
+        }
+        .task {
+            isFocused = true
+        }
+    }
+
+    private var topBar: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("禅定记录")
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.primaryText)
+                Text("草稿自动保存")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.tertiaryText)
+            }
+
+            Spacer()
+
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(width: 40, height: 40)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Color.secondaryText)
+            .background(Color.surface)
+            .clipShape(Circle())
+            .accessibilityLabel("关闭禅定记录")
+        }
+    }
+
+    private var bottomBar: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let statusText = statusText {
+                Text(statusText)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.secondaryText)
+            }
+
+            HStack(spacing: 10) {
+                Label(stats.summaryText, systemImage: "leaf")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.secondaryText)
+                    .lineLimit(1)
+
+                Spacer(minLength: 10)
+
+                Button {
+                    text = ""
+                    statusText = nil
+                    isFocused = true
+                } label: {
+                    Image(systemName: "xmark")
+                        .frame(width: 38, height: 38)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.secondaryText)
+                .background(Color.surface)
+                .clipShape(Circle())
+                .disabled(!stats.canSave)
+                .opacity(stats.canSave ? 1 : 0.35)
+                .accessibilityLabel("清空禅定草稿")
+
+                Button {
+                    save()
+                } label: {
+                    Label("保存", systemImage: "paperplane.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .frame(height: 38)
+                        .padding(.horizontal, 14)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.white)
+                .background(stats.canSave ? Color.accentGreen : Color.disabled)
+                .clipShape(Capsule())
+                .disabled(!stats.canSave)
+            }
+        }
+    }
+
+    private func save() {
+        guard stats.canSave else { return }
+
+        if store.addMemo(text: text) != nil {
+            text = ""
+            statusText = "已保存到时间线"
+        } else {
+            statusText = "保存失败，草稿已保留。"
+        }
+        isFocused = true
     }
 }
 

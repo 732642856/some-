@@ -547,6 +547,14 @@
 - `MemoBackupPackage.summary(at:)` 现在只读 ZIP 包 `manifest.json` 并返回 `MemoBackupSummary`；`importPackage` 和 `summary` 共用 manifest 解析 helper，避免导入路径和预览路径漂移。`CI_DISABLE_ZIP_BACKUP` stub 同步增加 `summary(at:)`，CI 测试构建移除 ZIPFoundation 时仍可解析。
 - `SettingsView.ImportView.importFile` 在选择 `.somebackup` 后先读取 summary 再执行恢复，恢复成功反馈会显示完整备份摘要，不再只给通用“附件和历史版本会一起恢复”文案。
 
+## 2026-06-23T21:08:37+08:00
+
+- 进入并完成阶段 54：禅定模式快速记录。开工前复查最新 CI、`MemoHomeMode`、首页模式切换、普通快速输入、`MemoStore.addMemo`、标签解析和现有 flomo 对标缺口。
+- 按用户要求检索 `SwiftUI zen mode notes MIT`、`SwiftUI focus writing notes MIT`、`SwiftUI distraction free editor MIT`、`SwiftUI quick capture notes focus mode MIT`；未找到可直接复制进当前工程的成熟 SwiftUI/MIT 专注写作模块。
+- 按 TDD 保留并实现 `testZenDraftStatsCountsReadableProgress` / `testZenDraftStatsExplainsEmptyDraft`：`ZenDraftStats` 会统计非空白字符、非纯标签内容行、标签数、保存可用性和摘要文案。
+- `MemoHomeMode` 新增“专注”模式；首页新增 `ZenCaptureView`，提供大文本输入、自动聚焦、本地 `@AppStorage("some.zenDraft")` 草稿、实时统计、清空和保存按钮。保存复用 `MemoStore.addMemo`，不新增存储格式。
+- 复查并行窗口碎片时发现 `ContentView.swift` 同时内联重复 `ZenDraftStats` 和两份 `ZenCaptureView`，已收束为独立 `ZenDraftStats.swift` + 单一 `ZenCaptureView(isModal:)`；首页“专注”模式内嵌使用，全屏叶子按钮使用可关闭的 modal。
+
 ## 2026-06-23T21:05:00+08:00
 
 - 继续收口远端 run `28023921262`：Build and test job 仍失败，公开日志只能定位到测试阶段仍有 `XCTAssertTrue failed`，且 GitHub logs API 对当前权限返回 403，无法下载完整日志包。

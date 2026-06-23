@@ -467,6 +467,26 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(store.activeCount, 2)
     }
 
+    func testZenDraftStatsCountsReadableProgress() {
+        let stats = ZenDraftStats(text: "  第一行 #写作\n第二行继续记录一下  \n\n#灵感  ")
+
+        XCTAssertEqual(stats.characterCount, 18)
+        XCTAssertEqual(stats.lineCount, 2)
+        XCTAssertEqual(stats.tagCount, 2)
+        XCTAssertTrue(stats.canSave)
+        XCTAssertEqual(stats.summaryText, "18 字 · 2 行 · 2 个标签")
+    }
+
+    func testZenDraftStatsExplainsEmptyDraft() {
+        let stats = ZenDraftStats(text: " \n\t ")
+
+        XCTAssertEqual(stats.characterCount, 0)
+        XCTAssertEqual(stats.lineCount, 0)
+        XCTAssertEqual(stats.tagCount, 0)
+        XCTAssertFalse(stats.canSave)
+        XCTAssertEqual(stats.summaryText, "空白草稿")
+    }
+
     func testImportFeedbackExplainsSuccessfulBackupRestore() {
         let summary = MemoBackupSummary(
             memoCount: 3,

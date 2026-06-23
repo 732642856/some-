@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 
 enum MemoHomeMode: String, CaseIterable, Identifiable {
     case timeline
+    case zen
     case assets
     case scrapbook
     case workLog
@@ -19,6 +20,7 @@ enum MemoHomeMode: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .timeline: return "记录"
+        case .zen: return "专注"
         case .assets: return "素材"
         case .scrapbook: return "手帐"
         case .workLog: return "日志"
@@ -33,6 +35,7 @@ enum MemoHomeMode: String, CaseIterable, Identifiable {
     var systemImage: String {
         switch self {
         case .timeline: return "square.and.pencil"
+        case .zen: return "moon.stars"
         case .assets: return "square.grid.2x2"
         case .scrapbook: return "rectangle.stack"
         case .workLog: return "doc.text"
