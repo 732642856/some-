@@ -129,25 +129,47 @@ jobs:
           File.write(path, text)
           RUBY
           plutil -lint some.xcodeproj/project.pbxproj
+          run_xcode_tests() {
+            rm -rf "$DERIVED_DATA_PATH" "$RESULT_BUNDLE_PATH"
+            xcodebuild \
+              -project some.xcodeproj \
+              -scheme some \
+              -destination "$DESTINATION" \
+              -derivedDataPath "$DERIVED_DATA_PATH" \
+              -resultBundlePath "$RESULT_BUNDLE_PATH" \
+              CODE_SIGNING_ALLOWED=NO \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGN_IDENTITY="" \
+              SWIFT_EMIT_LOC_STRINGS=NO \
+              ENABLE_APP_INTENTS_METADATA_GENERATION=NO \
+              APP_INTENTS_METADATA_GENERATION=NO \
+              EXTRACT_APP_INTENTS_METADATA=NO \
+              ENABLE_APP_SHORTCUTS_LOCALIZATION=NO \
+              'OTHER_SWIFT_FLAGS=$(inherited) -DCI_DISABLE_APP_INTENTS' \
+              'EXCLUDED_SOURCE_FILE_NAMES=SaveMemoIntent.swift SomeAppShortcuts.swift' \
+              clean test 2>&1 | tee "$LOG_PATH"
+            return "${PIPESTATUS[0]}"
+          }
           set +e
-          xcodebuild \
-            -project some.xcodeproj \
-            -scheme some \
-            -destination "$DESTINATION" \
-            -derivedDataPath "$DERIVED_DATA_PATH" \
-            -resultBundlePath "$RESULT_BUNDLE_PATH" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            SWIFT_EMIT_LOC_STRINGS=NO \
-            ENABLE_APP_INTENTS_METADATA_GENERATION=NO \
-            APP_INTENTS_METADATA_GENERATION=NO \
-            EXTRACT_APP_INTENTS_METADATA=NO \
-            ENABLE_APP_SHORTCUTS_LOCALIZATION=NO \
-            'OTHER_SWIFT_FLAGS=$(inherited) -DCI_DISABLE_APP_INTENTS' \
-            'EXCLUDED_SOURCE_FILE_NAMES=SaveMemoIntent.swift SomeAppShortcuts.swift' \
-            clean test 2>&1 | tee "$LOG_PATH"
-          TEST_STATUS="${PIPESTATUS[0]}"
+          run_xcode_tests
+          TEST_STATUS="$?"
+          if [ "$TEST_STATUS" -eq 134 ] && grep -Eq 'appintents(metadata|nltraining)processor' "$LOG_PATH"; then
+            FIRST_LOG_PATH="${RUNNER_TEMP}/xcodebuild-test-first-attempt.log"
+            cp "$LOG_PATH" "$FIRST_LOG_PATH"
+            echo "xcodebuild test exited 134 while App Intents metadata or NL training processing was running; retrying once with fresh DerivedData."
+            run_xcode_tests
+            TEST_STATUS="$?"
+            if [ "$TEST_STATUS" -ne 0 ] && [ -f "$FIRST_LOG_PATH" ]; then
+              {
+                echo
+                echo "### First test attempt exited 134 during App Intents metadata processing"
+                echo
+                echo '```text'
+                grep -nE 'appintents(metadata|nltraining)processor|Process completed|Command.*failed|error:' "$FIRST_LOG_PATH" | tail -n 80 || true
+                echo '```'
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
           set -e
           if [ "$TEST_STATUS" -ne 0 ]; then
             RESULT_SUMMARY_PATH="${RUNNER_TEMP}/xcresult-summary.txt"
