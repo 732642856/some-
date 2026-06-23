@@ -51,7 +51,6 @@
 		7A7000010000000000000003 /* MemoRevision.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A7001010000000000000001 /* MemoRevision.swift */; };
 		7A6000010000000000000001 /* MemoBackupPackage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6001010000000000000001 /* MemoBackupPackage.swift */; };
 		7A6000010000000000000002 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 7A600C010000000000000001 /* ZIPFoundation */; };
-		7A6000010000000000000003 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 7A600C010000000000000001 /* ZIPFoundation */; };
 		7A2000010000000000000001 /* SharedMemoStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A2001010000000000000001 /* SharedMemoStorage.swift */; };
 		7A2000010000000000000002 /* SharedMemoTextComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A2001010000000000000002 /* SharedMemoTextComposer.swift */; };
 		7A2000010000000000000003 /* SomeShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 7A2001010000000000000004 /* SomeShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -209,7 +208,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7A6000010000000000000003 /* ZIPFoundation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -426,7 +424,6 @@
 			);
 			name = SomeTests;
 			packageProductDependencies = (
-				7A600C010000000000000001 /* ZIPFoundation */,
 			);
 			productName = SomeTests;
 			productReference = 7A1001010000000000000022 /* SomeTests.xctest */;
@@ -527,10 +524,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				7A1000010000000000000001 /* SomeApp.swift in Sources */,
-					7A1000010000000000000002 /* Memo.swift in Sources */,
-					7A1000010000000000000035 /* MemoBackupArchive.swift in Sources */,
-					7A7000010000000000000001 /* MemoRevision.swift in Sources */,
-					7A1000010000000000000003 /* MemoStore.swift in Sources */,
+				7A1000010000000000000002 /* Memo.swift in Sources */,
+				7A1000010000000000000035 /* MemoBackupArchive.swift in Sources */,
+				7A7000010000000000000001 /* MemoRevision.swift in Sources */,
+				7A1000010000000000000003 /* MemoStore.swift in Sources */,
 				7A1000010000000000000004 /* TagParser.swift in Sources */,
 				7A1000010000000000000005 /* DateFormatters.swift in Sources */,
 				7A1000010000000000000006 /* Colors.swift in Sources */,

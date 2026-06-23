@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UIKit
 
 struct MemoDetailView: View {
     @EnvironmentObject private var store: MemoStore
@@ -12,10 +13,12 @@ struct MemoDetailView: View {
     @State private var isShowingDeleteConfirmation = false
     @State private var isShowingHistory = false
     @State private var isShowingReferencePicker = false
+    @State private var regionOCRAttachment: SharedAttachment?
     @State private var editErrorMessage: String?
     @State private var historyErrorMessage: String?
     @State private var transcriptionStatusText: String?
     @State private var transcribingAttachmentID: String?
+    @State private var imageTextStatusText: String?
     @FocusState private var isFocused: Bool
 
     init(memo: Memo) {
@@ -70,6 +73,10 @@ struct MemoDetailView: View {
                                 }
 
                                 AttachmentPreviewList(attachments: attachments)
+
+                                if !imageAttachments(in: attachments).isEmpty {
+                                    imageTextSection(attachments: imageAttachments(in: attachments))
+                                }
 
                                 if !audioAttachments(in: attachments).isEmpty {
                                     audioTranscriptionSection(
@@ -206,6 +213,13 @@ struct MemoDetailView: View {
                 }
             )
         }
+        .sheet(item: $regionOCRAttachment) { attachment in
+            NavigationStack {
+                ImageTextRegionPickerView(attachment: attachment) { region in
+                    recognizeText(in: attachment, region: region, memo: currentMemo)
+                }
+            }
+        }
         .navigationTitle(isEditing ? "编辑" : "详情")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -287,6 +301,46 @@ struct MemoDetailView: View {
         attachments.filter(\.isAudio)
     }
 
+    private func imageAttachments(in attachments: [SharedAttachment]) -> [SharedAttachment] {
+        attachments.filter(\.isImage)
+    }
+
+    private func imageTextSection(attachments: [SharedAttachment]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("图片文字")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+
+            ForEach(attachments) { attachment in
+                Button {
+                    imageTextStatusText = nil
+                    regionOCRAttachment = attachment
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "viewfinder")
+                            .font(.caption.weight(.semibold))
+                        Text("框选识别 \(attachment.displayName)")
+                            .lineLimit(1)
+                        Spacer(minLength: 8)
+                    }
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.accentGreen)
+                    .padding(.horizontal, 12)
+                    .frame(height: 38)
+                    .background(Color.greenTint)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+
+            if let imageTextStatusText = imageTextStatusText {
+                Text(imageTextStatusText)
+                    .font(.caption)
+                    .foregroundStyle(Color.secondaryText)
+            }
+        }
+    }
+
     private func audioTranscriptionSection(attachments: [SharedAttachment], memo: Memo) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("语音转写")
@@ -319,6 +373,44 @@ struct MemoDetailView: View {
                 Text(transcriptionStatusText)
                     .font(.caption)
                     .foregroundStyle(Color.secondaryText)
+            }
+        }
+    }
+
+    private func recognizeText(in attachment: SharedAttachment, region: ImageTextRegion, memo: Memo) {
+        guard let data = SharedAttachmentStore.data(for: attachment) else {
+            imageTextStatusText = "找不到本地图片文件。"
+            return
+        }
+
+        imageTextStatusText = "正在识别框选区域..."
+
+        Task {
+            let lines = await ImageTextRecognizer.recognizeText(in: data, region: region)
+            let appendedText = ImageTextRecognizer.memoText(
+                for: attachment,
+                recognizedLines: lines,
+                region: region,
+                includesAttachmentReference: false
+            )
+
+            await MainActor.run {
+                regionOCRAttachment = nil
+
+                guard let appendedText = appendedText else {
+                    imageTextStatusText = "没有识别出可保存的文字。"
+                    return
+                }
+
+                let latestMemo = store.memos.first(where: { $0.id == memo.id }) ?? memo
+                let updatedText = latestMemo.text.appendingMemoSection(appendedText)
+                if store.update(latestMemo, text: updatedText),
+                   let updatedMemo = store.memos.first(where: { $0.id == memo.id }) {
+                    text = updatedMemo.text
+                    imageTextStatusText = "已追加框选文字"
+                } else {
+                    imageTextStatusText = "框选文字保存失败。"
+                }
             }
         }
     }
@@ -378,6 +470,228 @@ private extension String {
             return trimmedBase
         }
         return "\(trimmedBase)\n\n\(trimmedSection)"
+    }
+}
+
+private struct ImageTextRegionPickerView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let attachment: SharedAttachment
+    let onRecognize: (ImageTextRegion) -> Void
+
+    @State private var region = ImageTextRegion(x: 0.1, y: 0.16, width: 0.8, height: 0.48)
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(attachment.displayName)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+                .lineLimit(1)
+
+            if let image = image {
+                ImageTextRegionSelectionCanvas(image: image, region: $region)
+                    .frame(maxWidth: .infinity)
+                    .aspectRatio(image.size.width / max(image.size.height, 1), contentMode: .fit)
+                    .frame(maxHeight: 520)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .stroke(Color.border, lineWidth: 1)
+                    )
+
+                HStack(spacing: 8) {
+                    regionBadge("X", value: region.x)
+                    regionBadge("Y", value: region.y)
+                    regionBadge("W", value: region.width)
+                    regionBadge("H", value: region.height)
+                }
+            } else {
+                EmptyStateView(title: "无法读取图片")
+                    .frame(maxWidth: .infinity, minHeight: 240)
+            }
+
+            Spacer(minLength: 0)
+
+            HStack(spacing: 10) {
+                Button {
+                    dismiss()
+                } label: {
+                    Label("取消", systemImage: "xmark")
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.secondaryText)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                Button {
+                    onRecognize(region)
+                    dismiss()
+                } label: {
+                    Label("识别区域", systemImage: "text.viewfinder")
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.white)
+                .background(Color.accentGreen)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .disabled(self.image == nil)
+            }
+        }
+        .padding(18)
+        .background(Color.appBackground.ignoresSafeArea())
+        .navigationTitle("框选图片文字")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var image: UIImage? {
+        guard let url = SharedAttachmentStore.url(for: attachment) else {
+            return nil
+        }
+        return UIImage(contentsOfFile: url.path)
+    }
+
+    private func regionBadge(_ label: String, value: Double) -> some View {
+        Text("\(label) \(Int(value * 100))")
+            .font(.caption2.monospacedDigit().weight(.semibold))
+            .foregroundStyle(Color.secondaryText)
+            .padding(.horizontal, 8)
+            .frame(height: 24)
+            .background(Color.subtleSurface)
+            .clipShape(Capsule())
+    }
+}
+
+private struct ImageTextRegionSelectionCanvas: View {
+    let image: UIImage
+    @Binding var region: ImageTextRegion
+
+    @State private var dragStartRegion: ImageTextRegion?
+    @State private var resizeStartRegion: ImageTextRegion?
+
+    var body: some View {
+        GeometryReader { geometry in
+            let canvasSize = fittedImageSize(in: geometry.size)
+            let canvasOrigin = CGPoint(
+                x: (geometry.size.width - canvasSize.width) / 2,
+                y: (geometry.size.height - canvasSize.height) / 2
+            )
+            let selectionRect = rect(for: region, in: canvasSize).offsetBy(
+                dx: canvasOrigin.x,
+                dy: canvasOrigin.y
+            )
+
+            ZStack {
+                Color.surface
+
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+
+                Path { path in
+                    path.addRect(CGRect(origin: canvasOrigin, size: canvasSize))
+                    path.addRect(selectionRect)
+                }
+                .fill(Color.black.opacity(0.34), style: FillStyle(eoFill: true))
+
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(Color.white.opacity(0.92), lineWidth: 2)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color.accentGreen.opacity(0.16))
+                    )
+                    .frame(width: selectionRect.width, height: selectionRect.height)
+                    .position(x: selectionRect.midX, y: selectionRect.midY)
+                    .gesture(dragGesture(canvasSize: canvasSize))
+
+                resizeHandle(at: CGPoint(x: selectionRect.maxX, y: selectionRect.maxY), canvasSize: canvasSize)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+    }
+
+    private func resizeHandle(at point: CGPoint, canvasSize: CGSize) -> some View {
+        Circle()
+            .fill(Color.surface)
+            .frame(width: 30, height: 30)
+            .overlay(
+                Image(systemName: "arrow.down.right.and.arrow.up.left")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Color.accentGreen)
+            )
+            .shadow(color: Color.black.opacity(0.16), radius: 8, y: 3)
+            .position(point)
+            .gesture(resizeGesture(canvasSize: canvasSize))
+            .accessibilityLabel("调整识别区域大小")
+    }
+
+    private func fittedImageSize(in availableSize: CGSize) -> CGSize {
+        guard image.size.width > 0, image.size.height > 0,
+              availableSize.width > 0, availableSize.height > 0 else {
+            return .zero
+        }
+
+        let scale = min(
+            availableSize.width / image.size.width,
+            availableSize.height / image.size.height
+        )
+        return CGSize(width: image.size.width * scale, height: image.size.height * scale)
+    }
+
+    private func rect(for region: ImageTextRegion, in size: CGSize) -> CGRect {
+        CGRect(
+            x: region.x * size.width,
+            y: region.y * size.height,
+            width: max(36, region.width * size.width),
+            height: max(36, region.height * size.height)
+        )
+    }
+
+    private func dragGesture(canvasSize: CGSize) -> some Gesture {
+        DragGesture()
+            .onChanged { value in
+                if dragStartRegion == nil {
+                    dragStartRegion = region
+                }
+                guard let start = dragStartRegion,
+                      canvasSize.width > 0,
+                      canvasSize.height > 0 else {
+                    return
+                }
+
+                let nextX = min(max(start.x + value.translation.width / canvasSize.width, 0), 1 - start.width)
+                let nextY = min(max(start.y + value.translation.height / canvasSize.height, 0), 1 - start.height)
+                region = ImageTextRegion(x: nextX, y: nextY, width: start.width, height: start.height)
+            }
+            .onEnded { _ in
+                dragStartRegion = nil
+            }
+    }
+
+    private func resizeGesture(canvasSize: CGSize) -> some Gesture {
+        DragGesture()
+            .onChanged { value in
+                if resizeStartRegion == nil {
+                    resizeStartRegion = region
+                }
+                guard let start = resizeStartRegion,
+                      canvasSize.width > 0,
+                      canvasSize.height > 0 else {
+                    return
+                }
+
+                let minimumWidth = min(0.98, 44 / canvasSize.width)
+                let minimumHeight = min(0.98, 44 / canvasSize.height)
+                let nextWidth = max(minimumWidth, start.width + value.translation.width / canvasSize.width)
+                let nextHeight = max(minimumHeight, start.height + value.translation.height / canvasSize.height)
+                region = ImageTextRegion(x: start.x, y: start.y, width: nextWidth, height: nextHeight)
+            }
+            .onEnded { _ in
+                resizeStartRegion = nil
+            }
     }
 }
 

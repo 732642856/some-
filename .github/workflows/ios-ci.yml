@@ -130,6 +130,10 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             SWIFT_EMIT_LOC_STRINGS=NO \
+            ENABLE_APP_INTENTS_METADATA_GENERATION=NO \
+            APP_INTENTS_METADATA_GENERATION=NO \
+            EXTRACT_APP_INTENTS_METADATA=NO \
+            ENABLE_APP_SHORTCUTS_LOCALIZATION=NO \
             'OTHER_SWIFT_FLAGS=$(inherited) -DCI_DISABLE_APP_INTENTS' \
             'EXCLUDED_SOURCE_FILE_NAMES=SaveMemoIntent.swift SomeAppShortcuts.swift' \
             clean test 2>&1 | tee "$LOG_PATH"

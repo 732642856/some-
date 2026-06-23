@@ -72,7 +72,8 @@ enum ImageTextRecognizer {
     static func memoText(
         for attachment: SharedAttachment,
         recognizedLines: [String],
-        region: ImageTextRegion? = nil
+        region: ImageTextRegion? = nil,
+        includesAttachmentReference: Bool = true
     ) -> String? {
         let cleanedLines = uniqueLines(recognizedLines)
         guard !cleanedLines.isEmpty else {
@@ -90,8 +91,11 @@ enum ImageTextRecognizer {
         lines.append("")
         lines.append("识别文字：")
         lines.append(contentsOf: cleanedLines)
-        lines.append("")
-        lines.append(attachment.referenceLine)
+
+        if includesAttachmentReference {
+            lines.append("")
+            lines.append(attachment.referenceLine)
+        }
 
         return lines.joined(separator: "\n")
     }

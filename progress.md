@@ -273,3 +273,11 @@
 - 修复 OCR 素材摘要过滤，避免把“区域”元数据和附件引用混进识别正文摘要。
 - 新增测试覆盖区域 memo 文本、区域 rect clamp 和区域 OCR 素材摘要。
 - 完成阶段 29。本地验证通过：`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`、旧 Swift parser 覆盖 `ImageTextRecognizer.swift` / `Memo.swift` / `SharedAttachmentStore.swift` / `AttachmentReferenceResolver.swift` / `LinkExtractor.swift` / `ClipFragmentExtractor.swift` / `MemoReferenceParser.swift` / `MemoTaskParser.swift` / `MemoSearchQuery.swift` / `SomeTests.swift`，并用 `-D SOME_SHARE_EXTENSION` 覆盖分享扩展路径。
+
+## 2026-06-23T13:24:00+08:00
+
+- 继续阶段 17 远端 CI 复验：最新 GitHub Actions run `28003903915` 对应 HEAD `af34dd7`，Build for simulator 已通过，Run tests 仍在进行中；等待期间不空转，推进当前 findings 第一项本地缺口。
+- 进入阶段 30：媒体缩略图缓存维护。复查 `VideoThumbnailGenerator`、`MediaMetadataExtractor`、附件预览列表和视频缩略图测试后确认当前只有单视频按需生成与单项删除，缺批量预热和孤儿缓存清理工具层。
+- `VideoThumbnailGenerator` 新增 `CacheMaintenanceResult`、`preheatCache(for:)` 和 `pruneCache(keeping:)`，支持去重预热视频缩略图缓存，并清理不在保留集合里的 `.jpg` 缓存文件。
+- 新增测试覆盖缺失视频预热失败统计、重复 URL 去重，以及 prune 保留目标缓存、删除孤儿缓存的行为。
+- 完成阶段 30。本地验证通过：`git diff --check`、旧 Swift parser 覆盖 `VideoThumbnailGenerator.swift` / `SharedMemoStorage.swift` / `SomeTests.swift`。

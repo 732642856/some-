@@ -1409,11 +1409,13 @@ extension MemoAsset {
         let lines = text
             .components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-        guard let firstLine = lines.first(where: { !$0.isEmpty }) else {
+        let prefixes = ["图片文字：", "图片文字:", "截图文字：", "截图文字:"]
+        guard let titleIndex = lines.firstIndex(where: { line in
+            prefixes.contains { line.hasPrefix($0) }
+        }) else {
             return nil
         }
-
-        let prefixes = ["图片文字：", "图片文字:", "截图文字：", "截图文字:"]
+        let firstLine = lines[titleIndex]
         guard let prefix = prefixes.first(where: { firstLine.hasPrefix($0) }) else {
             return nil
         }
@@ -1421,7 +1423,7 @@ extension MemoAsset {
         let rawTitle = String(firstLine.dropFirst(prefix.count))
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let title = rawTitle.isEmpty ? "图片文字" : rawTitle
-        let textStartIndex = lines.firstIndex { line in
+        let textStartIndex = lines[titleIndex...].firstIndex { line in
             line == "识别文字：" || line == "识别文字:" || line == "OCR：" || line == "OCR:"
         }.map { $0 + 1 } ?? 1
         let recognizedText = lines

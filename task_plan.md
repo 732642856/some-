@@ -6,9 +6,9 @@
 
 ## 当前阶段
 
-阶段 29：截图/OCR 区域识别底座，状态：in_progress
+阶段 31：截图/OCR 框选 UI，状态：in_progress
 
-备注：阶段 17 远端 CI 复验仍需继续。2026-06-23 已成功读取 run `27983191547`，当前 HEAD 在 Build for simulator 阶段因分享扩展编译 `MemoStore.swift` 时找不到 `ScrapbookRenderer` 失败；本轮已把图片拼贴保存逻辑隔离到主 App 条件编译路径，待推送后复验新 run。
+备注：阶段 17 远端 CI 复验仍需继续。2026-06-23 最新 run `28003903915` 已确认 Build for simulator 通过，Run tests 仍在进行中；等待结果时继续推进不依赖外部服务的 P1 本地缺口。
 
 ## 阶段清单
 
@@ -42,6 +42,8 @@
 - 阶段 27：多链接批量网页摘录，状态：complete
 - 阶段 28：工作日志项目/日期/模板增强，状态：complete
 - 阶段 29：截图/OCR 区域识别底座，状态：complete
+- 阶段 30：媒体缩略图缓存维护，状态：complete
+- 阶段 31：截图/OCR 框选 UI，状态：in_progress
 
 ## 当前执行原则
 

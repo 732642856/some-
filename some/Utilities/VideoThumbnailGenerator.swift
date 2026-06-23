@@ -2,6 +2,12 @@ import AVFoundation
 import UIKit
 
 enum VideoThumbnailGenerator {
+    struct CacheMaintenanceResult: Equatable {
+        var warmedCount: Int
+        var removedCount: Int
+        var failedCount: Int
+    }
+
     static func image(
         for url: URL,
         at seconds: Double = 0.5,
@@ -74,6 +80,79 @@ enum VideoThumbnailGenerator {
         }
 
         try? fileManager.removeItem(at: url)
+    }
+
+    static func preheatCache(
+        for urls: [URL],
+        at seconds: Double = 0.5,
+        maximumSize: CGSize = CGSize(width: 512, height: 512),
+        fileManager: FileManager = .default
+    ) -> CacheMaintenanceResult {
+        var result = CacheMaintenanceResult(warmedCount: 0, removedCount: 0, failedCount: 0)
+        var seen = Set<String>()
+
+        for url in urls {
+            let key = url.standardizedFileURL.path
+            guard seen.insert(key).inserted else {
+                continue
+            }
+
+            if image(
+                for: url,
+                at: seconds,
+                maximumSize: maximumSize,
+                usesDiskCache: true,
+                fileManager: fileManager
+            ) == nil {
+                result.failedCount += 1
+            } else {
+                result.warmedCount += 1
+            }
+        }
+
+        return result
+    }
+
+    static func pruneCache(
+        keeping sourceURLs: [URL],
+        at seconds: Double = 0.5,
+        maximumSize: CGSize = CGSize(width: 512, height: 512),
+        fileManager: FileManager = .default
+    ) -> CacheMaintenanceResult {
+        guard let cacheDirectory = try? thumbnailCacheDirectory(fileManager: fileManager),
+              let cachedFiles = try? fileManager.contentsOfDirectory(
+                at: cacheDirectory,
+                includingPropertiesForKeys: nil
+              ) else {
+            return CacheMaintenanceResult(warmedCount: 0, removedCount: 0, failedCount: 0)
+        }
+
+        let keepFilenames = Set(
+            sourceURLs.compactMap {
+                cachedImageURL(
+                    for: $0,
+                    at: seconds,
+                    maximumSize: maximumSize,
+                    fileManager: fileManager
+                )?.lastPathComponent
+            }
+        )
+
+        var result = CacheMaintenanceResult(warmedCount: 0, removedCount: 0, failedCount: 0)
+        for file in cachedFiles where file.pathExtension.lowercased() == "jpg" {
+            guard !keepFilenames.contains(file.lastPathComponent) else {
+                continue
+            }
+
+            do {
+                try fileManager.removeItem(at: file)
+                result.removedCount += 1
+            } catch {
+                result.failedCount += 1
+            }
+        }
+
+        return result
     }
 
     private static func cachedImage(

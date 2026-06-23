@@ -1884,6 +1884,50 @@ final class SomeTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: cacheURL.path))
     }
 
+    func testVideoThumbnailPreheatReportsMissingFiles() {
+        let missingURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("preheat-missing-\(UUID().uuidString).mov")
+
+        let result = VideoThumbnailGenerator.preheatCache(for: [missingURL, missingURL])
+
+        XCTAssertEqual(result.warmedCount, 0)
+        XCTAssertEqual(result.failedCount, 1)
+        XCTAssertEqual(result.removedCount, 0)
+    }
+
+    func testVideoThumbnailPruneCacheKeepsExpectedFile() throws {
+        let keptSourceURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cache-keep-\(UUID().uuidString).mov")
+        let removedSourceURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cache-remove-\(UUID().uuidString).mov")
+        try Data("kept".utf8).write(to: keptSourceURL)
+        try Data("removed".utf8).write(to: removedSourceURL)
+        defer {
+            try? FileManager.default.removeItem(at: keptSourceURL)
+            try? FileManager.default.removeItem(at: removedSourceURL)
+        }
+
+        let keptCacheURL = try XCTUnwrap(VideoThumbnailGenerator.cachedImageURL(for: keptSourceURL))
+        let removedCacheURL = try XCTUnwrap(VideoThumbnailGenerator.cachedImageURL(for: removedSourceURL))
+        try FileManager.default.createDirectory(
+            at: keptCacheURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try Data("kept-cache".utf8).write(to: keptCacheURL)
+        try Data("removed-cache".utf8).write(to: removedCacheURL)
+        defer {
+            try? FileManager.default.removeItem(at: keptCacheURL)
+            try? FileManager.default.removeItem(at: removedCacheURL)
+        }
+
+        let result = VideoThumbnailGenerator.pruneCache(keeping: [keptSourceURL])
+
+        XCTAssertEqual(result.removedCount, 1)
+        XCTAssertEqual(result.failedCount, 0)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: keptCacheURL.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: removedCacheURL.path))
+    }
+
     func testImageTextRecognizerBuildsMemoText() {
         let attachment = SharedAttachment(
             id: "receipt.png",
@@ -1938,6 +1982,28 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(imageTextAsset?.summary, "区域文字")
     }
 
+    func testImageTextRecognizerBuildsAppendableRegionMemoText() {
+        let attachment = SharedAttachment(
+            id: "receipt.png",
+            filename: "receipt.png",
+            relativePath: "receipt.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 128
+        )
+
+        let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: ["小计 88 元"],
+            region: ImageTextRegion(x: 0.2, y: 0.2, width: 0.4, height: 0.3),
+            includesAttachmentReference: false
+        )
+
+        XCTAssertTrue(text?.contains("图片文字：receipt.png") == true)
+        XCTAssertTrue(text?.contains("区域：x20 y20 w40 h30") == true)
+        XCTAssertTrue(text?.contains("小计 88 元") == true)
+        XCTAssertFalse(text?.contains(attachment.referenceLine) == true)
+    }
+
     func testImageTextRegionClampsAndBuildsRect() {
         let region = ImageTextRegion(x: -0.2, y: 0.25, width: 1.4, height: 0.5)
         let rect = region.rect(in: CGSize(width: 200, height: 100))
@@ -1947,6 +2013,16 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(region.width, 1)
         XCTAssertEqual(region.height, 0.5)
         XCTAssertEqual(rect, CGRect(x: 0, y: 25, width: 200, height: 50))
+    }
+
+    func testImageTextRegionKeepsSelectionInsideBounds() {
+        let region = ImageTextRegion(x: 0.75, y: 0.8, width: 0.5, height: 0.4)
+
+        XCTAssertEqual(region.x, 0.75)
+        XCTAssertEqual(region.y, 0.8)
+        XCTAssertEqual(region.width, 0.25)
+        XCTAssertEqual(region.height, 0.2)
+        XCTAssertEqual(region.rect(in: CGSize(width: 400, height: 300)), CGRect(x: 300, y: 240, width: 100, height: 60))
     }
 
     func testImageTextRecognizerExtractsHighlightsFromMemoText() {
@@ -1987,6 +2063,38 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(asset?.title, attachment.displayName)
         XCTAssertEqual(asset?.summary, "合计 128 元\n谢谢惠顾")
         XCTAssertEqual(asset?.uri, "some-attachment://\(attachment.relativePath)")
+    }
+
+    func testAppendedRegionImageTextCreatesScreenshotAsset() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let attachment = try SharedAttachmentStore.save(
+            data: Data("image placeholder".utf8),
+            suggestedFilename: "region-\(UUID().uuidString).png",
+            typeIdentifier: UTType.png.identifier
+        )
+        defer { SharedAttachmentStore.delete(attachment) }
+
+        guard let memo = store.addAttachmentMemo(attachment, note: "导入图片"),
+              let text = ImageTextRecognizer.memoText(
+                for: attachment,
+                recognizedLines: ["桌号 A12"],
+                region: ImageTextRegion(x: 0.15, y: 0.2, width: 0.5, height: 0.24),
+                includesAttachmentReference: false
+              ) else {
+            return XCTFail("Expected image memo and OCR text")
+        }
+
+        XCTAssertTrue(store.update(memo, text: "\(memo.text)\n\n\(text)"))
+        let updatedMemo = try XCTUnwrap(store.memos.first(where: { $0.id == memo.id }))
+        let asset = store.assets(for: updatedMemo).first { $0.kind == .screenshot }
+
+        XCTAssertEqual(asset?.title, attachment.displayName)
+        XCTAssertEqual(asset?.summary, "桌号 A12")
+        XCTAssertEqual(asset?.uri, "some-attachment://\(attachment.relativePath)")
+
+        store.searchText = "has:ocr A12"
+        XCTAssertEqual(store.filteredMemos.first?.id, memo.id)
+        XCTAssertEqual(SharedAttachmentStore.attachments(in: updatedMemo.text).count, 1)
     }
 
     func testAddWardrobeItemCreatesStructuredMemoAndAsset() throws {
