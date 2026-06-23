@@ -552,6 +552,16 @@ enum WardrobeInsightEngine {
             )
         }
 
+        if let capsuleSuggestion = capsulePackingSuggestion(
+            from: baseItems.isEmpty ? availableItems : baseItems,
+            fallbackItems: availableItems,
+            destination: latestPackingContext?.destination,
+            weather: weather,
+            titleContext: titleContext
+        ) {
+            suggestions.append(capsuleSuggestion)
+        }
+
         if let outfit = outfits.first(where: { !$0.itemNames.isEmpty }) {
             let outfitItems = outfit.itemNames.filter { !unavailableNames.contains(wardrobeNormalizedName($0)) }
             if !outfitItems.isEmpty {
@@ -569,6 +579,92 @@ enum WardrobeInsightEngine {
         }
 
         return Array(suggestions.uniquedByID().prefix(3))
+    }
+
+    private static func capsulePackingSuggestion(
+        from preferredItems: [WardrobeItemInsight],
+        fallbackItems: [WardrobeItemInsight],
+        destination: String?,
+        weather: String?,
+        titleContext: String
+    ) -> WardrobePackingSuggestion? {
+        let allCandidates = (preferredItems + fallbackItems).uniquedByName()
+        var selected: [WardrobeItemInsight] = []
+        var selectedKeys = Set<String>()
+
+        func appendBest(category: String, limit: Int) {
+            guard limit > 0 else { return }
+            let candidates = allCandidates
+                .filter { $0.category == category }
+                .sorted(by: capsuleSort)
+            for item in candidates {
+                guard selectedKeys.insert(wardrobeNormalizedName(item.name)).inserted else { continue }
+                selected.append(item)
+                if selected.filter({ $0.category == category }).count >= limit { return }
+            }
+        }
+
+        appendBest(category: "上装", limit: 3)
+        appendBest(category: "下装", limit: 2)
+        appendBest(category: "连衣裙", limit: selected.contains(where: { $0.category == "上装" }) ? 0 : 2)
+        appendBest(category: "外套", limit: 1)
+        appendBest(category: "鞋履", limit: 1)
+        appendBest(category: "包包", limit: 1)
+        appendBest(category: "饰品", limit: 1)
+
+        guard selected.count >= 5 else { return nil }
+
+        return WardrobePackingSuggestion(
+            id: "packing-capsule",
+            title: "\(titleContext) 胶囊打包",
+            destination: destination,
+            weather: weather,
+            itemNames: selected.map(\.name),
+            note: capsulePackingNote(items: selected)
+        )
+    }
+
+    private static func capsuleSort(_ lhs: WardrobeItemInsight, _ rhs: WardrobeItemInsight) -> Bool {
+        let lhsScore = capsuleScore(lhs)
+        let rhsScore = capsuleScore(rhs)
+        if lhsScore == rhsScore {
+            if lhs.wearCount == rhs.wearCount {
+                return lhs.name < rhs.name
+            }
+            return lhs.wearCount < rhs.wearCount
+        }
+        return lhsScore > rhsScore
+    }
+
+    private static func capsuleScore(_ item: WardrobeItemInsight) -> Int {
+        var score = 0
+        if item.colors.contains(where: isCapsuleBaseColor) { score += 4 }
+        if item.scenes.count >= 2 { score += 3 }
+        if item.seasons.count >= 2 { score += 2 }
+        if item.scenes.contains("旅行") { score += 2 }
+        if item.scenes.contains("通勤") { score += 1 }
+        if isLightweight(item) { score += 1 }
+        if isBreathable(item) { score += 1 }
+        if item.wearCount == 0 { score += 1 }
+        return score
+    }
+
+    private static func isCapsuleBaseColor(_ color: String) -> Bool {
+        containsAny(color.lowercased(), ["黑", "白", "灰", "米", "蓝", "navy", "black", "white", "gray", "grey", "beige", "cream"])
+    }
+
+    private static func capsulePackingNote(items: [WardrobeItemInsight]) -> String {
+        let topCount = items.filter { $0.category == "上装" }.count
+        let bottomCount = items.filter { $0.category == "下装" }.count
+        let accessoryCount = items.filter { ["鞋履", "包包", "饰品"].contains($0.category) }.count
+        var parts = [
+            "\(topCount) 件上装、\(bottomCount) 件下装、\(accessoryCount) 件鞋包饰品，优先基础色和跨场景单品。",
+            "这些单品可互相搭配，适合作为短途旅行的胶囊衣橱。"
+        ]
+        if items.contains(where: { isLightweight($0) || isBreathable($0) }) {
+            parts.append("含轻薄或透气材质。")
+        }
+        return parts.joined(separator: " ")
     }
 
     private static func careReminders(in laundryLogs: [WardrobeLaundryLogInsight]) -> [WardrobeCareReminder] {

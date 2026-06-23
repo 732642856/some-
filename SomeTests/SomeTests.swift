@@ -3988,6 +3988,48 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(suggestion?.note?.contains("天气参考：晴 热 30C") == true)
     }
 
+    func testWardrobePackingSuggestionsIncludeCapsuleWardrobeSet() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.addWardrobeItem(name: "白衬衫", category: "上装", colors: ["白"], seasons: ["春", "夏"], scenes: ["旅行", "通勤"], materials: ["棉"], thickness: "轻薄")
+        store.addWardrobeItem(name: "条纹T恤", category: "上装", colors: ["蓝", "白"], seasons: ["夏"], scenes: ["旅行", "休闲"], materials: ["棉"], thickness: "轻薄")
+        store.addWardrobeItem(name: "黑色背心", category: "上装", colors: ["黑"], seasons: ["夏"], scenes: ["旅行", "通勤"], materials: ["棉"], thickness: "轻薄")
+        store.addWardrobeItem(name: "亮粉上衣", category: "上装", colors: ["粉"], seasons: ["夏"], scenes: ["派对"], materials: ["聚酯"], thickness: "厚")
+        store.addWardrobeItem(name: "黑西裤", category: "下装", colors: ["黑"], seasons: ["春", "夏"], scenes: ["旅行", "通勤"])
+        store.addWardrobeItem(name: "米色半裙", category: "下装", colors: ["米"], seasons: ["春", "夏"], scenes: ["旅行", "休闲"])
+        store.addWardrobeItem(name: "丹宁长裤", category: "下装", colors: ["蓝"], seasons: ["春", "秋"], scenes: ["旅行", "休闲"])
+        store.addWardrobeItem(name: "薄针织开衫", category: "外套", colors: ["灰"], seasons: ["春", "夏"], scenes: ["旅行", "通勤"], materials: ["棉"], thickness: "轻薄")
+        store.addWardrobeItem(name: "小白鞋", category: "鞋履", colors: ["白"], seasons: ["春", "夏"], scenes: ["旅行", "通勤"])
+        store.addWardrobeItem(name: "米色托特包", category: "包包", colors: ["米"], seasons: ["春", "夏"], scenes: ["旅行", "通勤"])
+        store.addWardrobeItem(name: "珍珠耳钉", category: "饰品", colors: ["白"], seasons: ["春", "夏"], scenes: ["旅行", "通勤"])
+        store.addWearLog(
+            itemNames: ["白衬衫", "黑西裤"],
+            date: DateFormatters.wardrobeDay.date(from: "2026-06-21")!,
+            scenes: ["通勤"],
+            weather: "晴 热 30C"
+        )
+        store.addPackingList(
+            title: "厦门短途",
+            destination: "厦门",
+            dateRange: "7/1-7/4",
+            tripDays: 4,
+            itemNames: ["白衬衫"],
+            weather: "晴 热 30C"
+        )
+
+        let insights = WardrobeInsightEngine.insights(for: store.assets)
+        let suggestion = insights.packingSuggestions.first { $0.id == "packing-capsule" }
+
+        XCTAssertEqual(suggestion?.title, "厦门 胶囊打包")
+        XCTAssertEqual(suggestion?.destination, "厦门")
+        XCTAssertEqual(suggestion?.weather, "晴 热 30C")
+        XCTAssertEqual(suggestion?.itemNames, ["白衬衫", "黑色背心", "条纹T恤", "丹宁长裤", "米色半裙", "薄针织开衫", "小白鞋", "米色托特包", "珍珠耳钉"])
+        XCTAssertFalse(suggestion?.itemNames.contains("亮粉上衣") == true)
+        XCTAssertFalse(suggestion?.itemNames.contains("黑西裤") == true)
+        XCTAssertTrue(suggestion?.note?.contains("3 件上装") == true)
+        XCTAssertTrue(suggestion?.note?.contains("基础色") == true)
+        XCTAssertTrue(suggestion?.note?.contains("可互相搭配") == true)
+    }
+
     func testOpenMeteoWeatherServiceBuildsRequestURLsAndSummary() throws {
         let service = OpenMeteoWeatherService()
 
