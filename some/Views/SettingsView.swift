@@ -15,6 +15,7 @@ struct SettingsView: View {
     @State private var apiKeyDraft = ""
     @State private var aiStatusText: String?
     @State private var dataStatusText: String?
+    @State private var isShowingAICacheClearConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -198,6 +199,26 @@ struct SettingsView: View {
                         }
                         .font(.footnote.weight(.semibold))
 
+                        Divider()
+
+                        Button(role: .destructive) {
+                            isShowingAICacheClearConfirmation = true
+                        } label: {
+                            HStack {
+                                Label("清除 AI 语义缓存", systemImage: "trash.circle")
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                            }
+                            .frame(height: 46)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Color.red)
+
+                        Text("只删除本机记录 embedding 缓存，不删除笔记、API Key 或本地 AI 记忆档案。")
+                            .font(.footnote)
+                            .foregroundStyle(Color.secondaryText)
+
                         Text(aiStatusText ?? (aiSettings.isConfigured ? "Key 已保存在本机 Keychain。" : "未配置 AI。"))
                             .font(.footnote)
                             .foregroundStyle(Color.secondaryText)
@@ -287,6 +308,18 @@ struct SettingsView: View {
             .sheet(isPresented: $isShowingPrivacyPolicy) {
                 PrivacyPolicyView()
             }
+            .confirmationDialog(
+                "清除 AI 语义缓存？",
+                isPresented: $isShowingAICacheClearConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("清除缓存", role: .destructive) {
+                    Task { await clearAICache() }
+                }
+                Button("取消", role: .cancel) {}
+            } message: {
+                Text("只会删除本机 AICache 里的记录 embedding，下次使用语义搜索时会按需重新生成。")
+            }
         }
     }
 
@@ -308,6 +341,12 @@ struct SettingsView: View {
         } catch {
             aiStatusText = error.localizedDescription
         }
+    }
+
+    @MainActor
+    private func clearAICache() async {
+        await SemanticSearchEngine.clearEmbeddingCache()
+        aiStatusText = "AI 语义缓存已清除。"
     }
 
     private func exportBackup() {
@@ -587,7 +626,7 @@ private struct PrivacyPolicyView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     Text("some 不会收集、出售或共享你的个人数据。你写下的内容默认只保存在当前设备。")
                     Text("应用不包含账号系统、广告 SDK、第三方分析 SDK 或追踪功能。使用系统分享表导出内容时，导出行为由你主动触发；完整备份会包含笔记和本地附件。")
-                    Text("如果你在设置里保存 OpenAI API Key 并使用 AI 功能，应用会把本次操作需要的笔记文本和提示词直接发送给 OpenAI API。未配置或未主动触发 AI 时，不会发送笔记内容。")
+                    Text("如果你在设置里保存 OpenAI API Key 并使用 AI 功能，应用会把本次操作需要的笔记文本和提示词直接发送给 OpenAI API。未配置或未主动触发 AI 时，不会发送笔记内容。AI 语义搜索会在本机保存最近使用的记录 embedding 缓存，可在设置里随时清除。")
                     Text("删除笔记后，内容会从本机应用数据中移除。卸载应用会删除本机保存的数据。")
                 }
                 .font(.body)

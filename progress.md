@@ -677,3 +677,10 @@
 - 按 TDD 增加 `testSemanticEmbeddingCachePrunesLeastRecentlyUsedEntries`，先用红灯探针确认 `SemanticEmbeddingCache(maxEntryCount:)` 不存在。
 - `SemanticEmbeddingCache.Snapshot` 从旧的 `[key: vector]` 兼容升级为 `[key: Entry]`，新增 `lastAccessedAt` 访问序号；lookup 命中会刷新访问序号，store 后自动裁剪到默认 1000 条。
 - 新实现兼容阶段 67 已写出的旧 JSON 缓存格式，旧条目读取后可继续命中并在后续访问/写入时升级。
+
+## 2026-06-24T00:43:00+08:00
+
+- 进入并完成阶段 69：设置页 AI 语义缓存清理入口。阶段 67/68 已让本地 AICache 可跨启动复用并裁剪，本轮补用户可见的清除控制。
+- 开工前检索 SwiftUI 设置页清缓存入口和 confirmation dialog 示例，没有找到能直接复制到当前 some 设置页结构的模块；继续复用现有 `SettingsView` 和 `SemanticSearchEngine.clearEmbeddingCache()`。
+- 设置页 AI 区域新增“清除 AI 语义缓存”按钮，带 destructive confirmation dialog；确认后只清空本机 embedding 缓存并更新 AI 状态文案，不删除笔记、API Key 或本地 AI 记忆档案。
+- 隐私说明同步补充本机 embedding 缓存可在设置里清除。
