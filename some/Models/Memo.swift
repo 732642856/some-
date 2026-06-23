@@ -1000,11 +1000,13 @@ struct ImageEditRecipe: Codable, Equatable {
         enum Mode: String, Codable, CaseIterable, Equatable {
             case none
             case person
+            case object
 
             var title: String {
                 switch self {
                 case .none: return "无"
                 case .person: return "人物抠图"
+                case .object: return "智能主体"
                 }
             }
         }

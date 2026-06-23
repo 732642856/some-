@@ -2986,7 +2986,7 @@ final class SomeTests: XCTestCase {
         ).contains("background"))
     }
 
-    func testImageEditRendererMarksSubjectExtractionInFilenameAndSummary() {
+    func testImageEditRendererMarksPersonSubjectExtractionInFilenameAndSummary() {
         let recipe = ImageEditRecipe(
             sourceAttachmentPath: "source.png",
             filter: .original,
@@ -3004,6 +3004,57 @@ final class SomeTests: XCTestCase {
             ),
             recipe: recipe
         ).contains("subject"))
+    }
+
+    func testImageEditRecipeSupportsObjectSubjectExtraction() throws {
+        let recipe = ImageEditRecipe(
+            sourceAttachmentPath: "source.png",
+            filter: .original,
+            subjectExtraction: ImageEditRecipe.SubjectExtraction(mode: .object)
+        )
+        let line = try XCTUnwrap(recipe.encodedLine())
+        let decoded = try XCTUnwrap(ImageEditRecipe.recipe(in: "图片编辑：包包\n\(line)"))
+
+        XCTAssertEqual(decoded.subjectExtraction.mode, .object)
+        XCTAssertTrue(decoded.summary.contains("智能主体"))
+        XCTAssertTrue(ImageEditRenderer.outputFilename(
+            source: SharedAttachment(
+                id: "source.png",
+                filename: "source.png",
+                relativePath: "source.png",
+                typeIdentifier: UTType.png.identifier,
+                byteCount: 0
+            ),
+            recipe: decoded
+        ).contains("subject"))
+    }
+
+    func testAddImageEditRecordsObjectSubjectExtraction() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let sourceData = try XCTUnwrap(testImage(size: CGSize(width: 64, height: 64)).pngData())
+        let sourceAttachment = try SharedAttachmentStore.save(
+            data: sourceData,
+            suggestedFilename: "bag-\(UUID().uuidString).png",
+            typeIdentifier: UTType.png.identifier
+        )
+        defer { SharedAttachmentStore.delete(sourceAttachment) }
+
+        let recipe = ImageEditRecipe(
+            sourceAttachmentPath: sourceAttachment.relativePath,
+            filter: .original,
+            subjectExtraction: ImageEditRecipe.SubjectExtraction(mode: .object)
+        )
+
+        let memo = try XCTUnwrap(store.addImageEdit(
+            title: "包包抠图",
+            sourceAttachment: sourceAttachment,
+            recipe: recipe
+        ))
+        let attachments = SharedAttachmentStore.attachments(in: memo.text)
+        defer { attachments.forEach { SharedAttachmentStore.delete($0) } }
+
+        XCTAssertTrue(memo.text.contains("主体：智能主体"))
+        XCTAssertEqual(ImageEditRecipe.recipe(in: memo.text)?.subjectExtraction.mode, .object)
     }
 
     func testAddWebClipCreatesMemoAndWebClipAsset() {

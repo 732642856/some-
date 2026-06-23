@@ -222,6 +222,8 @@ enum ImageEditRenderer {
             return image
         case .person:
             return personSubjectImage(from: image)
+        case .object:
+            return foregroundSubjectImage(from: image)
         }
     }
 
@@ -254,6 +256,28 @@ enum ImageEditRenderer {
             return image
         }
         return context.createCGImage(output, from: input.extent)
+    }
+
+    private static func foregroundSubjectImage(from image: CGImage) -> CGImage? {
+        guard #available(iOS 17.0, macOS 14.0, *) else {
+            return image
+        }
+
+        let request = VNGenerateForegroundInstanceMaskRequest()
+        let handler = VNImageRequestHandler(cgImage: image, options: [:])
+        guard (try? handler.perform([request])) != nil,
+              let observation = request.results?.first,
+              !observation.allInstances.isEmpty,
+              let maskedBuffer = try? observation.generateMaskedImage(
+                  ofInstances: observation.allInstances,
+                  from: handler,
+                  croppedToInstancesExtent: false
+              ) else {
+            return image
+        }
+
+        let output = CIImage(cvPixelBuffer: maskedBuffer)
+        return context.createCGImage(output, from: output.extent)
     }
 
     private static func blurredImage(from image: CGImage, radius: CGFloat) -> CGImage? {

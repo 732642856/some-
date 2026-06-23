@@ -308,3 +308,12 @@
 - `ImageEditorView` 新增“主体”分段控件，用户可直接选择“无/人物抠图”，预览会跟随刷新。
 - 新增测试覆盖人物抠图配方编码/解码、旧配方兼容、摘要和导出文件名。
 - 继续修复阶段 17 CI：Run tests 步骤会在测试工作区临时移除 App target 对 `SomeShareExtension` 的嵌入和依赖，保留前置 Build for simulator 对正式 app/extension 的完整构建，降低 XCTest 被 App Intents 元数据处理器误伤的概率。
+
+## 2026-06-23T15:20:00+08:00
+
+- 加载并确认 Superpowers 插件：本地 `superpowers@openai-curated` 已启用，已读取 `using-superpowers`、`test-driven-development` 和 `verification-before-completion`。
+- 进入阶段 34：图片编辑智能主体抠图。开工前复查 Git 状态、图片编辑模型/渲染器/UI、测试和当前缺口；最新 CI run `28005117586` 对应 `262d016`，状态仍为 in_progress。
+- 按用户要求联网检索 `VNGenerateForegroundInstanceMaskRequest Swift MIT`、`iOS object cutout Vision Swift MIT`，均未找到可直接复制的 Swift/MIT 实现；继续复用 Apple Vision。
+- Apple 官方文档显示 `VNGenerateForegroundInstanceMaskRequest` / `VNInstanceMaskObservation` 为 iOS 17+，`VNInstanceMaskObservation` 可生成所有前景实例的 masked image；当前阶段以 iOS 17 渐进增强方式接入，iOS 16 或识别失败时安全回退原图。
+- 按 Superpowers/TDD 写入对象主体测试后再实现：`ImageEditRecipe.SubjectExtraction.Mode.object`、摘要“智能主体”、输出文件名 `subject`、图片编辑保存正文“主体：智能主体”。
+- 完成阶段 34。本地验证通过：`git diff --check`、`plutil -lint some.xcodeproj/project.pbxproj some/Info.plist some/PrivacyInfo.xcprivacy SomeShareExtension/Info.plist`、`xmllint --noout some.xcodeproj/xcshareddata/xcschemes/some.xcscheme`、`.github/workflows/ios-ci.yml` YAML 解析、旧 Swift parser 覆盖 `Memo.swift` / `ImageEditRenderer.swift` / `ImageEditorView.swift` / `SomeTests.swift`。
