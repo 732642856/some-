@@ -128,7 +128,7 @@ enum SemanticSearchEngine {
             guard term.count >= 2 else { return }
             terms.insert(term)
 
-            if term.count >= 4 {
+            if term.count >= 4, containsCompactScript(in: term) {
                 let characters = Array(term)
                 for index in 0..<(characters.count - 1) {
                     terms.insert(String(characters[index...(index + 1)]))
@@ -136,5 +136,16 @@ enum SemanticSearchEngine {
             }
         }
         return terms
+    }
+
+    private static func containsCompactScript(in term: String) -> Bool {
+        term.unicodeScalars.contains { scalar in
+            switch scalar.value {
+            case 0x3040...0x30FF, 0x3400...0x9FFF, 0xAC00...0xD7AF, 0xF900...0xFAFF:
+                return true
+            default:
+                return false
+            }
+        }
     }
 }

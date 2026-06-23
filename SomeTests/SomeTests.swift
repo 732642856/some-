@@ -1769,6 +1769,24 @@ final class SomeTests: XCTestCase {
         XCTAssertFalse(results.contains { $0.memo.id == archived.id })
     }
 
+    func testLocalSemanticSearchDoesNotOvermatchEnglishFragments() {
+        let product = Memo(
+            text: "product roadmap feedback",
+            createdAt: Date(timeIntervalSince1970: 1_700_000_000)
+        )
+        let fragment = Memo(
+            text: "proton radio",
+            createdAt: Date(timeIntervalSince1970: 1_700_000_100)
+        )
+
+        let results = SemanticSearchEngine.localSearch(
+            query: "product roadmap",
+            memos: [product, fragment]
+        )
+
+        XCTAssertEqual(results.map(\.memo.id), [product.id])
+    }
+
     func testInsightPromptKeepsProvidedMemoContent() {
         let memo = Memo(
             text: "下午整理产品灵感 #产品",
