@@ -120,6 +120,7 @@ jobs:
           DESTINATION="${{ steps.simulator.outputs.destination }}"
           DERIVED_DATA_PATH="${RUNNER_TEMP}/DerivedData-test"
           LOG_PATH="${RUNNER_TEMP}/xcodebuild-test.log"
+          RESULT_BUNDLE_PATH="${RUNNER_TEMP}/some-tests.xcresult"
           ruby <<'RUBY'
           path = "some.xcodeproj/project.pbxproj"
           text = File.read(path)
@@ -134,6 +135,7 @@ jobs:
             -scheme some \
             -destination "$DESTINATION" \
             -derivedDataPath "$DERIVED_DATA_PATH" \
+            -resultBundlePath "$RESULT_BUNDLE_PATH" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
@@ -148,9 +150,68 @@ jobs:
           TEST_STATUS="${PIPESTATUS[0]}"
           set -e
           if [ "$TEST_STATUS" -ne 0 ]; then
+            RESULT_SUMMARY_PATH="${RUNNER_TEMP}/xcresult-summary.txt"
+            if [ -d "$RESULT_BUNDLE_PATH" ]; then
+              xcrun xcresulttool get --path "$RESULT_BUNDLE_PATH" --format json > "${RUNNER_TEMP}/xcresult.json" 2>/dev/null \
+                || xcrun xcresulttool get --legacy --path "$RESULT_BUNDLE_PATH" --format json > "${RUNNER_TEMP}/xcresult.json" 2>/dev/null \
+                || true
+              if [ -s "${RUNNER_TEMP}/xcresult.json" ]; then
+                python3 - <<'PY' "${RUNNER_TEMP}/xcresult.json" "$RESULT_SUMMARY_PATH"
+          import json
+          import sys
+
+          source_path, output_path = sys.argv[1], sys.argv[2]
+          with open(source_path, "r", encoding="utf-8") as handle:
+              data = json.load(handle)
+
+          matches = []
+
+          def text(value):
+              if isinstance(value, dict):
+                  if "_value" in value:
+                      return str(value["_value"])
+                  return None
+              if isinstance(value, str):
+                  return value
+              return None
+
+          def walk(node):
+              if isinstance(node, dict):
+                  for key in ("testName", "identifier", "message", "issueType", "documentLocationInCreatingWorkspace", "targetName"):
+                      value = text(node.get(key))
+                      if value:
+                          matches.append(f"{key}: {value}")
+                  for key, value in node.items():
+                      if key in ("failureSummaries", "testFailureSummaries", "warningSummaries", "errorSummaries", "issues", "diagnostics", "tests"):
+                          walk(value)
+                      elif isinstance(value, (dict, list)):
+                          walk(value)
+              elif isinstance(node, list):
+                  for value in node:
+                      walk(value)
+
+          walk(data)
+          deduped = []
+          for item in matches:
+              if item not in deduped:
+                  deduped.append(item)
+
+          with open(output_path, "w", encoding="utf-8") as handle:
+              handle.write("\n".join(deduped[:160]))
+          PY
+              fi
+            fi
             {
               echo "### xcodebuild test failed"
               echo
+              if [ -s "$RESULT_SUMMARY_PATH" ]; then
+                echo "#### xcresult summary"
+                echo
+                echo '```text'
+                cat "$RESULT_SUMMARY_PATH"
+                echo '```'
+                echo
+              fi
               echo "#### Failing tests"
               echo
               echo '```text'
@@ -162,9 +223,16 @@ jobs:
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
             echo "::error file=.github/workflows/ios-ci.yml,line=83::xcodebuild test failed with status ${TEST_STATUS}; see the step summary for the last 200 log lines."
+            if [ -s "$RESULT_SUMMARY_PATH" ]; then
+              RESULT_ANNOTATION="$(
+                cat "$RESULT_SUMMARY_PATH" \
+                  | perl -0pe 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/::/%3A%3A/g'
+              )"
+              echo "::error file=.github/workflows/ios-ci.yml,line=83::xcresult summary:%0A${RESULT_ANNOTATION}"
+            fi
             TEST_ANNOTATION="$(
-              grep -nE 'Test Case .*failed|failed:|XCTAssert|Executed [0-9]+ tests|error:|appintents' "$LOG_PATH" \
-                | tail -n 40 \
+              grep -nE 'Test Case .*failed|failed:|XCTAssert|Executed [0-9]+ tests|error:|appintents|Testing failed|Test Suite .*failed' "$LOG_PATH" \
+                | tail -n 80 \
                 | perl -0pe 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/::/%3A%3A/g'
             )"
             if [ -n "$TEST_ANNOTATION" ]; then
