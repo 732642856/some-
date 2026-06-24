@@ -965,3 +965,10 @@
 - 开工前复查 Kingfisher/Nuke 缓存裁剪候选和项目内 `VideoThumbnailGenerator`，根因仍是 some 自己的素材引用集合和预热集合混用，不适合引入第三方图片库。
 - 新增 `testVideoThumbnailSourceURLsCanReturnAllReferencedVideosForPruning`，覆盖 `limit: 1` 只返回一个预热视频 URL，但 `limit: nil` 返回所有引用视频 URL；用 Swift typecheck 探针确认旧 `Int` limit 对 `nil` 会失败，新 `Int?` 签名通过。
 - `VideoThumbnailGenerator.sourceURLs` 的 `limit` 改为可选；素材库 `maintainMediaCaches` 继续用默认上限预热视频缩略图，同时用 `limit: nil` 的全量视频 URL 调用 `VideoThumbnailGenerator.pruneCache`，避免误删仍被引用的视频缩略图。
+
+## 2026-06-24T23:45:00+08:00
+
+- 进入并完成阶段 111：附件预览媒体摘要只读缓存。阶段 110 推送后继续扫描同步媒体读取点，确认 `AttachmentPreviewList.detailText` 在详情附件区和 Markdown 附件卡中直接调用 `MediaMetadataExtractor.summary(for:)`。
+- 开工前检索 SwiftUI 附件预览媒体摘要缓存、AVAsset/ImageIO metadata cache 候选；未找到适合直接复制进当前本地附件 UI 的小型模块，本轮继续复用项目内 `MediaMetadataExtractor.cachedSummary` / `preheatSummaries`。
+- 新增 `testAttachmentPreviewDetailTextUsesCachedMediaSummaryOnly`，覆盖冷缓存时附件行只显示类型和文件大小，不主动解析图片尺寸；预热后才显示尺寸摘要。
+- `AttachmentPreviewList` 改为只读 cached summary，并在出现或附件签名变化时后台预热图片/视频/音频摘要，预热成功后用本地版本号刷新附件行。

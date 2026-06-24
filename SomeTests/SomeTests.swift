@@ -3866,6 +3866,37 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(MediaMetadataExtractor.cachedSummary(for: attachment)?.contains("11x6") == true)
     }
 
+    func testAttachmentPreviewDetailTextUsesCachedMediaSummaryOnly() throws {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 13, height: 5), format: format).image { context in
+            UIColor.systemOrange.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 13, height: 5))
+        }
+        let attachment = try SharedAttachmentStore.save(
+            data: try XCTUnwrap(image.pngData()),
+            suggestedFilename: "attachment-detail-\(UUID().uuidString).png",
+            typeIdentifier: UTType.png.identifier
+        )
+        defer { SharedAttachmentStore.delete(attachment) }
+
+        let coldText = AttachmentPreviewDetailText.text(for: attachment, cachedSummary: nil)
+
+        XCTAssertEqual(
+            coldText,
+            "图片 · \(SharedAttachmentStore.formatByteCount(attachment.byteCount))"
+        )
+        XCTAssertFalse(coldText.contains("13x5"))
+
+        _ = MediaMetadataExtractor.preheatSummaries(for: [attachment])
+        let warmText = AttachmentPreviewDetailText.text(
+            for: attachment,
+            cachedSummary: MediaMetadataExtractor.cachedSummary(for: attachment)
+        )
+
+        XCTAssertTrue(warmText.contains("13x5"))
+    }
+
     func testVideoThumbnailCacheURLChangesWhenFileChanges() throws {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("cache-key-\(UUID().uuidString).mov")

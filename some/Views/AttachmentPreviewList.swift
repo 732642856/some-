@@ -5,6 +5,8 @@ struct AttachmentPreviewList: View {
     let attachments: [SharedAttachment]
     var compact = false
     var allowsSharing = true
+    @State private var mediaCacheVersion = 0
+    @State private var warmedSignature: String?
 
     var body: some View {
         if !attachments.isEmpty {
@@ -14,6 +16,10 @@ struct AttachmentPreviewList: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            .onAppear(perform: preheatMediaSummariesIfNeeded)
+            .onChange(of: mediaAttachmentSignature) { _ in
+                preheatMediaSummariesIfNeeded()
+            }
         }
     }
 
@@ -88,15 +94,11 @@ struct AttachmentPreviewList: View {
     }
 
     private func detailText(for attachment: SharedAttachment) -> String {
-        if let summary = MediaMetadataExtractor.summary(for: attachment) {
-            return "\(typeLabel(for: attachment)) · \(summary)"
-        }
-
-        if attachment.byteCount > 0 {
-            return "\(typeLabel(for: attachment)) · \(SharedAttachmentStore.formatByteCount(attachment.byteCount))"
-        }
-
-        return "\(typeLabel(for: attachment)) · 本地附件"
+        _ = mediaCacheVersion
+        return AttachmentPreviewDetailText.text(
+            for: attachment,
+            cachedSummary: MediaMetadataExtractor.cachedSummary(for: attachment)
+        )
     }
 
     private func iconName(for attachment: SharedAttachment) -> String {
@@ -115,7 +117,52 @@ struct AttachmentPreviewList: View {
         return "doc"
     }
 
-    private func typeLabel(for attachment: SharedAttachment) -> String {
+    private func preheatMediaSummariesIfNeeded() {
+        let mediaAttachments = attachments.filter { $0.isImage || $0.isVideo || $0.isAudio }
+        let signature = mediaAttachmentSignature
+        guard !mediaAttachments.isEmpty, signature != warmedSignature else {
+            return
+        }
+
+        warmedSignature = signature
+        DispatchQueue.global(qos: .utility).async {
+            let result = MediaMetadataExtractor.preheatSummaries(for: mediaAttachments)
+            guard result.warmedCount > 0 else {
+                return
+            }
+
+            DispatchQueue.main.async {
+                guard warmedSignature == signature else {
+                    return
+                }
+                mediaCacheVersion += 1
+            }
+        }
+    }
+
+    private var mediaAttachmentSignature: String {
+        attachments
+            .filter { $0.isImage || $0.isVideo || $0.isAudio }
+            .map { "\($0.relativePath):\($0.typeIdentifier):\($0.byteCount)" }
+            .joined(separator: "|")
+    }
+}
+
+enum AttachmentPreviewDetailText {
+    static func text(for attachment: SharedAttachment, cachedSummary: String?) -> String {
+        let type = typeLabel(for: attachment)
+        if let cachedSummary = cachedSummary {
+            return "\(type) · \(cachedSummary)"
+        }
+
+        if attachment.byteCount > 0 {
+            return "\(type) · \(SharedAttachmentStore.formatByteCount(attachment.byteCount))"
+        }
+
+        return "\(type) · 本地附件"
+    }
+
+    private static func typeLabel(for attachment: SharedAttachment) -> String {
         if attachment.isImage {
             return "图片"
         }

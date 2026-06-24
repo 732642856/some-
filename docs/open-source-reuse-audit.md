@@ -243,6 +243,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 110 继续审计视频缩略图缓存清理长列表风险前，检索 `Swift video thumbnail cache prune referenced assets AVAssetImageGenerator GitHub MIT`、`iOS local video thumbnail cache cleanup Swift GitHub MIT` 和 `AVAssetImageGenerator thumbnail cache Swift prune GitHub`，并复查阶段 108 的 Kingfisher/Nuke 结论和项目内 `VideoThumbnailGenerator`。候选仍偏系统 API 示例、HLS 缩略图或通用图片缓存；none 能直接理解 some 的本地视频附件引用，且当前视频缩略图由 AVFoundation 生成。根因是 `VideoThumbnailGenerator.sourceURLs` 的预热上限被误用为清理保留集。本轮不新增依赖，只让视频 URL 提取也支持 `limit: nil`，素材库维护用限量集合预热、全量视频引用集合清理。
 
+2026-06-24 本轮实现决策：阶段 111 继续处理详情附件区/Markdown 附件卡同步读取媒体元数据前，检索 `SwiftUI attachment preview media metadata cache AVAsset ImageIO GitHub MIT`、`iOS local media metadata cache SwiftUI attachment preview GitHub MIT` 和 `Swift AVAsset ImageIO metadata cache NSCache SwiftUI GitHub MIT`。检索结果没有发现适合直接复制进 some 本地附件 UI 的轻量 Swift 模块；Kingfisher/Nuke 等通用库仍偏图片加载，不能覆盖音频/视频时长和 some 的 App Group 附件引用。本轮不新增依赖，复用 `MediaMetadataExtractor.cachedSummary` 与后台 `preheatSummaries`，让附件行先显示文件大小，预热后刷新时长/分辨率摘要。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：
