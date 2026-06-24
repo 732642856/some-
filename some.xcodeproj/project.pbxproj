@@ -80,6 +80,7 @@
 		7AA000010000000000000001 /* ImageTextRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AA001010000000000000001 /* ImageTextRecognizer.swift */; };
 		7AB000010000000000000001 /* AudioTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AB001010000000000000001 /* AudioTranscriber.swift */; };
 		7AC000010000000000000001 /* VideoThumbnailGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AC001010000000000000001 /* VideoThumbnailGenerator.swift */; };
+		7AC000010000000000000002 /* ImageThumbnailGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AC001010000000000000002 /* ImageThumbnailGenerator.swift */; };
 		7AD000010000000000000001 /* ScrapbookEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AD001010000000000000001 /* ScrapbookEditorView.swift */; };
 		7AE000010000000000000001 /* ImageEditRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE001010000000000000001 /* ImageEditRenderer.swift */; };
 		7AE000010000000000000002 /* ImageEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE001010000000000000002 /* ImageEditorView.swift */; };
@@ -199,6 +200,7 @@
 		7AA001010000000000000001 /* ImageTextRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageTextRecognizer.swift; sourceTree = "<group>"; };
 		7AB001010000000000000001 /* AudioTranscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioTranscriber.swift; sourceTree = "<group>"; };
 		7AC001010000000000000001 /* VideoThumbnailGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoThumbnailGenerator.swift; sourceTree = "<group>"; };
+		7AC001010000000000000002 /* ImageThumbnailGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageThumbnailGenerator.swift; sourceTree = "<group>"; };
 		7AD001010000000000000001 /* ScrapbookEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrapbookEditorView.swift; sourceTree = "<group>"; };
 		7AE001010000000000000001 /* ImageEditRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageEditRenderer.swift; sourceTree = "<group>"; };
 		7AE001010000000000000002 /* ImageEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageEditorView.swift; sourceTree = "<group>"; };
@@ -346,6 +348,7 @@
 				7AA001010000000000000001 /* ImageTextRecognizer.swift */,
 				7AB001010000000000000001 /* AudioTranscriber.swift */,
 				7AC001010000000000000001 /* VideoThumbnailGenerator.swift */,
+				7AC001010000000000000002 /* ImageThumbnailGenerator.swift */,
 				7B2001010000000000000001 /* MediaMetadataExtractor.swift */,
 				7AE001010000000000000001 /* ImageEditRenderer.swift */,
 				7AF001010000000000000001 /* WardrobeInsightEngine.swift */,
@@ -646,6 +649,7 @@
 				7AA000010000000000000001 /* ImageTextRecognizer.swift in Sources */,
 				7AB000010000000000000001 /* AudioTranscriber.swift in Sources */,
 				7AC000010000000000000001 /* VideoThumbnailGenerator.swift in Sources */,
+				7AC000010000000000000002 /* ImageThumbnailGenerator.swift in Sources */,
 				7B2000010000000000000001 /* MediaMetadataExtractor.swift in Sources */,
 				7AD000010000000000000001 /* ScrapbookEditorView.swift in Sources */,
 				7AE000010000000000000001 /* ImageEditRenderer.swift in Sources */,

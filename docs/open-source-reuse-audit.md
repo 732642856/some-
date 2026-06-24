@@ -223,6 +223,10 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 100 继续补素材库长列表性能前，检索 `SwiftUI large list image thumbnail prefetch cache GitHub MIT`、`AVAssetImageGenerator thumbnail cache Swift GitHub MIT`、`Swift ImageIO AVFoundation metadata cache GitHub MIT`、`SwiftUI async image thumbnail cache local files GitHub MIT`、`Kingfisher Swift GitHub MIT license image cache`、`Nuke Swift GitHub MIT license image loading`、`CachedAsyncImage SwiftUI GitHub MIT` 和 `HLSThumbnailGenerator Swift GitHub MIT`。Kingfisher、Nuke、CachedAsyncImage 均偏远程图片下载/缓存，HLSThumbnailGenerator 偏 HLS 视频流缩略图；直接复制会引入与 some 当前 App Group 本地附件、`MemoAsset` 索引、图片/音频/视频统一摘要和后台预热生命周期不匹配的依赖。本轮不新增第三方库，复用项目已有 `MediaMetadataExtractor` 内存缓存，新增只读缓存接口，让素材库滚动时只显示已预热摘要或文件大小。
 
+2026-06-24 本轮实现决策：阶段 101 继续补禅定专注偏好前，检索 `SwiftUI zen writing word goal MIT`、`SwiftUI distraction free writing word count goal MIT` 和 `SwiftUI focus editor writing target open source MIT`，GitHub Search 均返回 0 个可直接复制进当前首页专注模式的小型 SwiftUI/MIT 模块。本轮继续复用 some 的 `ZenDraftStats`、`ZenWritingPreference` 和 `@AppStorage` 草稿偏好，只新增本地字数目标枚举与进度显示，不引入第三方编辑器。
+
+2026-06-24 本轮实现决策：阶段 102 继续补图片附件缩略图缓存前，检索 `Swift local image thumbnail cache ImageIO GitHub MIT`、`SwiftUI local file image thumbnail cache GitHub MIT`、`CGImageSourceCreateThumbnailAtIndex Swift cache GitHub MIT`、`Swift image thumbnail generator local file cache MIT`、`Kingfisher Swift GitHub MIT license image cache`、`Nuke Swift GitHub MIT license image loading`、`SDWebImageSwiftUI GitHub license` 和 `AlamofireImage GitHub license`。Kingfisher、Nuke、SDWebImageSwiftUI 和 AlamofireImage 都是成熟远程图片加载/缓存库，但 some 当前只需要对 App Group 本地附件做小尺寸预览，直接引入远程图片依赖会增加体量和缓存策略复杂度。本轮不复制第三方源码，使用 Apple ImageIO 的 `CGImageSourceCreateThumbnailAtIndex` 下采样并缓存到本地 `ImageThumbnailCache`。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

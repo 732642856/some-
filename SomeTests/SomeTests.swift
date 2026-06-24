@@ -3858,6 +3858,95 @@ final class SomeTests: XCTestCase {
         XCTAssertNotEqual(firstURL.lastPathComponent, secondURL.lastPathComponent)
     }
 
+    func testImageThumbnailGeneratorCachesDownsampledImage() throws {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 90, height: 60), format: format).image { context in
+            UIColor.systemPink.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 90, height: 60))
+        }
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("thumbnail-source-\(UUID().uuidString).png")
+        try XCTUnwrap(image.pngData()).write(to: url)
+        defer {
+            ImageThumbnailGenerator.removeCachedImage(for: url, maximumPixelSize: 30)
+            try? FileManager.default.removeItem(at: url)
+        }
+
+        let thumbnail = try XCTUnwrap(
+            ImageThumbnailGenerator.image(for: url, maximumPixelSize: 30)
+        )
+        let cacheURL = try XCTUnwrap(
+            ImageThumbnailGenerator.cachedImageURL(for: url, maximumPixelSize: 30)
+        )
+
+        XCTAssertLessThanOrEqual(max(thumbnail.size.width, thumbnail.size.height), 30)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: cacheURL.path))
+        XCTAssertNotNil(ImageThumbnailGenerator.cachedImage(for: url, maximumPixelSize: 30))
+    }
+
+    func testImageThumbnailPreheatFiltersDeduplicatesAndReportsMissingFiles() throws {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 16, height: 12), format: format).image { context in
+            UIColor.systemBlue.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 16, height: 12))
+        }
+        let attachment = try SharedAttachmentStore.save(
+            data: try XCTUnwrap(image.pngData()),
+            suggestedFilename: "thumbnail-source-\(UUID().uuidString).png",
+            typeIdentifier: UTType.png.identifier
+        )
+        defer { SharedAttachmentStore.delete(attachment) }
+        let memoID = UUID()
+        let imageAsset = MemoAsset(
+            memoID: memoID,
+            kind: .attachment,
+            title: attachment.filename,
+            uri: attachment.referenceURI,
+            typeIdentifier: attachment.typeIdentifier,
+            byteCount: attachment.byteCount,
+            createdAt: .now,
+            updatedAt: .now
+        )
+        let duplicateImageAsset = MemoAsset(
+            memoID: memoID,
+            kind: .screenshot,
+            title: attachment.filename,
+            uri: attachment.referenceURI,
+            typeIdentifier: attachment.typeIdentifier,
+            byteCount: attachment.byteCount,
+            createdAt: .now,
+            updatedAt: .now
+        )
+        let nonImageAsset = MemoAsset(
+            memoID: memoID,
+            kind: .attachment,
+            title: "note.txt",
+            uri: "attachment://note.txt",
+            typeIdentifier: UTType.plainText.identifier,
+            byteCount: 4,
+            createdAt: .now,
+            updatedAt: .now
+        )
+        let missingURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("thumbnail-missing-\(UUID().uuidString).png")
+
+        let urls = ImageThumbnailGenerator.sourceURLs(
+            in: [imageAsset, duplicateImageAsset, nonImageAsset],
+            limit: 3
+        )
+        let result = ImageThumbnailGenerator.preheatCache(
+            for: urls + [missingURL, missingURL],
+            maximumPixelSize: 24
+        )
+
+        XCTAssertEqual(urls.count, 1)
+        XCTAssertEqual(result.warmedCount, 1)
+        XCTAssertEqual(result.failedCount, 1)
+        XCTAssertEqual(result.skippedCount, 1)
+    }
+
     func testVideoThumbnailRemoveCachedImageDeletesExpectedFile() throws {
         let sourceURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("cache-delete-\(UUID().uuidString).mov")

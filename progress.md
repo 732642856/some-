@@ -895,3 +895,17 @@
 - 开工前检索 SwiftUI media metadata prefetch cache、AVAsset/ImageIO metadata cache 和 iOS media asset metadata preheat cache 候选，GitHub Search 均返回 0 个可直接复制的小型 Swift/MIT 模块。
 - 新增 `testMediaMetadataCachedSummaryOnlyUsesPreheatedCache`，覆盖素材库行读取的 `cachedSummary` 不会自行解析文件，只有 `preheatSummaries` 后才返回摘要。
 - `MediaMetadataExtractor` 抽出统一 summary cache key 并暴露只读 `cachedSummary`；素材库后台预热媒体摘要后递增 `mediaCacheVersion` 刷新行视图，`AssetRowView` 改为只读缓存，避免滚动列表时同步读取图片/音频/视频元数据。
+
+## 2026-06-24T19:35:00+08:00
+
+- 进入并完成阶段 101：禅定字数目标。阶段 100 文档碎片已提交并推送，继续处理 findings 中“可补更多禅定模式偏好”的快速记录缺口。
+- 开工前检索 SwiftUI zen writing word goal、distraction free writing word count goal 和 focus editor writing target 候选，GitHub Search 均返回 0 个可直接复制的小型 SwiftUI/MIT 模块。
+- 按 TDD 新增 `testZenWritingGoalSummarizesProgress` 和 `testZenWritingGoalClampsProgressFraction`，覆盖未知 raw value 回退、目标标题、进度文案和进度比例 clamp。
+- `ZenWritingGoal` 提供无目标、100、300、500、1000 字目标；`ZenCaptureView` 用 `@AppStorage("some.zenWritingGoal")` 保存选择，专注模式顶部新增目标菜单，底部在有目标时显示字数进度和 `ProgressView`。
+
+## 2026-06-24T20:05:00+08:00
+
+- 进入并完成阶段 102：图片附件缩略图缓存。继续处理素材库真实长列表性能缺口，重点是素材库和附件卡片图片预览还会在行渲染时 `UIImage(contentsOfFile:)` 直接解码原图。
+- 开工前检索 Swift 本地图片缩略图缓存、ImageIO 下采样、Kingfisher/Nuke/CachedAsyncImage/SDWebImage/AlamofireImage 等候选；这些项目多面向远程图片下载缓存，当前只需要本地附件小图，因此继续复用 Apple ImageIO 和 App Group 本地缓存目录。
+- 新增 `testImageThumbnailGeneratorCachesDownsampledImage` 和 `testImageThumbnailPreheatFiltersDeduplicatesAndReportsMissingFiles`，覆盖本地图像下采样、缓存文件写入、只读缓存命中、素材 URL 去重、非图片过滤和缺失文件失败统计。
+- 新增 `ImageThumbnailGenerator`，用 `CGImageSourceCreateThumbnailAtIndex` 生成小图并缓存到 `ImageThumbnailCache`；`AttachmentPreviewList` 和素材库 `AssetRowView` 改用异步 `ImageThumbnailPreview`，素材库进入或素材变化时批量预热图片缩略图。

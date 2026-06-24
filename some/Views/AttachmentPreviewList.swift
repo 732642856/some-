@@ -62,13 +62,13 @@ struct AttachmentPreviewList: View {
     @ViewBuilder
     private func preview(for attachment: SharedAttachment) -> some View {
         if attachment.isImage,
-           let url = SharedAttachmentStore.url(for: attachment),
-           let image = UIImage(contentsOfFile: url.path) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFill()
-                .frame(width: compact ? 32 : 38, height: compact ? 32 : 38)
-                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+           let url = SharedAttachmentStore.url(for: attachment) {
+            ImageThumbnailPreview(
+                url: url,
+                size: compact ? 32 : 38,
+                cornerRadius: 6,
+                fallbackSystemImage: iconName(for: attachment)
+            )
         } else if attachment.isVideo,
                   let url = SharedAttachmentStore.url(for: attachment) {
             VideoThumbnailPreview(
@@ -129,6 +129,60 @@ struct AttachmentPreviewList: View {
         }
 
         return "文件"
+    }
+}
+
+struct ImageThumbnailPreview: View {
+    let url: URL
+    let size: CGFloat
+    var cornerRadius: CGFloat = 8
+    var fallbackSystemImage = "photo"
+
+    @State private var image: UIImage?
+    @State private var requestedURL: URL?
+
+    var body: some View {
+        ZStack {
+            if let image = image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Image(systemName: fallbackSystemImage)
+                    .font(.system(size: max(14, size * 0.42), weight: .semibold))
+                    .foregroundStyle(Color.accentGreen)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.greenTint)
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .clipped()
+        .onAppear(perform: requestThumbnailIfNeeded)
+    }
+
+    private func requestThumbnailIfNeeded() {
+        guard requestedURL != url else {
+            return
+        }
+
+        requestedURL = url
+        image = nil
+        let thumbnailURL = url
+        let pixelSize = size * 3
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let thumbnail = ImageThumbnailGenerator.image(
+                for: thumbnailURL,
+                maximumPixelSize: pixelSize
+            )
+            DispatchQueue.main.async {
+                guard requestedURL == thumbnailURL else {
+                    return
+                }
+                image = thumbnail
+            }
+        }
     }
 }
 

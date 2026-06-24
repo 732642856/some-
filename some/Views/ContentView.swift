@@ -275,6 +275,7 @@ private struct ZenCaptureView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("some.zenDraft") private var text = ""
     @AppStorage("some.zenWritingPreference") private var writingPreferenceRawValue = ZenWritingPreference.calm.rawValue
+    @AppStorage("some.zenWritingGoal") private var writingGoalRawValue = ZenWritingGoal.none.rawValue
     @State private var statusText: String?
     @FocusState private var isFocused: Bool
 
@@ -288,6 +289,10 @@ private struct ZenCaptureView: View {
         ZenWritingPreference.value(for: writingPreferenceRawValue)
     }
 
+    private var writingGoal: ZenWritingGoal {
+        ZenWritingGoal.value(for: writingGoalRawValue)
+    }
+
     var body: some View {
         ZStack {
             Color.appBackground.ignoresSafeArea()
@@ -297,7 +302,7 @@ private struct ZenCaptureView: View {
                     topBar
                 }
 
-                preferencePicker
+                preferenceControls
 
                 ZStack(alignment: .topLeading) {
                     TextEditor(text: $text)
@@ -329,14 +334,25 @@ private struct ZenCaptureView: View {
         }
     }
 
-    private var preferencePicker: some View {
-        Picker("专注偏好", selection: $writingPreferenceRawValue) {
-            ForEach(ZenWritingPreference.allCases) { preference in
-                Text(preference.title).tag(preference.rawValue)
+    private var preferenceControls: some View {
+        HStack(spacing: 10) {
+            Picker("专注偏好", selection: $writingPreferenceRawValue) {
+                ForEach(ZenWritingPreference.allCases) { preference in
+                    Text(preference.title).tag(preference.rawValue)
+                }
             }
+            .pickerStyle(.segmented)
+            .accessibilityLabel("专注记录文字偏好")
+
+            Picker("目标", selection: $writingGoalRawValue) {
+                ForEach(ZenWritingGoal.allCases) { goal in
+                    Text(goal.title).tag(goal.rawValue)
+                }
+            }
+            .pickerStyle(.menu)
+            .frame(width: 92)
+            .accessibilityLabel("专注记录字数目标")
         }
-        .pickerStyle(.segmented)
-        .accessibilityLabel("专注记录文字偏好")
     }
 
     private var topBar: some View {
@@ -412,6 +428,16 @@ private struct ZenCaptureView: View {
                 .background(stats.canSave ? Color.accentGreen : Color.disabled)
                 .clipShape(Capsule())
                 .disabled(!stats.canSave)
+            }
+
+            if writingGoal.targetCount != nil {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(writingGoal.progressText(currentCount: stats.characterCount))
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(Color.tertiaryText)
+                    ProgressView(value: writingGoal.progressFraction(currentCount: stats.characterCount))
+                        .tint(Color.accentGreen)
+                }
             }
         }
     }
@@ -2907,9 +2933,11 @@ private struct AssetLibraryView: View {
 
         warmedMediaSignature = signature
         let attachments = MediaMetadataExtractor.sourceAttachments(in: store.assets)
+        let imageURLs = ImageThumbnailGenerator.sourceURLs(in: store.assets)
         let urls = VideoThumbnailGenerator.sourceURLs(in: store.assets)
         DispatchQueue.global(qos: .utility).async {
             let metadataResult = MediaMetadataExtractor.preheatSummaries(for: attachments)
+            _ = ImageThumbnailGenerator.preheatCache(for: imageURLs, maximumPixelSize: 162)
             _ = VideoThumbnailGenerator.preheatCache(for: urls)
             _ = VideoThumbnailGenerator.pruneCache(keeping: urls)
 
@@ -3066,13 +3094,13 @@ private struct AssetRowView: View {
     private var preview: some View {
         if let attachment = attachment,
            attachment.isImage,
-           let url = SharedAttachmentStore.url(for: attachment),
-           let image = UIImage(contentsOfFile: url.path) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 54, height: 54)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+           let url = SharedAttachmentStore.url(for: attachment) {
+            ImageThumbnailPreview(
+                url: url,
+                size: 54,
+                cornerRadius: 8,
+                fallbackSystemImage: iconName
+            )
         } else if let attachment = attachment,
                   attachment.isVideo,
                   let url = SharedAttachmentStore.url(for: attachment) {

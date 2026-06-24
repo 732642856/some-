@@ -72,3 +72,47 @@ enum ZenWritingPreference: String, CaseIterable, Identifiable {
         ZenWritingPreference(rawValue: rawValue) ?? .calm
     }
 }
+
+enum ZenWritingGoal: Int, CaseIterable, Identifiable {
+    case none = 0
+    case hundred = 100
+    case threeHundred = 300
+    case fiveHundred = 500
+    case thousand = 1000
+
+    var id: Int { rawValue }
+
+    var title: String {
+        switch self {
+        case .none: return "无目标"
+        case .hundred: return "100字"
+        case .threeHundred: return "300字"
+        case .fiveHundred: return "500字"
+        case .thousand: return "1000字"
+        }
+    }
+
+    var targetCount: Int? {
+        rawValue > 0 ? rawValue : nil
+    }
+
+    func progressText(currentCount: Int) -> String {
+        guard let targetCount = targetCount else {
+            return "\(currentCount) 字"
+        }
+
+        return "\(currentCount)/\(targetCount) 字"
+    }
+
+    func progressFraction(currentCount: Int) -> Double {
+        guard let targetCount = targetCount, targetCount > 0 else {
+            return 0
+        }
+
+        return min(max(Double(currentCount) / Double(targetCount), 0), 1)
+    }
+
+    static func value(for rawValue: Int) -> ZenWritingGoal {
+        ZenWritingGoal(rawValue: rawValue) ?? .none
+    }
+}
