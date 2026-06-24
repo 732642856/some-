@@ -1586,6 +1586,10 @@ final class MemoStore: ObservableObject {
             return assets(for: memo).contains { $0.kind == .screenshot }
         case .ocrReview:
             return ClipFragmentExtractor.needsOCRReview(in: memo.text)
+        case .ocrTable:
+            return memo.text.contains("表格候选：")
+        case .receiptLines:
+            return memo.text.contains("票据行候选：")
         case .audio:
             return assets(for: memo).contains { $0.kind == .audio }
         case .video:

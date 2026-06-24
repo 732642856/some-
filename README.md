@@ -43,7 +43,7 @@
 - 支持 `#项目/子类` 多级标签
 - 标签筛选
 - SQLite FTS 全文搜索
-- 搜索语法：`#标签`、`tag:标签`、`is:pinned`、`is:archived`、`is:active`、`has:link`、`has:web`、`has:clip`、`has:ocr`、`has:ocr-review`、`has:image-edit`、`has:audio`、`has:video`、`has:scrapbook`、`has:worklog`、`has:wardrobe`、`has:outfit`、`has:wear-log`、`has:laundry-log`、`has:packing-list`、`created:2026-06`
+- 搜索语法：`#标签`、`tag:标签`、`is:pinned`、`is:archived`、`is:active`、`has:link`、`has:web`、`has:clip`、`has:ocr`、`has:ocr-table`、`has:receipt-lines`、`has:ocr-review`、`has:image-edit`、`has:audio`、`has:video`、`has:scrapbook`、`has:worklog`、`has:wardrobe`、`has:outfit`、`has:wear-log`、`has:laundry-log`、`has:packing-list`、`created:2026-06`
 - 搜索增强：最近搜索、保存搜索、结果数量、命中摘录、链接/附件/任务/引用/日期结构化筛选
 - 置顶
 - 编辑和删除
@@ -88,6 +88,8 @@
 - `has:web` / `has:webclip` / `has:网页摘录`：只看已经保存为网页摘录的记录
 - `has:clip` / `has:摘录片段` / `has:片段`：只看网页/OCR 勾选后合并保存的摘录片段
 - `has:ocr` / `has:screenshot` / `has:图片文字`：只看导入图片后识别出文字的记录
+- `has:ocr-table` / `has:表格候选`：只看 OCR 保存时生成了“表格候选”的记录
+- `has:receipt-lines` / `has:票据行`：只看 OCR 保存时生成了“票据行候选”的记录
 - `has:ocr-review` / `has:待校对` / `has:低置信度`：只看最低 OCR 置信度低于 70% 的图片文字记录，方便继续校对
 - `has:image-edit` / `has:图片编辑` / `has:滤镜`：只看图片编辑作品
 - `has:audio` / `has:录音` / `has:音频`：只看音频附件记录

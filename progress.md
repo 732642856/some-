@@ -993,3 +993,9 @@
 - 开工前检索 `Swift Vision OCR receipt parser line items MIT`、`VNRecognizedTextObservation table extraction Swift GitHub MIT`、`Swift Vision OCR table MIT` 和 Apple Vision 表格/识别文档；GitHub 精确查询未返回可直接复制进当前本地 SwiftUI/OCR memo 链路的小型 Swift/MIT 模块，网页结果多为 LLM/服务端/完整示例项目，本轮继续复用 Apple Vision 行框与项目内轻量规则。
 - 收拢并补齐 `testImageTextRecognizerBuildsTableCandidateFromAlignedRegions`，覆盖 Vision 行框按三列三行对齐时生成“表格候选”；新增 `testImageTextRecognizerBuildsReceiptLineCandidatesWithoutDelimiters` 和 `testImageTextRecognizerSkipsReceiptLineCandidatesForSingleAmountLine`，覆盖无分隔符小票行必须至少两条项目金额才生成“票据行候选”。
 - `ImageTextRecognizer` 的“表格候选”先识别 `|` / `｜` / tab 分隔符，再退到行框横纵对齐的简单表格；另新增末尾金额行解析，跳过合计/小计/支付/税等汇总行，原始“识别文字”仍完整保留。
+
+## 2026-06-24T23:59:50+08:00
+
+- 进入并完成阶段 115：OCR 表格/票据候选搜索筛选。阶段 114 推送后继续处理同一 OCR 校对闭环，确认“表格候选”和“票据行候选”需要可组合的 `has:*` 语法。
+- 先用临时 Swift 探针确认旧 `MemoSearchQueryParser` 会把 `has:ocr-table` / `has:receipt-lines` 留作普通文本；新增 `testSearchQueryParserExtractsOCRTableAndReceiptAliases` 和 store 搜索断言，覆盖英文与中文别名。
+- `MemoContentFilter` 新增 `ocrTable`、`receiptLines`，`MemoStore.matchesContentFilter` 基于 OCR memo 中的“表格候选：”和“票据行候选：”摘要行筛选；README 同步 `has:ocr-table` / `has:表格候选`、`has:receipt-lines` / `has:票据行`。

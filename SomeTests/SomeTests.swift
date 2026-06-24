@@ -793,6 +793,13 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(query.textTerms, [])
     }
 
+    func testSearchQueryParserExtractsOCRTableAndReceiptAliases() {
+        let query = MemoSearchQueryParser.parse("has:ocr-table has:表格候选 has:receipt-lines has:票据行")
+
+        XCTAssertEqual(Set(query.requiredContentFilters), Set([.ocrTable, .receiptLines]))
+        XCTAssertEqual(query.textTerms, [])
+    }
+
     func testSearchQueryParserKeepsUnknownContentFiltersAsText() {
         let query = MemoSearchQueryParser.parse("has:unknown 资料")
 
@@ -992,6 +999,37 @@ final class SomeTests: XCTestCase {
             [附件: receipt.png](some-attachment://receipt.png)
             """
         ])
+
+        let ocrTableText = """
+        图片文字：table.png
+        表格候选：3列 · 2行 · 商品/数量/金额
+
+        识别文字：
+        商品
+        数量
+        金额
+        """
+        let receiptLinesText = """
+        图片文字：receipt-lines.png
+        票据行候选：3行 · 拿铁 18.00；可颂 x2 36.00；茶包 12元
+
+        识别文字：
+        拿铁 18.00
+        """
+        store.addMemo(text: ocrTableText)
+        store.addMemo(text: receiptLinesText)
+
+        store.searchText = "has:ocr-table"
+        XCTAssertEqual(store.filteredMemos.map(\.text), [ocrTableText])
+
+        store.searchText = "has:表格候选"
+        XCTAssertEqual(store.filteredMemos.map(\.text), [ocrTableText])
+
+        store.searchText = "has:receipt-lines"
+        XCTAssertEqual(store.filteredMemos.map(\.text), [receiptLinesText])
+
+        store.searchText = "has:票据行"
+        XCTAssertEqual(store.filteredMemos.map(\.text), [receiptLinesText])
 
         store.searchText = "has:task"
         XCTAssertEqual(store.filteredMemos.map(\.text), ["任务资料\n- [ ] 写提纲\n- [x] 校对"])

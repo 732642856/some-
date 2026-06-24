@@ -251,6 +251,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 114 继续补 OCR 区域表格与票据行候选前，检索 `Swift Vision OCR receipt parser line items MIT`、`Swift OCR receipt parser MIT iOS`、`VNRecognizedTextObservation table extraction Swift GitHub MIT`、`Swift Vision OCR table MIT` 和 Apple Vision `VNRecognizedTextObservation` / 表格识别文档。GitHub 精确查询未返回可直接复制进当前 iOS 本地 OCR memo 链路的小型 Swift/MIT 模块；网页结果里 receipt scanner 多依赖 LLM、Veryfi/云服务、Python/服务端或完整示例 App，Apple 新 Vision 表格方向也会改变当前 `VNRecognizeTextRequest` 兼容链路。本轮不复制第三方代码，继续复用 Apple Vision 行框和项目内 `ImageTextRegion`：先识别分隔符表格，再用行框横纵对齐生成简单“表格候选”，并为无分隔符小票/餐饮截图生成末尾金额“票据行候选”。复杂合并单元格、跨页表格和自动字段纠错后续单独评估专门文档分析能力。
 
+2026-06-24 本轮实现决策：阶段 115 继续把 OCR 表格/票据候选接入搜索筛选前，复查项目已有 `MemoSearchQueryParser`、`MemoStore.matchesContentFilter`、`has:ocr` 与 `has:ocr-review` 实现。该阶段只扩展本项目搜索语法和本地文本匹配，不涉及新 OCR 引擎、第三方索引库或数据库迁移，因此不新增外部依赖；直接复用已有 `has:*` 解析模式，新增 `has:ocr-table` / `has:表格候选` 与 `has:receipt-lines` / `has:票据行`。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：
