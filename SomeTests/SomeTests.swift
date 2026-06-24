@@ -3972,6 +3972,31 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(assets.contains { $0.kind == .reference && $0.uri == "some-memo://\(target.id.uuidString)" })
     }
 
+    func testMemoAssetsIgnoreReferencesInsideRecognizedTextBody() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        guard let target = store.addMemo(text: "目标记录 #素材") else {
+            return XCTFail("Expected target memo")
+        }
+        let text = """
+        图片文字：raw-note.png
+
+        识别文字：
+        引用批注：截图里原本就有这行
+        [引用: 目标记录](some-memo://\(target.id.uuidString))
+
+        [附件: raw-note.png](some-attachment://raw-note.png)
+        """
+        guard let memo = store.addMemo(text: text) else {
+            return XCTFail("Expected OCR memo")
+        }
+
+        XCTAssertFalse(store.assets(for: memo).contains { $0.kind == .reference })
+        XCTAssertTrue(store.backlinkMemos(to: target).isEmpty)
+
+        store.searchText = "has:reference"
+        XCTAssertTrue(store.filteredMemos.isEmpty)
+    }
+
     func testMemoAssetsIgnoreWebClipMarkersInsideRecognizedTextBody() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         let text = """

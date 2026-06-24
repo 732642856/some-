@@ -279,6 +279,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 128 修复网页摘录 marker 与 OCR 原文混排边界前，检索 `GitHub Swift notes web clip parser markdown link MIT`、`GitHub Swift web clipper parser notes app MIT` 和 `GitHub Swift markdown link extractor web clip notes MIT`。结果主要指向完整 Markdown 解析器、HTML/浏览器 clipper 或通用链接提取示例，没有能直接复制进 some 当前 `[网页摘录: 标题](URL)`、摘要/重点和 OCR 正文边界的小型 Swift/MIT 模块。本轮继续复用 `LinkExtractor` 与项目内“识别文字：”/`OCR:` 正文边界，不新增第三方依赖。
 
+2026-06-24 本轮实现决策：阶段 129 修复内部引用与 OCR 原文混排边界前，检索 `Swift notes internal link parser MIT GitHub`、`Swift memo backlink parser markdown internal link MIT`、`Swift note reference parser some-memo OCR MIT` 和 `Swift markdown internal reference parser notes app MIT`，GitHub API 精确查询均返回 `total=0`。当前问题来自 some 自定义 `[引用: 标题](some-memo://UUID)` 与 `引用批注：` 文本格式，不适合引入完整 Markdown 或笔记关系库；本轮继续复用 `MemoReferenceParser`，只给 OCR 正文边界补过滤。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

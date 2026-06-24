@@ -1094,3 +1094,10 @@
 - 开工前检索 Swift notes web clip parser、web clipper parser 和 markdown link extractor 候选；可用项目多为完整 Markdown/HTML 引擎或浏览器 clipper，不适合直接复制进当前 some 中文网页摘录块与 OCR 正文边界，本轮继续复用项目内边界解析。
 - 新增 `testLinkExtractorIgnoresWebClipMarkersInsideRecognizedTextBody` 和 `testMemoAssetsIgnoreWebClipMarkersInsideRecognizedTextBody`，覆盖 OCR 正文里的网页摘录 Markdown 不生成 webClip 素材，`has:web` 不命中。
 - `LinkExtractor.webClips(in:)` 新增识别文字正文行索引，跳过“识别文字：”/`OCR:` 正文里的 `[网页摘录: ...]` marker；some 生成的网页摘录块、摘要、重点和 tracking 参数去重行为保持不变。
+
+## 2026-06-24T23:58:00+08:00
+
+- 进入并完成阶段 129：内部引用忽略 OCR 原文。阶段 128 推送后继续扫描关系类解析器，发现 `MemoReferenceParser.references(in:)` 会全文解析 `some-memo://UUID`，可能让 OCR 原文里的内部链接文字生成真实引用、反向引用和 `has:reference` 命中。
+- 开工前用 GitHub API 检索 Swift notes internal link、memo backlink parser、note reference parser 和 markdown internal reference parser 候选，四组精确查询均为 0；本轮继续复用 some 自有 Markdown-native 引用格式和 OCR 正文边界。
+- 新增 `testMemoAssetsIgnoreReferencesInsideRecognizedTextBody`，覆盖 OCR 正文里的 `引用批注：` 和 `[引用: ...](some-memo://...)` 不生成 reference 素材、不进入目标 memo 反向引用、不命中 `has:reference`。
+- `MemoReferenceParser.references(in:)` 新增识别文字正文行索引，跳过“识别文字：”/`OCR:` 正文里的内部引用；some 生成的引用行、引用批注、详情页隐藏引用行和真实反向引用逻辑保持不变。
