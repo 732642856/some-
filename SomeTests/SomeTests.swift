@@ -616,6 +616,28 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(snapshot.recentItems[1].title, "今天拍了照片 #灵感")
     }
 
+    func testWidgetSnapshotTitleKeepsAttachmentsInsideRecognizedTextBody() {
+        let memo = makeMemo(
+            text: """
+            图片文字：OCR截屏
+
+            识别文字：
+            [附件: raw-card.png](some-attachment://raw-card.png)
+
+            [附件: real-card.png](some-attachment://real-card.png)
+            """,
+            createdAt: makeDate(year: 2026, month: 6, day: 23),
+            updatedAt: makeDate(year: 2026, month: 6, day: 23)
+        )
+
+        let snapshot = WidgetSnapshotStore.snapshot(
+            from: [memo],
+            now: makeDate(year: 2026, month: 6, day: 23)
+        )
+
+        XCTAssertEqual(snapshot.recentItems.first?.title, "图片文字：OCR截屏 识别文字： 附件: raw-card.png")
+    }
+
     func testWidgetSnapshotStoreRoundTripsToSharedFile() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("some-widget-\(UUID().uuidString)", isDirectory: true)

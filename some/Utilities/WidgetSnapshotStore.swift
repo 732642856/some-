@@ -62,10 +62,7 @@ enum WidgetSnapshotStore {
     }
 
     private static func displayTitle(for text: String) -> String {
-        let withoutAttachments = text
-            .components(separatedBy: .newlines)
-            .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("[附件:") }
-            .joined(separator: " ")
+        let withoutAttachments = SharedAttachmentStore.displayTextWithoutAttachmentReferences(text)
         let withoutMarkdownLinks = withoutAttachments.replacingOccurrences(
             of: #"\[([^\]]+)\]\([^)]+\)"#,
             with: "$1",

@@ -1148,3 +1148,9 @@
 - 进入并完成阶段 136：阅读附件卡渲染保留 OCR 原文。继续扫描 `MarkdownMemoBlockParser` 后发现附件卡分支也逐行调用 `SharedAttachmentStore.attachments(in:)`，会丢失 OCR 块上下文，把 OCR 原文里的 `[附件:]` 渲染成附件卡。
 - 新增 `testMarkdownMemoBlockParserKeepsAttachmentsInsideRecognizedTextBodyAsLines`，覆盖 OCR 正文里的附件 Markdown 保持普通行，正文外真实附件引用仍渲染为附件卡。
 - `MarkdownMemoBlockParser.blocks(in:)` 在附件卡分支也复用识别文字正文行索引，只在 OCR 正文外尝试生成 attachment block。
+
+## 2026-06-25T01:43:00+08:00
+
+- 进入并完成阶段 137：小组件标题保留 OCR 原文附件行。继续扫描 Widget 快照链路时发现 `WidgetSnapshotStore.displayTitle` 仍自己逐行过滤 `[附件:]`，没有复用阶段 135 的整段 OCR 正文判断，可能让桌面小组件标题隐藏截图原文里的附件 Markdown。
+- 新增 `testWidgetSnapshotTitleKeepsAttachmentsInsideRecognizedTextBody`，覆盖 OCR 正文里的同形附件 Markdown 会作为标题文本保留，正文外真实附件引用仍不进入小组件标题。
+- `WidgetSnapshotStore.displayTitle` 改为先调用 `SharedAttachmentStore.displayTextWithoutAttachmentReferences`，继续沿用原来的 Markdown 链接转纯文本和 42 字截断逻辑。

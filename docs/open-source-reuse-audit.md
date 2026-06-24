@@ -295,6 +295,8 @@ P3 只参考：
 
 2026-06-25 本轮实现决策：阶段 136 修复 Markdown 附件卡渲染与 OCR 原文混排边界前，沿用阶段 134 的 Markdown 渲染器检索结论：没有可直接复制进当前 SwiftUI 轻量块级渲染器、并能理解 some OCR 正文边界的小型 Swift/MIT 模块。本轮继续复用 `MarkdownMemoBlockParser`，在附件卡分支补 OCR 正文行过滤。
 
+2026-06-25 本轮实现决策：阶段 137 修复小组件标题隐藏 OCR 原文附件行前，检索 `Swift MarkdownUI GitHub MIT swift-markdown-ui`、`GitHub Swift WidgetKit notes app open source widget title markdown`、`GitHub Swift iOS widget notes attachment markdown title parser OCR MIT`、`Swift WidgetKit notes snapshot attachment markdown title GitHub MIT` 和 `Swift notes app widget title strip attachment markdown open source MIT`。`gonzalezreal/swift-markdown-ui` 是 MIT 且适合完整 SwiftUI Markdown 渲染，WidgetExamples / WidgetKit 示例适合参考小组件结构；但这些库不理解 some 的 `识别文字：` OCR 正文边界，也不能直接决定哪些 `[附件:]` 行是截图原文、哪些是真实附件引用。本轮不复制第三方源码，复用项目内 `SharedAttachmentStore.displayTextWithoutAttachmentReferences`。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：
