@@ -962,8 +962,9 @@ private struct WorkLogView: View {
     private static let defaultCustomReportTemplate = """
     {{标题}}
 
+    记录：{{日志数}} 条
     项目：{{项目}}
-    日期：{{日期}}
+    日期：{{日期范围}}
 
     已完成：
     {{进展列表}}
@@ -973,6 +974,9 @@ private struct WorkLogView: View {
 
     下一步：
     {{下一步列表}}
+
+    来源：
+    {{来源列表}}
     """
 
     private var workLogAssets: [MemoAsset] {

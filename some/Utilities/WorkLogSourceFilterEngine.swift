@@ -362,7 +362,13 @@ enum WorkLogExporter {
         let sourceTemplate = template.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? defaultCustomReportTemplate
             : template
-        return renderCustomReportTemplate(sourceTemplate, title: title, fieldValues: fieldValues)
+        let sortedRecords = sortedCustomReportRecords(records)
+        return renderCustomReportTemplate(
+            sourceTemplate,
+            title: title,
+            records: sortedRecords,
+            fieldValues: fieldValues
+        )
     }
 
     private static func emptyReportDraft(style: ReportDraftStyle) -> String {
@@ -409,8 +415,9 @@ enum WorkLogExporter {
     private static let defaultCustomReportTemplate = """
     {{标题}}
 
+    记录：{{日志数}} 条
     项目：{{项目}}
-    日期：{{日期}}
+    日期：{{日期范围}}
 
     已完成：
     {{进展列表}}
@@ -420,22 +427,29 @@ enum WorkLogExporter {
 
     下一步：
     {{下一步列表}}
+
+    来源：
+    {{来源列表}}
     """
 
     private static func renderCustomReportTemplate(
         _ template: String,
         title: String,
+        records: [(memo: Memo, asset: MemoAsset)],
         fieldValues: [[String: String]]
     ) -> String {
         var rendered = template.replacingOccurrences(of: "{{标题}}", with: title)
-        let placeholders = customReportPlaceholders(from: fieldValues)
+        let placeholders = customReportPlaceholders(from: fieldValues, records: records)
         placeholders.forEach { placeholder, value in
             rendered = rendered.replacingOccurrences(of: "{{\(placeholder)}}", with: value)
         }
         return rendered.hasSuffix("\n") ? rendered : "\(rendered)\n"
     }
 
-    private static func customReportPlaceholders(from fieldValues: [[String: String]]) -> [String: String] {
+    private static func customReportPlaceholders(
+        from fieldValues: [[String: String]],
+        records: [(memo: Memo, asset: MemoAsset)]
+    ) -> [String: String] {
         var placeholders: [String: String] = [:]
         let scalarKeys = ["范围", "项目", "日期", "模板", "进展", "问题", "风险", "下一步", "备注"]
 
@@ -453,7 +467,46 @@ enum WorkLogExporter {
         placeholders["风险/问题列表"] = numberedList(riskValues)
         placeholders["风险/问题"] = riskValues.joined(separator: "；")
 
+        let sourceTitles = uniqueValues(records.map { headingTitle($0.asset.title) })
+        let createdTimes = uniqueValues(records.map { DateFormatters.export.string(from: $0.memo.createdAt) })
+        let projectValues = values(for: ["项目"], from: fieldValues)
+        let nextStepValues = values(for: ["下一步"], from: fieldValues)
+        let dateValues = values(for: ["日期"], from: fieldValues)
+
+        placeholders["日志数"] = "\(records.count)"
+        placeholders["记录数"] = "\(records.count)"
+        placeholders["来源数"] = "\(sourceTitles.count)"
+        placeholders["项目数"] = "\(projectValues.count)"
+        placeholders["风险数"] = "\(riskValues.count)"
+        placeholders["问题数"] = "\(riskValues.count)"
+        placeholders["风险/问题数"] = "\(riskValues.count)"
+        placeholders["下一步数"] = "\(nextStepValues.count)"
+        placeholders["来源"] = sourceTitles.joined(separator: "；")
+        placeholders["来源列表"] = numberedList(sourceTitles)
+        placeholders["创建时间"] = createdTimes.joined(separator: "；")
+        placeholders["创建时间列表"] = numberedList(createdTimes)
+        placeholders["日期范围"] = dateValues.joined(separator: "；")
+
         return placeholders
+    }
+
+    private static func sortedCustomReportRecords(
+        _ records: [(memo: Memo, asset: MemoAsset)]
+    ) -> [(memo: Memo, asset: MemoAsset)] {
+        records.sorted { lhs, rhs in
+            let lhsFields = fields(in: lhs.asset.summary, fallbackText: lhs.memo.text)
+            let rhsFields = fields(in: rhs.asset.summary, fallbackText: rhs.memo.text)
+            if sortReportDraftFields(lhsFields, rhsFields) {
+                return true
+            }
+            if sortReportDraftFields(rhsFields, lhsFields) {
+                return false
+            }
+            if lhs.asset.createdAt == rhs.asset.createdAt {
+                return lhs.asset.title < rhs.asset.title
+            }
+            return lhs.asset.createdAt > rhs.asset.createdAt
+        }
     }
 
     private static func workLogRecords(

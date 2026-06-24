@@ -972,3 +972,10 @@
 - 开工前检索 SwiftUI 附件预览媒体摘要缓存、AVAsset/ImageIO metadata cache 候选；未找到适合直接复制进当前本地附件 UI 的小型模块，本轮继续复用项目内 `MediaMetadataExtractor.cachedSummary` / `preheatSummaries`。
 - 新增 `testAttachmentPreviewDetailTextUsesCachedMediaSummaryOnly`，覆盖冷缓存时附件行只显示类型和文件大小，不主动解析图片尺寸；预热后才显示尺寸摘要。
 - `AttachmentPreviewList` 改为只读 cached summary，并在出现或附件签名变化时后台预热图片/视频/音频摘要，预热成功后用本地版本号刷新附件行。
+
+## 2026-06-24T23:55:00+08:00
+
+- 进入并完成阶段 112：工作日志自定义模板元信息占位符。阶段 111 推送后继续处理工作区遗留碎片，确认 `WorkLogExporter.customReportDraft` 已有自定义模板但缺少日志总数、项目数、风险数、来源列表、创建时间列表和日期范围等真实汇报常用元信息。
+- 开工前检索 Swift/Mustache 模板引擎和工作日志模板候选；GRMustache.swift 与 swift-mustache 都是完整模板引擎，当前需求只需受控占位符替换和未知占位符保留，因此不新增依赖。
+- 新增 `testWorkLogExporterCustomTemplateIncludesSummaryMetricsAndSources`，覆盖 `{{日志数}}`、`{{项目数}}`、`{{风险数}}`、`{{下一步数}}`、`{{来源列表}}`、`{{创建时间列表}}` 和 `{{日期范围}}`。
+- 默认自定义模板同步展示记录数、日期范围和来源列表；README、任务计划、发现、开源审计和验证记录同步到工作日志 v11。

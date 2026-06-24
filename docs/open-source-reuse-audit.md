@@ -245,6 +245,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 111 继续处理详情附件区/Markdown 附件卡同步读取媒体元数据前，检索 `SwiftUI attachment preview media metadata cache AVAsset ImageIO GitHub MIT`、`iOS local media metadata cache SwiftUI attachment preview GitHub MIT` 和 `Swift AVAsset ImageIO metadata cache NSCache SwiftUI GitHub MIT`。检索结果没有发现适合直接复制进 some 本地附件 UI 的轻量 Swift 模块；Kingfisher/Nuke 等通用库仍偏图片加载，不能覆盖音频/视频时长和 some 的 App Group 附件引用。本轮不新增依赖，复用 `MediaMetadataExtractor.cachedSummary` 与后台 `preheatSummaries`，让附件行先显示文件大小，预热后刷新时长/分辨率摘要。
 
+2026-06-24 本轮实现决策：阶段 112 继续扩展工作日志自定义模板前，检索 `Swift string template placeholder engine custom report MIT GitHub Mustache`、`Swift work log report template placeholders GitHub MIT` 和 `Swift Mustache template engine GitHub MIT`。`groue/GRMustache.swift` 为 MIT，支持完整 Mustache 语法，当前 README 标注需要 Xcode 16+/Swift 6；`hummingbird-project/swift-mustache` 为 Apache-2.0，面向通用 Mustache 渲染。some 当前只需要本机工作日志的受控字段替换、计数和编号列表，并且希望未知占位符原样保留以提示拼写错误；直接引入完整模板引擎会扩大依赖和模板语义。本轮继续复用 `WorkLogExporter` 的轻量替换器，只新增日志数、项目数、风险数、下一步数、来源列表、创建时间列表和日期范围等确定性占位符。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

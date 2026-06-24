@@ -1731,6 +1731,70 @@ final class SomeTests: XCTestCase {
         )
     }
 
+    func testWorkLogExporterCustomTemplateIncludesSummaryMetricsAndSources() {
+        let olderDate = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+        let newerDate = DateFormatters.wardrobeDay.date(from: "2026-06-24")!
+        let olderLog = Memo(
+            text: """
+            工作日志：日报
+            范围：今日
+            项目：some
+            日期：2026-06-23
+            模板：日报
+            进展：完成导出菜单
+            问题：等待 CI
+            下一步：观察远端复验
+            """,
+            createdAt: olderDate,
+            updatedAt: olderDate
+        )
+        let newerLog = Memo(
+            text: """
+            工作日志：项目汇报
+            范围：项目
+            项目：some
+            日期：2026-06-24
+            模板：项目汇报
+            进展：补齐团队模板字段
+            风险：真实格式样本不足
+            下一步：补充模板说明
+            """,
+            createdAt: newerDate,
+            updatedAt: newerDate
+        )
+        let template = """
+        {{标题}}
+        记录={{日志数}} 项目={{项目数}} 风险={{风险数}} 下一步={{下一步数}}
+        来源:
+        {{来源列表}}
+        创建时间:
+        {{创建时间列表}}
+        范围={{日期范围}}
+        """
+
+        let draft = WorkLogExporter.customReportDraft(
+            memos: [olderLog, newerLog],
+            template: template,
+            title: "团队模板"
+        )
+
+        XCTAssertEqual(
+            draft,
+            """
+            团队模板
+            记录=2 项目=1 风险=2 下一步=2
+            来源:
+            1. 项目汇报
+            2. 日报
+            创建时间:
+            1. \(DateFormatters.export.string(from: newerDate))
+            2. \(DateFormatters.export.string(from: olderDate))
+            范围=2026-06-24；2026-06-23
+
+            """
+        )
+    }
+
     func testSearchCanExcludeContentTypes() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "资料带链接 https://example.com/a")
