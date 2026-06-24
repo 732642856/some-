@@ -2133,6 +2133,67 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(bodyLine.text, "正文")
     }
 
+    func testMarkdownMemoBlockParserGroupsTables() {
+        let text = """
+        | 项目 | 状态 |
+        | --- | :---: |
+        | OCR | 完成 |
+        | Markdown | 进行中 |
+        后续
+        """
+
+        let blocks = MarkdownMemoBlockParser.blocks(in: text)
+
+        XCTAssertEqual(blocks.count, 2)
+
+        guard case .table(let table) = blocks[0] else {
+            return XCTFail("Expected table block")
+        }
+        XCTAssertEqual(table.startLineIndex, 0)
+        XCTAssertEqual(table.endLineIndex, 3)
+        XCTAssertEqual(table.headers, ["项目", "状态"])
+        XCTAssertEqual(table.rows, [["OCR", "完成"], ["Markdown", "进行中"]])
+
+        guard case .line(let bodyLine) = blocks[1] else {
+            return XCTFail("Expected body line")
+        }
+        XCTAssertEqual(bodyLine.lineIndex, 4)
+        XCTAssertEqual(bodyLine.text, "后续")
+    }
+
+    func testMarkdownMemoBlockParserKeepsPipeTextWithoutTableSeparatorAsLines() {
+        let text = """
+        A | B
+        C | D
+        """
+
+        let blocks = MarkdownMemoBlockParser.blocks(in: text)
+
+        XCTAssertEqual(blocks.count, 2)
+        guard case .line(let firstLine) = blocks[0],
+              case .line(let secondLine) = blocks[1] else {
+            return XCTFail("Expected plain lines")
+        }
+        XCTAssertEqual(firstLine.text, "A | B")
+        XCTAssertEqual(secondLine.text, "C | D")
+    }
+
+    func testMarkdownMemoBlockParserExtractsDividers() {
+        let text = """
+        前文
+        ---
+        后文
+        """
+
+        let blocks = MarkdownMemoBlockParser.blocks(in: text)
+
+        XCTAssertEqual(blocks.count, 3)
+        guard case .divider(let divider) = blocks[1] else {
+            return XCTFail("Expected divider")
+        }
+        XCTAssertEqual(divider.lineIndex, 1)
+    }
+
     func testStoreToggleTaskUpdatesMemoTextAndTags() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "- [ ] 跟进 #产品\n普通行")

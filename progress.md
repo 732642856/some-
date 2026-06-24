@@ -839,3 +839,10 @@
 - 开工前检索 Swift Vision OCR layout / boundingBox / document layout analysis 候选，未找到可直接复制进当前 SwiftUI 本地 memo/OCR/素材索引的轻量 MIT 模块；本轮复用 Apple Vision 行框信息。
 - 先写 `testImageTextRecognizerBuildsMemoTextWithLayoutSections` 和 `testImageTextRecognizerKeepsOldMemoFormatWithoutLayoutRegions`，锁定有行框位置时输出“版面分区：左栏/右栏/顶部/中部/底部”，无位置数据时继续保持旧 OCR memo 格式。
 - `ImageTextRecognizer.RecognizedLine` 新增可选 `region`，Vision OCR 结果从 `VNRecognizedTextObservation.boundingBox` 转成项目已有 `ImageTextRegion`；带置信度的 `memoText` 会在“识别文字”前保存轻量版面分区摘要，不污染后续 OCR fragment、待校对清单或 `has:ocr` 搜索解析。
+
+## 2026-06-24T16:05:00+08:00
+
+- 进入并完成阶段 93：Markdown 表格与分隔线阅读渲染。阶段 92 已在 `origin/master`，GitHub API 匿名限流，远端 CI 暂时只能等待限流恢复后复查。
+- 开工前检索 MarkdownUI / swift-markdown / SwiftUI Markdown table renderer / 附件卡片候选；完整引擎仍保留为后续候选，但本轮为了不影响任务勾选行号、引用折叠和附件解析，继续扩展项目内轻量块级解析器。
+- 新增 `testMarkdownMemoBlockParserGroupsTables`、`testMarkdownMemoBlockParserKeepsPipeTextWithoutTableSeparatorAsLines` 和 `testMarkdownMemoBlockParserExtractsDividers`，覆盖 GFM 风格表头/分隔/数据行、普通管道文本不误判，以及 `---` 分隔线。
+- `MarkdownMemoBlockParser` 新增 table/divider block，代码块内表格符号仍保持代码；`MarkdownMemoTextView` 用横向滚动、稳定单元格宽度、表头底色和边框渲染表格，用现有边框色渲染分隔线。

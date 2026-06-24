@@ -40,6 +40,10 @@ struct MarkdownMemoTextView: View {
             headingBlock(heading)
         case .quote(let quote):
             quoteBlock(quote)
+        case .table(let table):
+            tableBlock(table)
+        case .divider:
+            dividerBlock()
         }
     }
 
@@ -144,6 +148,44 @@ struct MarkdownMemoTextView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
+    private func tableBlock(_ table: MarkdownMemoTableBlock) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
+                tableRow(table.headers, isHeader: true)
+                ForEach(Array(table.rows.enumerated()), id: \.offset) { _, row in
+                    tableRow(row, isHeader: false)
+                }
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(Color.border, lineWidth: 1)
+            )
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func tableRow(_ cells: [String], isHeader: Bool) -> some View {
+        HStack(alignment: .top, spacing: 0) {
+            ForEach(Array(cells.enumerated()), id: \.offset) { _, cell in
+                renderedText(cell.isEmpty ? " " : cell)
+                    .font(.system(size: 14, weight: isHeader ? .semibold : .regular))
+                    .foregroundStyle(isHeader ? Color.primaryText : Color.secondaryText)
+                    .lineSpacing(3)
+                    .frame(minWidth: 96, alignment: .leading)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .background(isHeader ? Color.subtleSurface : Color.clear)
+            }
+        }
+    }
+
+    private func dividerBlock() -> some View {
+        Rectangle()
+            .fill(Color.border)
+            .frame(height: 1)
+            .padding(.vertical, 6)
+    }
+
     private func headingFontSize(for level: Int) -> CGFloat {
         switch level {
         case 1: return 22
@@ -191,6 +233,9 @@ enum MarkdownMemoBlockParser {
                         )
                     )
                 )
+            } else if let table = tableBlock(in: lines, startIndex: index) {
+                blocks.append(.table(table))
+                index = table.endLineIndex + 1
             } else if let heading = headingBlock(in: line, lineIndex: index) {
                 blocks.append(.heading(heading))
                 index += 1
@@ -212,6 +257,9 @@ enum MarkdownMemoBlockParser {
                         )
                     )
                 )
+            } else if isDividerLine(line) {
+                blocks.append(.divider(MarkdownMemoDividerBlock(lineIndex: index)))
+                index += 1
             } else {
                 blocks.append(
                     .line(
@@ -242,6 +290,85 @@ enum MarkdownMemoBlockParser {
 
     private static func isFenceLine(_ line: String) -> Bool {
         line.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("```")
+    }
+
+    private static func tableBlock(in lines: [String], startIndex: Int) -> MarkdownMemoTableBlock? {
+        guard startIndex + 2 < lines.count,
+              let headers = tableCells(in: lines[startIndex]),
+              isTableSeparatorLine(lines[startIndex + 1])
+        else {
+            return nil
+        }
+
+        var rows: [[String]] = []
+        var index = startIndex + 2
+        while index < lines.count, let cells = tableCells(in: lines[index]) {
+            rows.append(padded(cells, count: headers.count))
+            index += 1
+        }
+
+        guard !rows.isEmpty else {
+            return nil
+        }
+
+        return MarkdownMemoTableBlock(
+            startLineIndex: startIndex,
+            endLineIndex: index - 1,
+            headers: headers,
+            rows: rows
+        )
+    }
+
+    private static func tableCells(in line: String) -> [String]? {
+        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.contains("|") else {
+            return nil
+        }
+
+        let rawCells = trimmed
+            .trimmingCharacters(in: CharacterSet(charactersIn: "|"))
+            .split(separator: "|", omittingEmptySubsequences: false)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        return rawCells.count >= 2 ? rawCells : nil
+    }
+
+    private static func isTableSeparatorLine(_ line: String) -> Bool {
+        guard let cells = tableCells(in: line) else {
+            return false
+        }
+
+        return cells.allSatisfy { cell in
+            let normalized = cell.replacingOccurrences(of: " ", with: "")
+            let stripped = normalized.trimmingCharacters(in: CharacterSet(charactersIn: ":"))
+            return stripped.count >= 3 && stripped.allSatisfy { $0 == "-" }
+        }
+    }
+
+    private static func padded(_ cells: [String], count: Int) -> [String] {
+        if cells.count >= count {
+            return Array(cells.prefix(count))
+        }
+
+        return cells + Array(repeating: "", count: count - cells.count)
+    }
+
+    private static func isDividerLine(_ line: String) -> Bool {
+        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 3 else {
+            return false
+        }
+
+        let compact = trimmed.replacingOccurrences(of: " ", with: "")
+        guard compact.count >= 3 else {
+            return false
+        }
+
+        let markers: Set<Character> = ["-", "*", "_"]
+        guard let first = compact.first, markers.contains(first) else {
+            return false
+        }
+
+        return compact.allSatisfy { $0 == first }
     }
 
     private static func headingBlock(in line: String, lineIndex: Int) -> MarkdownMemoHeadingBlock? {
@@ -279,6 +406,8 @@ enum MarkdownMemoBlock: Identifiable, Equatable {
     case code(MarkdownMemoCodeBlock)
     case heading(MarkdownMemoHeadingBlock)
     case quote(MarkdownMemoQuoteBlock)
+    case table(MarkdownMemoTableBlock)
+    case divider(MarkdownMemoDividerBlock)
 
     var id: String {
         switch self {
@@ -290,6 +419,10 @@ enum MarkdownMemoBlock: Identifiable, Equatable {
             return "heading-\(heading.lineIndex)"
         case .quote(let quote):
             return "quote-\(quote.startLineIndex)-\(quote.endLineIndex)"
+        case .table(let table):
+            return "table-\(table.startLineIndex)-\(table.endLineIndex)"
+        case .divider(let divider):
+            return "divider-\(divider.lineIndex)"
         }
     }
 }
@@ -311,6 +444,17 @@ struct MarkdownMemoQuoteBlock: Equatable {
     let startLineIndex: Int
     let endLineIndex: Int
     let text: String
+}
+
+struct MarkdownMemoTableBlock: Equatable {
+    let startLineIndex: Int
+    let endLineIndex: Int
+    let headers: [String]
+    let rows: [[String]]
+}
+
+struct MarkdownMemoDividerBlock: Equatable {
+    let lineIndex: Int
 }
 
 struct MarkdownMemoRenderLine: Identifiable, Equatable {

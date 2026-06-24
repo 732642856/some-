@@ -206,6 +206,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 92 继续补 OCR 版面分区摘要前，检索 `Swift Vision OCR text blocks layout segmentation GitHub MIT`、`VNRecognizedTextObservation boundingBox reading order Swift MIT`、`iOS OCR layout analysis Swift Vision GitHub MIT` 和 `Swift OCR document layout analysis Vision license MIT`，未找到可直接复制进 some 当前本地 memo/OCR/素材索引架构的轻量 MIT 模块。Apple Vision 已在 `VNRecognizedTextObservation.boundingBox` 提供文字行框位置，本轮不引入第三方 OCR 引擎或文档分析依赖，只把行框转换为已有 `ImageTextRegion`，保存左/右栏与顶部/中部/底部行数摘要；后续表格、表单字段和阅读顺序校正再单独评估。
 
+2026-06-24 本轮实现决策：阶段 93 继续补 Markdown 表格和分隔线前，检索 `SwiftUI Markdown table renderer MIT GitHub`、`MarkdownUI SwiftUI tables GitHub MIT`、`swift-markdown table support GitHub Apache 2.0` 和 `SwiftUI Markdown attachment card renderer MIT`。`MarkdownUI` / `swift-markdown` 仍适合未来完整 Markdown 引擎，但本轮需求只覆盖 memo 阅读里最常见的 pipe table 与 horizontal rule，直接复用项目内 `MarkdownMemoBlockParser` 能保留任务勾选行号、代码块隔离和引用解析边界，不新增第三方依赖；附件卡片后续优先复用本项目 `AttachmentPreviewList`。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：
