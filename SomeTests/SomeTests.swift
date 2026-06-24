@@ -1901,6 +1901,37 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(stats.last?.count, 1)
     }
 
+    func testReviewSummaryCountsTodayStreakAndReviewBacklog() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let today = Date(timeIntervalSince1970: 1_767_225_600) // 2026-01-01 00:00 UTC
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
+        let twoDaysAgo = calendar.date(byAdding: .day, value: -2, to: today)!
+        let oldReviewable = calendar.date(byAdding: .day, value: -14, to: today)!
+        let archivedOld = calendar.date(byAdding: .day, value: -30, to: today)!
+        let memos = [
+            Memo(text: "今天第一条 #日记", createdAt: today.addingTimeInterval(3600)),
+            Memo(text: "今天第二条 #工作", createdAt: today.addingTimeInterval(7200)),
+            Memo(text: "昨天也写了", createdAt: yesterday),
+            Memo(text: "前天也写了", createdAt: twoDaysAgo),
+            Memo(text: "两周前可回顾", createdAt: oldReviewable),
+            Memo(text: "归档不计入", createdAt: archivedOld, isArchived: true)
+        ]
+
+        let summary = MemoStore.reviewSummary(
+            for: memos,
+            today: today,
+            calendar: calendar,
+            reviewAgeDays: 7
+        )
+
+        XCTAssertEqual(summary.todayCount, 2)
+        XCTAssertEqual(summary.currentStreakDays, 3)
+        XCTAssertEqual(summary.reviewableCount, 1)
+        XCTAssertEqual(summary.activeCount, 5)
+        XCTAssertEqual(summary.prompt, "今天已记录 2 条，连续 3 天。还有 1 条旧记录适合回顾。")
+    }
+
     func testCosineSimilarityRanksIdenticalVectorsHighest() {
         let same = SemanticSearchEngine.cosineSimilarity([1, 0, 1], [1, 0, 1])
         let different = SemanticSearchEngine.cosineSimilarity([1, 0, 1], [0, 1, 0])

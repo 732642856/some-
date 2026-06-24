@@ -267,6 +267,10 @@ final class MemoStore: ObservableObject {
         activeMemos.filter { Calendar.current.isDateInToday($0.createdAt) }.count
     }
 
+    var reviewSummary: MemoReviewSummary {
+        Self.reviewSummary(for: activeMemos)
+    }
+
     @discardableResult
     func addMemo(text: String) -> Memo? {
         guard storageError == nil else {
@@ -1067,6 +1071,41 @@ final class MemoStore: ObservableObject {
             guard let date = calendar.date(byAdding: .day, value: offset, to: start) else { return nil }
             return DailyMemoStat(date: date, count: grouped[date]?.count ?? 0)
         }
+    }
+
+    static func reviewSummary(
+        for memos: [Memo],
+        today: Date = Date(),
+        calendar: Calendar = .current,
+        reviewAgeDays: Int = 7
+    ) -> MemoReviewSummary {
+        let activeMemos = memos.filter { !$0.isArchived }
+        let todayStart = calendar.startOfDay(for: today)
+        let grouped = Dictionary(grouping: activeMemos) { memo in
+            calendar.startOfDay(for: memo.createdAt)
+        }
+        let todayCount = grouped[todayStart]?.count ?? 0
+        let cutoff = calendar.date(byAdding: .day, value: -reviewAgeDays, to: todayStart) ?? todayStart
+        let reviewableCount = activeMemos.filter { memo in
+            calendar.startOfDay(for: memo.createdAt) <= cutoff
+        }.count
+
+        var streak = 0
+        var cursor = todayStart
+        while grouped[cursor]?.isEmpty == false {
+            streak += 1
+            guard let previousDay = calendar.date(byAdding: .day, value: -1, to: cursor) else {
+                break
+            }
+            cursor = previousDay
+        }
+
+        return MemoReviewSummary(
+            todayCount: todayCount,
+            currentStreakDays: streak,
+            reviewableCount: reviewableCount,
+            activeCount: activeMemos.count
+        )
     }
 
     func exportMarkdown() -> String {

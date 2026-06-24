@@ -79,6 +79,24 @@ struct DailyMemoStat: Identifiable, Equatable {
     var id: Date { date }
 }
 
+struct MemoReviewSummary: Equatable {
+    let todayCount: Int
+    let currentStreakDays: Int
+    let reviewableCount: Int
+    let activeCount: Int
+
+    var prompt: String {
+        if activeCount == 0 {
+            return "先写下第一条，明天就会有内容可以回看。"
+        }
+
+        let todayPart = todayCount > 0 ? "今天已记录 \(todayCount) 条" : "今天还没记录"
+        let streakPart = currentStreakDays > 0 ? "连续 \(currentStreakDays) 天" : "连续记录从今天开始"
+        let reviewPart = reviewableCount > 0 ? "还有 \(reviewableCount) 条旧记录适合回顾" : "暂时没有 7 天前的旧记录"
+        return "\(todayPart)，\(streakPart)。\(reviewPart)。"
+    }
+}
+
 struct ScrapbookPageLayout: Codable, Equatable {
     static let marker = "手帐图层JSON："
 

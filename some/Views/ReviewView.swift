@@ -5,6 +5,8 @@ struct ReviewView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            ReviewSummaryPanel(summary: store.reviewSummary)
+
             if !store.onThisDayMemos.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
                     SectionTitle(title: "历史今天", systemImage: "calendar.badge.clock")
@@ -79,6 +81,54 @@ struct ReviewView: View {
                 }
             }
         }
+    }
+}
+
+private struct ReviewSummaryPanel: View {
+    let summary: MemoReviewSummary
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionTitle(title: "今日回顾", systemImage: "sparkles")
+
+            HStack(spacing: 10) {
+                ReviewMetric(title: "今日", value: "\(summary.todayCount)")
+                ReviewMetric(title: "连续", value: "\(summary.currentStreakDays)")
+                ReviewMetric(title: "可回顾", value: "\(summary.reviewableCount)")
+            }
+
+            Text(summary.prompt)
+                .font(.footnote)
+                .foregroundStyle(Color.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .background(Color.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.border, lineWidth: 1)
+        )
+    }
+}
+
+private struct ReviewMetric: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(value)
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .foregroundStyle(Color.primaryText)
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(Color.secondaryText)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Color.subtleSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
 

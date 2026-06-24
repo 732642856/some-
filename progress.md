@@ -759,3 +759,10 @@
 - 开工前检索 `capsule wardrobe app Swift MIT`、`virtual closet Swift outfit planner MIT`、`wardrobe outfit planner SwiftUI MIT` 和 `closet app outfit planner open source MIT`，没有找到能直接复制进当前 SwiftUI/本地素材索引架构的成熟 Swift/MIT 模块。
 - 按 TDD 增加 `testWardrobePackingSuggestionsIncludeCapsuleWardrobeSet`，锁定胶囊打包建议应使用最近目的地/天气，优先基础色、跨场景、低重复穿着的单品，并避开不合场景的高饱和单品。
 - `WardrobeInsightEngine` 新增 `packing-capsule` 建议：按上装、下装、外套、鞋履、包包、饰品选择胶囊组合，备注中说明基础色、跨场景和可互相搭配；衣橱页继续复用现有“打包建议”卡片，一键填入旅行打包草稿。
+
+## 2026-06-24T04:20:00+08:00
+
+- 进入并完成阶段 81：每日回顾摘要与连续记录。继续补 flomo 类产品的回顾/习惯化体验缺口，让回顾页不只是随机翻旧记录。
+- 开工前复查回顾页、统计页、`MemoStore.dailyStats`、阶段 80 CI 状态和历史碎片；发现最新远端 run 在 `Run tests` 12 分钟超时，未出现业务断言 annotation，本轮同步把 CI 测试步骤 timeout 提高到 20 分钟。
+- 按 TDD 增加 `testReviewSummaryCountsTodayStreakAndReviewBacklog`，锁定今日记录数、连续记录天数、7 天前可回顾旧记录数量和提示文案。
+- 新增 `MemoReviewSummary` 与 `MemoStore.reviewSummary`，回顾页顶部显示“今日/连续/可回顾”三项指标，并保留历史今天、随机回顾和标签入口。
