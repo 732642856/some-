@@ -2594,6 +2594,28 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(taskLine.task?.text, "代码后任务")
     }
 
+    func testMarkdownMemoBlockParserIgnoresTasksInsideRecognizedTextBody() {
+        let text = """
+        图片文字：todo.png
+
+        识别文字：
+        - [ ] 截图里的待办
+        - [x] 截图里的已完成
+
+        [附件: todo.png](some-attachment://todo.png)
+        - [ ] 真实待办
+        """
+
+        let blocks = MarkdownMemoBlockParser.blocks(in: text)
+        let taskLines = blocks.compactMap { block -> MarkdownMemoRenderLine? in
+            guard case .line(let line) = block, line.task != nil else { return nil }
+            return line
+        }
+
+        XCTAssertEqual(taskLines.map(\.text), ["- [ ] 真实待办"])
+        XCTAssertEqual(taskLines.map(\.lineIndex), [7])
+    }
+
     func testMarkdownMemoBlockParserKeepsUnclosedFenceAsCodeToEnd() {
         let text = """
         ```json

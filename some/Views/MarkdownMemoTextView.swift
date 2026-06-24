@@ -254,6 +254,7 @@ struct MarkdownMemoTextView: View {
 enum MarkdownMemoBlockParser {
     static func blocks(in text: String) -> [MarkdownMemoBlock] {
         let lines = text.components(separatedBy: "\n")
+        let recognizedTextBodyIndexes = recognizedTextBodyLineIndexes(in: lines)
         var blocks: [MarkdownMemoBlock] = []
         var index = 0
 
@@ -327,7 +328,9 @@ enum MarkdownMemoBlockParser {
                         MarkdownMemoRenderLine(
                             lineIndex: index,
                             text: line,
-                            task: MemoTaskParser.taskItem(in: line, lineIndex: index)
+                            task: recognizedTextBodyIndexes.contains(index)
+                                ? nil
+                                : MemoTaskParser.taskItem(in: line, lineIndex: index)
                         )
                     )
                 )
@@ -351,6 +354,42 @@ enum MarkdownMemoBlockParser {
 
     private static func isFenceLine(_ line: String) -> Bool {
         line.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("```")
+    }
+
+    private static func recognizedTextBodyLineIndexes(in lines: [String]) -> Set<Int> {
+        var indexes = Set<Int>()
+        var isInRecognizedText = false
+        var hasRecognizedContent = false
+
+        for index in lines.indices {
+            let trimmed = lines[index].trimmingCharacters(in: .whitespacesAndNewlines)
+            if isRecognizedTextHeader(trimmed) {
+                isInRecognizedText = true
+                hasRecognizedContent = false
+                continue
+            }
+
+            guard isInRecognizedText else {
+                continue
+            }
+
+            if trimmed.isEmpty {
+                if hasRecognizedContent {
+                    isInRecognizedText = false
+                    hasRecognizedContent = false
+                }
+                continue
+            }
+
+            indexes.insert(index)
+            hasRecognizedContent = true
+        }
+
+        return indexes
+    }
+
+    private static func isRecognizedTextHeader(_ line: String) -> Bool {
+        line == "识别文字：" || line == "识别文字:" || line == "OCR：" || line == "OCR:"
     }
 
     private static func attachmentBlock(in line: String, lineIndex: Int) -> MarkdownMemoAttachmentBlock? {

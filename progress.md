@@ -1129,3 +1129,10 @@
 - 开工前用 GitHub API 检索 attachment reference remapping、backup restore attachment rewrite 和 some-attachment remapping OCR parser 候选，精确查询均为 0；该问题仍是 some 自定义附件引用与 OCR 正文边界。
 - 新增 `testAttachmentStoreDoesNotRemapReferencesInsideRecognizedTextBody`，覆盖 OCR 正文里的旧附件 Markdown 保持原样，空行后的真实附件引用会被 remap 到恢复后的附件。
 - `replacingAttachmentReferences(in:remapping:)` 复用附件解析器的识别文字正文行索引，只替换正文外的附件引用；备份导入和历史恢复继续使用同一入口。
+
+## 2026-06-25T01:05:00+08:00
+
+- 进入并完成阶段 134：阅读任务渲染忽略 OCR 原文。继续扫描显示层时发现 `MarkdownMemoBlockParser.blocks(in:)` 仍用单行 `MemoTaskParser.taskItem` 渲染任务，导致 OCR 原文里的 checklist 可能在详情页显示成可点击任务。
+- 开工前检索 SwiftUI markdown task render OCR notes 和 Swift Markdown block parser task list notes 候选，精确查询均为 0；本轮继续复用项目内 Markdown block parser，只补 OCR 正文行过滤。
+- 新增 `testMarkdownMemoBlockParserIgnoresTasksInsideRecognizedTextBody`，覆盖 OCR 正文里的 checklist 不带 task，空行后的真实任务仍保持可点击任务行和原始行号。
+- `MarkdownMemoBlockParser.blocks(in:)` 新增识别文字正文行索引，非 OCR 正文行仍用 `MemoTaskParser.taskItem(in:lineIndex:)` 生成任务渲染。

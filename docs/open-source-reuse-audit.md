@@ -289,6 +289,8 @@ P3 只参考：
 
 2026-06-25 本轮实现决策：阶段 133 修复附件导入 remap 与 OCR 原文混排边界前，检索 `Swift attachment reference remapping parser notes MIT`、`Swift backup restore attachment reference rewrite MIT` 和 `Swift some-attachment remapping OCR parser`，GitHub API 精确查询均返回 `total=0`。当前缺口来自 some 自定义附件引用在备份导入时被路径重写，通用备份/Markdown 库不能理解当前 OCR 正文边界；本轮继续复用 `SharedAttachmentStore.replacingAttachmentReferences`，只补 OCR 正文行过滤。
 
+2026-06-25 本轮实现决策：阶段 134 修复 Markdown 阅读任务渲染与 OCR 原文混排边界前，检索 `SwiftUI markdown task render OCR notes MIT` 和 `Swift Markdown block parser task list notes MIT`，GitHub API 精确查询均返回 `total=0`。当前缺口是 some 详情页渲染器把 OCR 原文 checklist 升级为可点击任务，不是通用 Markdown task list 解析能力不足；本轮继续复用 `MarkdownMemoBlockParser`，只给任务渲染补 OCR 正文行过滤。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：
