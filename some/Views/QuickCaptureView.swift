@@ -759,7 +759,7 @@ struct QuickCaptureView: View {
             return fallbackNote ?? importNote(for: type)
         }
 
-        let recognizedLines = await ImageTextRecognizer.recognizeText(in: data)
+        let recognizedLines = await ImageTextRecognizer.recognizeTextLines(in: data)
         return ImageTextRecognizer.memoText(for: attachment, recognizedLines: recognizedLines)
             ?? fallbackNote
             ?? importNote(for: type)
@@ -770,7 +770,7 @@ struct QuickCaptureView: View {
         data: Data,
         pageNumber: Int
     ) async -> String {
-        let recognizedLines = await ImageTextRecognizer.recognizeText(in: data)
+        let recognizedLines = await ImageTextRecognizer.recognizeTextLines(in: data)
         return ImageTextRecognizer.memoText(
             for: attachment,
             recognizedLines: recognizedLines,

@@ -793,3 +793,15 @@
 - 开工前检索会议纪要 Markdown 模板和 Swift 工作日志会议纪要候选，GitHub Search 没有可直接复制进当前 Swift 导出器的模块。
 - 新增 `testWorkLogExporterBuildsMeetingMinutesDraft`，锁定会议纪要输出项目/日期、议题/结论、待确认、行动项和备注。
 - `WorkLogExporter.ReportDraftStyle` 新增 `.meetingMinutes`，工作日志导出菜单新增“会议纪要” txt 导出项，复用现有字段抽取和分享文件流程。
+
+## 2026-06-24T13:35:00+08:00
+
+- 进入并完成阶段 86：OCR 置信度保存。开工前检索 Vision OCR confidence Swift/MIT 候选，未找到可直接复制的小模块；Apple Vision 已提供 `VNRecognizedText.confidence`，本轮直接复用系统返回值。
+- 红灯探针确认旧 `ImageTextRecognizer` 没有 `RecognizedLine` 置信度模型；新增 `testImageTextRecognizerBuildsMemoTextWithConfidenceSummary`，锁定去重后平均/最低置信度格式。
+- `ImageTextRecognizer` 新增 `RecognizedLine`、`recognizeTextLines` 和带置信度的 `memoText` 重载；快速导入图片、连续扫描和详情页框选 OCR 都改为保存平均/最低置信度。
+
+## 2026-06-24T13:45:00+08:00
+
+- 进入并完成阶段 87：衣橱长途天气打包增强。开工前检索 travel packing/weather wardrobe Swift/MIT 候选，未找到适配当前本地素材索引的可复制模块。
+- 新增 `testWardrobePackingSuggestionsAddWeatherEssentialsForLongTrips`，覆盖 4 天晴热阵雨旅行应补可替换上装、防水风衣、防水凉鞋、折叠伞和太阳帽。
+- `WardrobeInsightEngine` 新增 `PackingWeatherNeeds`，按高温、阵雨、低温扩展打包选择和备注；阶段 85 最新远端 CI run `28075916766` 已 completed/success。

@@ -110,6 +110,34 @@ struct WardrobeCareReminder: Identifiable, Equatable {
     var loggedAt: Date?
 }
 
+private struct PackingWeatherNeeds {
+    let text: String
+
+    init(weather: String?) {
+        text = (weather ?? "").lowercased()
+    }
+
+    var isHot: Bool {
+        WardrobeInsightEngine.containsAny(text, ["热", "高温", "31", "32", "33", "34", "35", "hot"])
+    }
+
+    var isSunnyOrHot: Bool {
+        isHot || WardrobeInsightEngine.containsAny(text, ["晴", "sun"])
+    }
+
+    var needsRainProtection: Bool {
+        WardrobeInsightEngine.containsAny(text, ["雨", "阵雨", "雷阵雨", "rain", "shower"])
+    }
+
+    var isCold: Bool {
+        WardrobeInsightEngine.containsAny(text, ["冷", "寒", "雪", "低温", "降温", "wind", "snow", "cold"])
+    }
+
+    var needsOuterLayer: Bool {
+        needsRainProtection || isCold || WardrobeInsightEngine.containsAny(text, ["多云", "阴", "cloud"])
+    }
+}
+
 struct WardrobeInsights: Equatable {
     var items: [WardrobeItemInsight]
     var outfits: [WardrobeOutfitInsight]
@@ -529,7 +557,8 @@ enum WardrobeInsightEngine {
         let selectedItems = packingItems(
             from: baseItems.isEmpty ? availableItems : baseItems,
             fallbackItems: availableItems,
-            tripDays: tripDays
+            tripDays: tripDays,
+            weather: weather
         )
         let selectedItemNames = selectedItems.map(\.name)
         if !selectedItemNames.isEmpty {
@@ -817,37 +846,63 @@ enum WardrobeInsightEngine {
     private static func packingItems(
         from preferredItems: [WardrobeItemInsight],
         fallbackItems: [WardrobeItemInsight],
-        tripDays: Int?
+        tripDays: Int?,
+        weather: String?
     ) -> [WardrobeItemInsight] {
         guard let tripDays = tripDays, tripDays > 1 else {
             return categoryBalancedItems(from: preferredItems)
         }
 
         let allCandidates = (preferredItems + fallbackItems).uniquedByName()
+        let weatherNeeds = PackingWeatherNeeds(weather: weather)
         var selected: [WardrobeItemInsight] = []
         var selectedKeys = Set<String>()
 
-        func appendCategory(_ category: String, limit: Int) {
+        func appendCategory(
+            _ category: String,
+            limit: Int,
+            preferred: ((WardrobeItemInsight) -> Bool)? = nil
+        ) {
             guard limit > 0 else { return }
-            for item in allCandidates where item.category == category {
-                guard selectedKeys.insert(wardrobeNormalizedName(item.name)).inserted else { continue }
-                selected.append(item)
+            let candidates = allCandidates.filter { item in
+                item.category == category && (preferred?(item) ?? true)
+            }
+            for item in candidates {
+                appendItem(item)
                 if selected.filter({ $0.category == category }).count >= limit { return }
             }
         }
 
-        appendCategory("上装", limit: min(tripDays, 5))
+        func appendItem(_ item: WardrobeItemInsight) {
+            guard selectedKeys.insert(wardrobeNormalizedName(item.name)).inserted else { return }
+            selected.append(item)
+        }
+
+        let topLimit = min(weatherNeeds.isHot ? tripDays + 1 : tripDays, 5)
+        appendCategory("上装", limit: topLimit)
         appendCategory("连衣裙", limit: selected.contains(where: { $0.category == "上装" }) ? 0 : min(tripDays, 3))
         appendCategory("下装", limit: max(1, Int(ceil(Double(tripDays) / 2.0))))
-        appendCategory("外套", limit: 1)
-        appendCategory("鞋履", limit: 1)
+        appendCategory("外套", limit: weatherNeeds.needsOuterLayer ? 2 : 1)
+        appendCategory("鞋履", limit: weatherNeeds.needsRainProtection ? 2 : 1)
         appendCategory("包包", limit: 1)
         appendCategory("饰品", limit: 2)
 
+        if weatherNeeds.needsRainProtection {
+            appendCategory("饰品", limit: 3, preferred: isRainEssential)
+            appendCategory("鞋履", limit: 2, preferred: isRainEssential)
+            appendCategory("外套", limit: 2, preferred: isRainEssential)
+        }
+        if weatherNeeds.isSunnyOrHot {
+            appendCategory("饰品", limit: 3, preferred: isSunEssential)
+            appendCategory("外套", limit: 2, preferred: isSunEssential)
+        }
+        if weatherNeeds.isCold {
+            appendCategory("外套", limit: 2, preferred: isWarmLayer)
+        }
+
         if selected.count < min(allCandidates.count, 4) {
             for item in categoryBalancedItems(from: allCandidates) {
-                guard selectedKeys.insert(wardrobeNormalizedName(item.name)).inserted else { continue }
-                selected.append(item)
+                appendItem(item)
             }
         }
 
@@ -886,7 +941,7 @@ enum WardrobeInsightEngine {
         return score
     }
 
-    private static func containsAny(_ text: String, _ needles: [String]) -> Bool {
+    fileprivate static func containsAny(_ text: String, _ needles: [String]) -> Bool {
         needles.contains { text.contains($0.lowercased()) }
     }
 
@@ -916,7 +971,17 @@ enum WardrobeInsightEngine {
         }
         if let weather = weather, !weather.isEmpty {
             parts.append("天气参考：\(weather)。")
-            if containsAny(weather.lowercased(), ["热", "高温", "晴", "sun", "hot"]),
+            let weatherNeeds = PackingWeatherNeeds(weather: weather)
+            if weatherNeeds.isHot {
+                parts.append("高温多带可替换上装。")
+            }
+            if weatherNeeds.needsRainProtection {
+                parts.append("阵雨补雨具、防水鞋或轻外套。")
+            }
+            if weatherNeeds.isCold {
+                parts.append("低温补保暖外套。")
+            }
+            if weatherNeeds.isSunnyOrHot,
                items.contains(where: { isLightweight($0) || isBreathable($0) }) {
                 parts.append("优先轻薄、透气材质。")
             }
@@ -941,6 +1006,30 @@ enum WardrobeInsightEngine {
     private static func isBreathable(_ item: WardrobeItemInsight) -> Bool {
         let materialText = item.materials.joined(separator: " ").lowercased()
         return containsAny(materialText, ["棉", "亚麻", "麻", "linen", "cotton", "真丝", "silk"])
+    }
+
+    private static func isRainEssential(_ item: WardrobeItemInsight) -> Bool {
+        let text = wardrobeItemSearchText(item)
+        return containsAny(text, ["雨", "防水", "伞", "雨衣", "rain", "waterproof"])
+            || item.category == "鞋履"
+    }
+
+    private static func isSunEssential(_ item: WardrobeItemInsight) -> Bool {
+        let text = wardrobeItemSearchText(item)
+        return containsAny(text, ["防晒", "遮阳", "太阳", "帽", "sun", "uv"])
+            || (item.category == "外套" && isLightweight(item))
+    }
+
+    private static func isWarmLayer(_ item: WardrobeItemInsight) -> Bool {
+        let text = wardrobeItemSearchText(item)
+        return item.category == "外套"
+            && (containsAny(text, ["羊毛", "羽绒", "抓绒", "保暖", "厚", "warm", "wool", "down"]) || item.seasons.contains("冬"))
+    }
+
+    private static func wardrobeItemSearchText(_ item: WardrobeItemInsight) -> String {
+        ([item.name, item.category, item.thickness ?? ""] + item.colors + item.seasons + item.scenes + item.materials)
+            .joined(separator: " ")
+            .lowercased()
     }
 
     private static func isUnavailableLaundryStatus(_ status: String) -> Bool {

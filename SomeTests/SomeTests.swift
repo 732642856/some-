@@ -3426,6 +3426,39 @@ final class SomeTests: XCTestCase {
         )
     }
 
+    func testImageTextRecognizerBuildsMemoTextWithConfidenceSummary() {
+        let attachment = SharedAttachment(
+            id: "receipt.png",
+            filename: "receipt.png",
+            relativePath: "receipt.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 128
+        )
+
+        let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: [
+                ImageTextRecognizer.RecognizedLine(text: " 合计 128 元 ", confidence: 0.91),
+                ImageTextRecognizer.RecognizedLine(text: "合计 128 元", confidence: 0.2),
+                ImageTextRecognizer.RecognizedLine(text: "谢谢惠顾", confidence: 0.73)
+            ]
+        )
+
+        XCTAssertEqual(
+            text,
+            """
+            图片文字：receipt.png
+            置信度：平均 82% · 最低 73%
+
+            识别文字：
+            合计 128 元
+            谢谢惠顾
+
+            [附件: receipt.png](some-attachment://receipt.png)
+            """
+        )
+    }
+
     func testImageTextRecognizerBuildsMemoTextWithRegion() {
         let attachment = SharedAttachment(
             id: "receipt.png",
@@ -4098,6 +4131,46 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(suggestion?.itemNames.contains("小白鞋") == true)
         XCTAssertTrue(suggestion?.itemNames.contains("帆布包") == true)
         XCTAssertTrue(suggestion?.note?.contains("按 3 天行程") == true)
+    }
+
+    func testWardrobePackingSuggestionsAddWeatherEssentialsForLongTrips() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.addWardrobeItem(name: "亚麻衬衫", category: "上装", colors: ["白"], seasons: ["夏"], scenes: ["旅行"], materials: ["亚麻"], thickness: "轻薄")
+        store.addWardrobeItem(name: "棉T恤", category: "上装", colors: ["灰"], seasons: ["夏"], scenes: ["旅行"], materials: ["棉"], thickness: "轻薄")
+        store.addWardrobeItem(name: "速干短袖", category: "上装", colors: ["蓝"], seasons: ["夏"], scenes: ["旅行"], materials: ["棉"], thickness: "轻薄")
+        store.addWardrobeItem(name: "防晒衫", category: "外套", colors: ["米"], seasons: ["夏"], scenes: ["旅行"], materials: ["棉"], thickness: "轻薄")
+        store.addWardrobeItem(name: "防水风衣", category: "外套", colors: ["灰"], seasons: ["春", "夏"], scenes: ["旅行"], materials: ["防水"], thickness: "轻薄")
+        store.addWardrobeItem(name: "牛仔短裤", category: "下装", colors: ["蓝"], seasons: ["夏"], scenes: ["旅行"])
+        store.addWardrobeItem(name: "半身裙", category: "下装", colors: ["黑"], seasons: ["夏"], scenes: ["旅行"])
+        store.addWardrobeItem(name: "小白鞋", category: "鞋履", colors: ["白"], seasons: ["夏"], scenes: ["旅行"])
+        store.addWardrobeItem(name: "防水凉鞋", category: "鞋履", colors: ["黑"], seasons: ["夏"], scenes: ["旅行"], materials: ["防水"])
+        store.addWardrobeItem(name: "帆布包", category: "包包", colors: ["米"], seasons: ["夏"], scenes: ["旅行"])
+        store.addWardrobeItem(name: "折叠伞", category: "饰品", colors: ["黑"], seasons: ["夏"], scenes: ["旅行"], materials: ["防水"])
+        store.addWardrobeItem(name: "太阳帽", category: "饰品", colors: ["米"], seasons: ["夏"], scenes: ["旅行"])
+        store.addPackingList(
+            title: "四天海边",
+            destination: "厦门",
+            dateRange: "7/1-7/4",
+            tripDays: 4,
+            itemNames: ["亚麻衬衫"],
+            weather: "晴热，午后阵雨 31C"
+        )
+
+        let insights = WardrobeInsightEngine.insights(for: store.assets)
+        let suggestion = insights.packingSuggestions.first { $0.id == "packing-weather" }
+
+        XCTAssertTrue(suggestion?.itemNames.contains("亚麻衬衫") == true)
+        XCTAssertTrue(suggestion?.itemNames.contains("棉T恤") == true)
+        XCTAssertTrue(suggestion?.itemNames.contains("速干短袖") == true)
+        XCTAssertTrue(suggestion?.itemNames.contains("防水风衣") == true)
+        XCTAssertTrue(suggestion?.itemNames.contains("牛仔短裤") == true)
+        XCTAssertTrue(suggestion?.itemNames.contains("半身裙") == true)
+        XCTAssertTrue(suggestion?.itemNames.contains("小白鞋") == true)
+        XCTAssertTrue(suggestion?.itemNames.contains("防水凉鞋") == true)
+        XCTAssertTrue(suggestion?.itemNames.contains("折叠伞") == true)
+        XCTAssertTrue(suggestion?.itemNames.contains("太阳帽") == true)
+        XCTAssertTrue(suggestion?.note?.contains("高温多带可替换上装") == true)
+        XCTAssertTrue(suggestion?.note?.contains("阵雨补雨具、防水鞋或轻外套") == true)
     }
 
     func testWardrobePackingSuggestionsPreferLatestPackingDestinationAndWeather() {

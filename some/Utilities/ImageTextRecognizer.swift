@@ -46,13 +46,27 @@ struct ImageTextRegion: Codable, Equatable {
 }
 
 enum ImageTextRecognizer {
+    struct RecognizedLine: Equatable {
+        let text: String
+        let confidence: Float?
+
+        init(text: String, confidence: Float? = nil) {
+            self.text = text
+            self.confidence = confidence
+        }
+    }
+
     static func recognizeText(in data: Data) async -> [String] {
+        await recognizeTextLines(in: data).map(\.text)
+    }
+
+    static func recognizeTextLines(in data: Data) async -> [RecognizedLine] {
         await Task.detached(priority: .utility) {
             let request = makeRequest()
             let handler = VNImageRequestHandler(data: data, options: [:])
             do {
                 try handler.perform([request])
-                return recognizedLines(from: request)
+                return recognizedTextLines(from: request)
             } catch {
                 return []
             }
@@ -60,13 +74,17 @@ enum ImageTextRecognizer {
     }
 
     static func recognizeText(in data: Data, region: ImageTextRegion) async -> [String] {
+        await recognizeTextLines(in: data, region: region).map(\.text)
+    }
+
+    static func recognizeTextLines(in data: Data, region: ImageTextRegion) async -> [RecognizedLine] {
         guard !region.isFullImage,
               let image = UIImage(data: data),
               let regionData = croppedImageData(from: image, region: region) else {
-            return await recognizeText(in: data)
+            return await recognizeTextLines(in: data)
         }
 
-        return await recognizeText(in: regionData)
+        return await recognizeTextLines(in: regionData)
     }
 
     static func memoText(
@@ -97,6 +115,47 @@ enum ImageTextRecognizer {
         lines.append("")
         lines.append("识别文字：")
         lines.append(contentsOf: cleanedLines)
+
+        if includesAttachmentReference {
+            lines.append("")
+            lines.append(attachment.referenceLine)
+        }
+
+        return lines.joined(separator: "\n")
+    }
+
+    static func memoText(
+        for attachment: SharedAttachment,
+        recognizedLines: [RecognizedLine],
+        region: ImageTextRegion? = nil,
+        includesAttachmentReference: Bool = true,
+        titlePrefix: String = "图片文字",
+        pageNumber: Int? = nil
+    ) -> String? {
+        let cleanedLines = uniqueRecognizedLines(recognizedLines)
+        guard !cleanedLines.isEmpty else {
+            return nil
+        }
+
+        var lines = [
+            "\(titlePrefix)：\(attachment.displayName)"
+        ]
+
+        if let pageNumber = pageNumber {
+            lines.append("扫描页：第 \(pageNumber) 页")
+        }
+
+        if let region = region, !region.isFullImage {
+            lines.append("区域：\(region.summary)")
+        }
+
+        if let confidenceSummary = confidenceSummary(for: cleanedLines) {
+            lines.append("置信度：\(confidenceSummary)")
+        }
+
+        lines.append("")
+        lines.append("识别文字：")
+        lines.append(contentsOf: cleanedLines.map(\.text))
 
         if includesAttachmentReference {
             lines.append("")
@@ -150,13 +209,18 @@ enum ImageTextRecognizer {
         return request
     }
 
-    private static func recognizedLines(from request: VNRecognizeTextRequest) -> [String] {
+    private static func recognizedTextLines(from request: VNRecognizeTextRequest) -> [RecognizedLine] {
         (request.results ?? [])
             .compactMap { observation in
-                observation.topCandidates(1).first?.string
+                observation.topCandidates(1).first
             }
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
+            .map { candidate in
+                RecognizedLine(
+                    text: candidate.string.trimmingCharacters(in: .whitespacesAndNewlines),
+                    confidence: candidate.confidence
+                )
+            }
+            .filter { !$0.text.isEmpty }
     }
 
     private static func uniqueLines(_ lines: [String]) -> [String] {
@@ -168,6 +232,30 @@ enum ImageTextRecognizer {
             }
             return normalized
         }
+    }
+
+    private static func uniqueRecognizedLines(_ lines: [RecognizedLine]) -> [RecognizedLine] {
+        var seen = Set<String>()
+        return lines.compactMap { line in
+            let normalized = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !normalized.isEmpty, seen.insert(normalized).inserted else {
+                return nil
+            }
+            return RecognizedLine(text: normalized, confidence: line.confidence)
+        }
+    }
+
+    private static func confidenceSummary(for lines: [RecognizedLine]) -> String? {
+        let confidences = lines.compactMap(\.confidence)
+        guard !confidences.isEmpty else { return nil }
+        let average = confidences.reduce(0, +) / Float(confidences.count)
+        let minimum = confidences.min() ?? average
+        return "平均 \(percentText(for: average)) · 最低 \(percentText(for: minimum))"
+    }
+
+    private static func percentText(for confidence: Float) -> String {
+        let clamped = min(max(confidence, 0), 1)
+        return "\(Int((clamped * 100).rounded()))%"
     }
 
     private static func croppedImageData(from image: UIImage, region: ImageTextRegion) -> Data? {

@@ -413,7 +413,7 @@ struct MemoDetailView: View {
         imageTextStatusText = "正在识别框选区域..."
 
         Task {
-            let lines = await ImageTextRecognizer.recognizeText(in: data, region: region)
+            let lines = await ImageTextRecognizer.recognizeTextLines(in: data, region: region)
             let appendedText = ImageTextRecognizer.memoText(
                 for: attachment,
                 recognizedLines: lines,
