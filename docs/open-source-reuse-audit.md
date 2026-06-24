@@ -227,6 +227,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 102 继续补图片附件缩略图缓存前，检索 `Swift local image thumbnail cache ImageIO GitHub MIT`、`SwiftUI local file image thumbnail cache GitHub MIT`、`CGImageSourceCreateThumbnailAtIndex Swift cache GitHub MIT`、`Swift image thumbnail generator local file cache MIT`、`Kingfisher Swift GitHub MIT license image cache`、`Nuke Swift GitHub MIT license image loading`、`SDWebImageSwiftUI GitHub license` 和 `AlamofireImage GitHub license`。Kingfisher、Nuke、SDWebImageSwiftUI 和 AlamofireImage 都是成熟远程图片加载/缓存库，但 some 当前只需要对 App Group 本地附件做小尺寸预览，直接引入远程图片依赖会增加体量和缓存策略复杂度。本轮不复制第三方源码，使用 Apple ImageIO 的 `CGImageSourceCreateThumbnailAtIndex` 下采样并缓存到本地 `ImageThumbnailCache`。
 
+2026-06-24 本轮实现决策：阶段 103 继续处理手帐列表预览同步加载原图前，检索 `SwiftUI scrapbook image layer thumbnail cache MIT`、`SwiftUI canvas image thumbnail preview ImageIO MIT`、`Swift local image thumbnail canvas preview cache MIT` 和 `SwiftUI photo collage thumbnail cache local files MIT`，GitHub Search 均返回 0 个可直接复制进当前手帐列表预览的小型 SwiftUI/MIT 模块；同时复检 Kingfisher、Nuke、SDWebImageSwiftUI 等成熟远程图片库，仍不适配本地 App Group 附件缩略图。阶段 102 已落地的 `ImageThumbnailGenerator` 正好覆盖本地附件缩略图缓存，因此本轮直接复用项目内 ImageIO 缓存，不复制第三方远程图片库源码，不改手帐 JSON 或渲染器。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

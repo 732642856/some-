@@ -82,6 +82,18 @@ enum ImageThumbnailGenerator {
         try? fileManager.removeItem(at: url)
     }
 
+    static func previewMaximumPixelSize(
+        width: CGFloat,
+        height: CGFloat,
+        scale: CGFloat,
+        displayScale: CGFloat = 3,
+        minimumPixelSize: CGFloat = 64
+    ) -> CGFloat {
+        let longestSide = max(width, height)
+        let scaledSize = longestSide * max(0, scale) * max(1, displayScale)
+        return max(minimumPixelSize, scaledSize.rounded(.up))
+    }
+
     static func sourceURLs(
         in assets: [MemoAsset],
         limit: Int = 120,

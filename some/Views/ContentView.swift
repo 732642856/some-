@@ -833,7 +833,7 @@ private struct ScrapbookPagePreview: View {
                     .fill(color(hex: layout.backgroundColorHex) ?? Color.surface)
 
                 ForEach(layout.layers.prefix(8)) { layer in
-                    previewLayer(layer)
+                    previewLayer(layer, scale: scale)
                         .frame(width: layer.width * scale, height: layer.height * scale)
                         .position(x: layer.x * scale, y: layer.y * scale)
                         .rotationEffect(.degrees(layer.rotation))
@@ -850,16 +850,20 @@ private struct ScrapbookPagePreview: View {
     }
 
     @ViewBuilder
-    private func previewLayer(_ layer: ScrapbookLayer) -> some View {
+    private func previewLayer(_ layer: ScrapbookLayer, scale: CGFloat) -> some View {
         switch layer.kind {
         case .image:
             if let attachmentPath = layer.attachmentPath,
-               let url = SharedAttachmentStore.url(for: attachment(relativePath: attachmentPath)),
-               let image = UIImage(contentsOfFile: url.path) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .clipShape(RoundedRectangle(cornerRadius: CGFloat(layer.cornerRadius ?? 0), style: .continuous))
+               let url = SharedAttachmentStore.url(for: attachment(relativePath: attachmentPath)) {
+                ImageThumbnailFillPreview(
+                    url: url,
+                    maximumPixelSize: ImageThumbnailGenerator.previewMaximumPixelSize(
+                        width: layer.width,
+                        height: layer.height,
+                        scale: scale
+                    ),
+                    cornerRadius: CGFloat(layer.cornerRadius ?? 0)
+                )
             } else {
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
                     .fill(Color.greenTint)

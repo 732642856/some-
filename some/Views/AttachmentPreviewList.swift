@@ -186,6 +186,63 @@ struct ImageThumbnailPreview: View {
     }
 }
 
+struct ImageThumbnailFillPreview: View {
+    let url: URL
+    let maximumPixelSize: CGFloat
+    var cornerRadius: CGFloat = 8
+    var fallbackSystemImage = "photo"
+
+    @State private var image: UIImage?
+    @State private var requestedURL: URL?
+    @State private var requestedPixelSize: CGFloat?
+
+    var body: some View {
+        ZStack {
+            if let image = image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Image(systemName: fallbackSystemImage)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Color.accentGreen)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.greenTint)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .clipped()
+        .onAppear(perform: requestThumbnailIfNeeded)
+        .onChange(of: maximumPixelSize) { _ in requestThumbnailIfNeeded() }
+        .onChange(of: url) { _ in requestThumbnailIfNeeded() }
+    }
+
+    private func requestThumbnailIfNeeded() {
+        let pixelSize = maximumPixelSize.rounded(.up)
+        guard requestedURL != url || requestedPixelSize != pixelSize else {
+            return
+        }
+
+        requestedURL = url
+        requestedPixelSize = pixelSize
+        image = nil
+        let thumbnailURL = url
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let thumbnail = ImageThumbnailGenerator.image(
+                for: thumbnailURL,
+                maximumPixelSize: pixelSize
+            )
+            DispatchQueue.main.async {
+                guard requestedURL == thumbnailURL, requestedPixelSize == pixelSize else {
+                    return
+                }
+                image = thumbnail
+            }
+        }
+    }
+}
+
 struct VideoThumbnailPreview: View {
     let url: URL
     let size: CGFloat

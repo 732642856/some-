@@ -909,3 +909,10 @@
 - 开工前检索 Swift 本地图片缩略图缓存、ImageIO 下采样、Kingfisher/Nuke/CachedAsyncImage/SDWebImage/AlamofireImage 等候选；这些项目多面向远程图片下载缓存，当前只需要本地附件小图，因此继续复用 Apple ImageIO 和 App Group 本地缓存目录。
 - 新增 `testImageThumbnailGeneratorCachesDownsampledImage` 和 `testImageThumbnailPreheatFiltersDeduplicatesAndReportsMissingFiles`，覆盖本地图像下采样、缓存文件写入、只读缓存命中、素材 URL 去重、非图片过滤和缺失文件失败统计。
 - 新增 `ImageThumbnailGenerator`，用 `CGImageSourceCreateThumbnailAtIndex` 生成小图并缓存到 `ImageThumbnailCache`；`AttachmentPreviewList` 和素材库 `AssetRowView` 改用异步 `ImageThumbnailPreview`，素材库进入或素材变化时批量预热图片缩略图。
+
+## 2026-06-24T20:30:00+08:00
+
+- 进入并完成阶段 103：手帐列表图片图层缩略图缓存。阶段 102 已提交推送后继续扫描同步原图解码点，确认手帐列表预览仍在 `ScrapbookPagePreview.previewLayer` 里直接 `UIImage(contentsOfFile:)`。
+- 开工前复检 SwiftUI 本地文件缩略图缓存、Kingfisher、Nuke、SDWebImageSwiftUI 和 Apple ImageIO 候选；当前缺口只需要复用本项目 App Group 本地缩略图缓存，不引入远程图片库。
+- 新增 `ImageThumbnailGenerator.previewMaximumPixelSize(width:height:scale:)` 和 `testImageThumbnailPreviewPixelSizeUsesScaledLayerBounds`，锁定手帐预览按图层显示尺寸生成小图且最低 64px 的策略。
+- 新增 `ImageThumbnailFillPreview`，手帐列表图片图层改为异步加载 `ImageThumbnailGenerator` 小图缓存，保持原来的裁切填充和圆角外观，避免列表预览同步解码原图。
