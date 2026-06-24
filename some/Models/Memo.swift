@@ -1942,12 +1942,6 @@ private extension Array where Element == String {
                 continue
             }
 
-            if line.hasPrefix("[附件:") || line.hasPrefix("some-attachment://") {
-                isInRecognizedText = false
-                hasRecognizedContent = false
-                continue
-            }
-
             if line.isEmpty {
                 if hasRecognizedContent {
                     isInRecognizedText = false

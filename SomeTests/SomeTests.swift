@@ -6648,6 +6648,28 @@ final class SomeTests: XCTestCase {
         XCTAssertFalse(asset?.summary?.contains(ScrapbookPageLayout.marker) == true)
     }
 
+    func testScrapbookLayoutIgnoresMarkerAfterAttachmentMarkdownInsideRecognizedTextBody() throws {
+        let rawLayout = ScrapbookPageLayout(canvasWidth: 640, canvasHeight: 640, layers: [])
+        let rawLine = try XCTUnwrap(rawLayout.encodedLine())
+        let text = """
+        手帐页面：OCR 原文
+        模板：测试
+
+        识别文字：
+        [附件: raw-card.png](some-attachment://raw-card.png)
+        \(rawLine)
+
+        [附件: raw-note.png](some-attachment://raw-note.png)
+        """
+
+        XCTAssertNil(ScrapbookPageLayout.layout(in: text))
+
+        let asset = MemoAsset.assets(in: Memo(text: text)).first { $0.kind == .scrapbookPage }
+        XCTAssertEqual(asset?.title, "OCR 原文")
+        XCTAssertFalse(asset?.summary?.contains("图层：") == true)
+        XCTAssertFalse(asset?.summary?.contains(ScrapbookPageLayout.marker) == true)
+    }
+
     func testScrapbookLayoutReplacementIgnoresMarkerInsideRecognizedTextBody() throws {
         let rawLayout = ScrapbookPageLayout(canvasWidth: 640, canvasHeight: 640, layers: [])
         let rawLine = try XCTUnwrap(rawLayout.encodedLine())

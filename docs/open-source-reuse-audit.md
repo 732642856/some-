@@ -303,6 +303,8 @@ P3 只参考：
 
 2026-06-25 本轮实现决策：阶段 140 修复 OCR 高亮候选丢失附件样式原文前，复查阶段 139 的 OCR highlights / OCR proofreading / attachment markdown 检索结果，仍没有能直接复制进当前 `ImageTextRecognizer.extractedHighlights` 的小型 Swift/MIT 模块。该逻辑只是读取 some 已保存 memo 文本，不是替换 OCR 引擎；本轮不新增依赖，只把高亮候选的正文终止条件与 `ClipFragmentExtractor` 对齐为空行。
 
+2026-06-25 本轮实现决策：阶段 141 修复结构化 JSON marker 在附件样式 OCR 原文后外溢前，复查阶段 127 的 `Swift memo embedded JSON marker parser MIT` / `Swift notes structured JSON block parser MIT` 检索结论，仍没有可直接复制进 some 中文 OCR block 与 base64 JSON marker 混排语义的小型模块。本轮继续复用项目内 `recognizedTextBodyIndexes` helper，只把正文终止条件从附件行收敛为空行。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

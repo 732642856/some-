@@ -1172,3 +1172,9 @@
 - 进入并完成阶段 140：OCR 高亮候选保留附件样式原文。继续扫描 `ImageTextRecognizer.extractedHighlights` 时发现详情页/摘要高亮候选同样遇到 `[附件:]` / `some-attachment://` 会提前结束 OCR 正文。
 - 新增 `testImageTextRecognizerKeepsAttachmentMarkdownInsideRecognizedHighlights`，覆盖高亮候选同时返回普通识别行和附件样式原文，空行后的真实附件引用不会进入候选。
 - `ImageTextRecognizer.extractedHighlights` 删除附件样式行的提前终止逻辑，继续用空行作为 OCR 正文段结束。
+
+## 2026-06-25T02:28:00+08:00
+
+- 进入并完成阶段 141：结构化 JSON marker 继续忽略附件样式后的 OCR 原文。继续扫描识别正文 helper 时发现 `Memo` 模型里的 `recognizedTextBodyIndexes` 仍把 `[附件:]` / `some-attachment://` 当作 OCR 正文终止符，导致同一 OCR 正文中附件样式行后面的 `手帐图层JSON：` 可能重新被当成 some 生成 marker。
+- 新增 `testScrapbookLayoutIgnoresMarkerAfterAttachmentMarkdownInsideRecognizedTextBody`，覆盖 OCR 正文先出现附件样式原文、再出现手帐 JSON marker 时，仍不解析 layout，也不把图层摘要写入素材。
+- `Array<String>.recognizedTextBodyIndexes` 改为只用空行结束 OCR 正文段，不再用附件样式行截断。
