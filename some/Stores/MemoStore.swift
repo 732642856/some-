@@ -1589,15 +1589,15 @@ final class MemoStore: ObservableObject {
         case .ocrReview:
             return ClipFragmentExtractor.needsOCRReview(in: memo.text)
         case .ocrLayout:
-            return memo.text.contains("版面分区：")
+            return KeyInfoExtractor.containsOCRLayoutSummary(in: memo.text)
         case .ocrKeyInfo:
             return KeyInfoExtractor.containsOCRKeyInfoSummary(in: memo.text)
         case .ocrField:
-            return memo.text.contains("字段候选：")
+            return KeyInfoExtractor.containsOCRFieldSummary(in: memo.text)
         case .ocrTable:
-            return memo.text.contains("表格候选：")
+            return KeyInfoExtractor.containsOCRTableSummary(in: memo.text)
         case .receiptLines:
-            return memo.text.contains("票据行候选：")
+            return KeyInfoExtractor.containsReceiptLinesSummary(in: memo.text)
         case .audio:
             return assets(for: memo).contains { $0.kind == .audio }
         case .video:

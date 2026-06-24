@@ -3,6 +3,10 @@ import Foundation
 enum KeyInfoExtractor {
     private static let keyInfoLinePrefix = "关键信息候选："
     private static let webKeyInfoLinePrefix = "网页关键信息候选："
+    private static let ocrLayoutLinePrefix = "版面分区："
+    private static let ocrFieldLinePrefix = "字段候选："
+    private static let ocrTableLinePrefix = "表格候选："
+    private static let receiptLinesLinePrefix = "票据行候选："
 
     struct Candidate: Equatable {
         let label: String
@@ -37,6 +41,22 @@ enum KeyInfoExtractor {
 
     static func containsWebKeyInfoSummary(in text: String) -> Bool {
         containsSummaryLine(prefix: webKeyInfoLinePrefix, in: text)
+    }
+
+    static func containsOCRLayoutSummary(in text: String) -> Bool {
+        containsSummaryLine(prefix: ocrLayoutLinePrefix, in: text)
+    }
+
+    static func containsOCRFieldSummary(in text: String) -> Bool {
+        containsSummaryLine(prefix: ocrFieldLinePrefix, in: text)
+    }
+
+    static func containsOCRTableSummary(in text: String) -> Bool {
+        containsSummaryLine(prefix: ocrTableLinePrefix, in: text)
+    }
+
+    static func containsReceiptLinesSummary(in text: String) -> Bool {
+        containsSummaryLine(prefix: receiptLinesLinePrefix, in: text)
     }
 
     private static func detectedDateCandidates(in text: String) -> [Candidate] {
@@ -176,9 +196,22 @@ enum KeyInfoExtractor {
     }
 
     private static func containsSummaryLine(prefix: String, in text: String) -> Bool {
-        text.split(whereSeparator: \.isNewline).contains { line in
-            line.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix(prefix)
+        for line in text.split(whereSeparator: \.isNewline) {
+            let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if isRecognizedTextHeader(trimmedLine) {
+                return false
+            }
+
+            if trimmedLine.hasPrefix(prefix) {
+                return true
+            }
         }
+
+        return false
+    }
+
+    private static func isRecognizedTextHeader(_ line: String) -> Bool {
+        line == "识别文字：" || line == "识别文字:" || line == "OCR：" || line == "OCR:"
     }
 
     private static func capture(in text: String, match: NSTextCheckingResult, at index: Int) -> String? {

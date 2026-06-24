@@ -267,6 +267,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 122 修复 OCR/网页关键信息筛选串线前，检索 `Swift notes app search filter parser MemoContentFilter GitHub MIT`、`SwiftUI notes app OCR search filter GitHub MIT` 和 `Swift NSDataDetector key info extractor GitHub MIT`。候选仍主要是完整笔记应用、OCR 工具、Tesseract/搜索项目或 `NSDataDetector` wrapper，没有可直接复制进 some 当前 `MemoContentFilter`、`MemoStore` 和 `WorkLogSourceFilterEngine` 的摘要行筛选模块。该问题根因是项目内中文摘要前缀存在包含关系，最小可靠修复是复用阶段 120/121 的共享 `KeyInfoExtractor`，新增按行前缀判断，不引入第三方依赖。
 
+2026-06-24 本轮实现决策：阶段 123 继续硬化 OCR 摘要筛选边界前，检索 `Swift OCR search filter recognized text summary line prefix GitHub MIT`、`Swift notes app OCR candidate search filter raw recognized text GitHub MIT` 和 `Swift memo search content filter line prefix parser GitHub MIT`。结果仍以完整 OCR/笔记项目、通用字符串处理或搜索示例为主，没有能直接复制进 some 当前中文 OCR 摘要格式和工作日志来源筛选的小型 Swift/MIT 模块。本轮不新增依赖，复用 `KeyInfoExtractor` 作为共享摘要 marker 判断点，统一在“识别文字：”前的生成摘要区做行前缀匹配。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

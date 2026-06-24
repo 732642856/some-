@@ -1050,3 +1050,10 @@
 - 新增 `testLinkExtractorBuildsKeyInfoCandidatesFromChineseDateText` 和 `testImageTextRecognizerBuildsKeyInfoCandidatesFromChineseDateText`，先用临时探针确认中文日期不会生成“网页关键信息候选”，再让 `KeyInfoExtractor` 识别中文年月日和可选时间并规范为 `yyyy-MM-dd HH:mm`。
 - 因为 OCR 和网页摘录共用 `KeyInfoExtractor.summary(in:)`，这次中文日期增强会同时覆盖网页摘录候选和 OCR 关键信息候选。
 - 远端 Stage 120 CI run `28099053149` 的 Build for simulator 通过、Run tests 失败；公开 annotation 指向 `testSearchCanFilterByContentTypes()`，根因是 OCR `has:ocr-key-info` 用普通 substring 匹配“关键信息候选：”，误把“网页关键信息候选：”也纳入 OCR 结果。本轮把 OCR/网页关键信息摘要改为共享按行前缀判断，并补搜索与工作日志来源回归断言。
+
+## 2026-06-24T21:36:20+08:00
+
+- 进入并完成阶段 123：OCR 摘要筛选只匹配生成摘要区。继续按同类风险扫描时发现 `版面分区：`、`字段候选：`、`表格候选：`、`票据行候选：` 仍用全文 substring 匹配，若 OCR 原文在“识别文字：”后恰好包含这些词，会被误判为 some 生成的结构化摘要。
+- 开工前检索 OCR 摘要行筛选、notes app content filter 和 Swift memo search parser 候选；未找到可直接复制进当前 SwiftUI 本地 memo 搜索/日志筛选的小型 Swift/MIT 模块，本轮继续复用项目内摘要前缀规则。
+- `KeyInfoExtractor` 新增 OCR 版面、字段、表格、票据行的摘要检测器，并让所有摘要检测在遇到“识别文字：”/`OCR：` 后停止扫描；`MemoStore` 和 `WorkLogSourceFilterEngine` 改为复用同一套检测器。
+- 新增 `testSummaryLineDetectorsIgnoreRecognizedTextBodyMentions`，并扩展搜索与工作日志候选测试，覆盖原始识别文字中的同名“候选”词不会触发 `has:*` 或日志来源筛选。

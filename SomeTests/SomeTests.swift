@@ -1084,6 +1084,18 @@ final class SomeTests: XCTestCase {
         左栏事项
         """
         store.addMemo(text: ocrLayoutText)
+        let recognizedTextSummaryMentionText = """
+        图片文字：raw-notes.png
+
+        识别文字：
+        字段候选：这是截图原文，不是 some 生成的摘要
+        表格候选：这是截图原文，不是 some 生成的摘要
+        票据行候选：这是截图原文，不是 some 生成的摘要
+        版面分区：这是截图原文，不是 some 生成的摘要
+        关键信息候选：这是截图原文，不是 some 生成的摘要
+        网页关键信息候选：这是截图原文，不是 some 生成的摘要
+        """
+        store.addMemo(text: recognizedTextSummaryMentionText)
 
         store.searchText = "has:ocr-table"
         XCTAssertEqual(store.filteredMemos.map(\.text), [ocrTableText])
@@ -1369,8 +1381,19 @@ final class SomeTests: XCTestCase {
         图片文字：receipt.png
         票据行候选：拿铁 18.00 · 蛋糕 32.00
         """)
+        let recognizedTextSummaryMentionMemo = Memo(text: """
+        图片文字：raw-notes.png
+
+        识别文字：
+        字段候选：这是截图原文，不是 some 生成的摘要
+        表格候选：这是截图原文，不是 some 生成的摘要
+        票据行候选：这是截图原文，不是 some 生成的摘要
+        版面分区：这是截图原文，不是 some 生成的摘要
+        关键信息候选：这是截图原文，不是 some 生成的摘要
+        网页关键信息候选：这是截图原文，不是 some 生成的摘要
+        """)
         let plainMemo = Memo(text: "普通会议记录")
-        let memos = [plainMemo, fieldMemo, layoutMemo, keyInfoMemo, tableMemo, webKeyInfoMemo, receiptMemo]
+        let memos = [plainMemo, fieldMemo, layoutMemo, keyInfoMemo, tableMemo, webKeyInfoMemo, receiptMemo, recognizedTextSummaryMentionMemo]
         let assets = memos.flatMap { MemoAsset.assets(in: $0) }
 
         let fieldCandidates = WorkLogSourceFilterEngine.candidates(
@@ -3283,6 +3306,43 @@ final class SomeTests: XCTestCase {
         ])
 
         XCTAssertEqual(summary, "日期=2026-06-24 19:30 · 电话=13800138000 · 金额=128元")
+    }
+
+    func testSummaryLineDetectorsIgnoreRecognizedTextBodyMentions() {
+        let generatedSummaryText = """
+        图片文字：form.png
+        版面分区：左栏2行
+        字段候选：姓名=李雷
+        关键信息候选：日期=2026-06-24
+        表格候选：3 列
+        票据行候选：拿铁 18.00
+
+        识别文字：
+        字段候选：这是截图原文
+        """
+        XCTAssertTrue(KeyInfoExtractor.containsOCRLayoutSummary(in: generatedSummaryText))
+        XCTAssertTrue(KeyInfoExtractor.containsOCRFieldSummary(in: generatedSummaryText))
+        XCTAssertTrue(KeyInfoExtractor.containsOCRKeyInfoSummary(in: generatedSummaryText))
+        XCTAssertTrue(KeyInfoExtractor.containsOCRTableSummary(in: generatedSummaryText))
+        XCTAssertTrue(KeyInfoExtractor.containsReceiptLinesSummary(in: generatedSummaryText))
+
+        let recognizedTextOnly = """
+        图片文字：raw-notes.png
+
+        识别文字：
+        版面分区：这是截图原文
+        字段候选：这是截图原文
+        关键信息候选：这是截图原文
+        表格候选：这是截图原文
+        票据行候选：这是截图原文
+        网页关键信息候选：这是截图原文
+        """
+        XCTAssertFalse(KeyInfoExtractor.containsOCRLayoutSummary(in: recognizedTextOnly))
+        XCTAssertFalse(KeyInfoExtractor.containsOCRFieldSummary(in: recognizedTextOnly))
+        XCTAssertFalse(KeyInfoExtractor.containsOCRKeyInfoSummary(in: recognizedTextOnly))
+        XCTAssertFalse(KeyInfoExtractor.containsOCRTableSummary(in: recognizedTextOnly))
+        XCTAssertFalse(KeyInfoExtractor.containsReceiptLinesSummary(in: recognizedTextOnly))
+        XCTAssertFalse(KeyInfoExtractor.containsWebKeyInfoSummary(in: recognizedTextOnly))
     }
 
     func testWebClipExtractorCleansArticleParagraphs() {
