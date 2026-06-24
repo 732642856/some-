@@ -800,6 +800,13 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(query.textTerms, [])
     }
 
+    func testSearchQueryParserExtractsOCRFieldAliases() {
+        let query = MemoSearchQueryParser.parse("has:ocr-field has:字段候选")
+
+        XCTAssertEqual(query.requiredContentFilters, [.ocrField])
+        XCTAssertEqual(query.textTerms, [])
+    }
+
     func testSearchQueryParserKeepsUnknownContentFiltersAsText() {
         let query = MemoSearchQueryParser.parse("has:unknown 资料")
 
@@ -1016,8 +1023,16 @@ final class SomeTests: XCTestCase {
         识别文字：
         拿铁 18.00
         """
+        let ocrFieldText = """
+        图片文字：form.png
+        字段候选：姓名=李雷 · 日期=2026-06-24
+
+        识别文字：
+        姓名：李雷
+        """
         store.addMemo(text: ocrTableText)
         store.addMemo(text: receiptLinesText)
+        store.addMemo(text: ocrFieldText)
 
         store.searchText = "has:ocr-table"
         XCTAssertEqual(store.filteredMemos.map(\.text), [ocrTableText])
@@ -1030,6 +1045,12 @@ final class SomeTests: XCTestCase {
 
         store.searchText = "has:票据行"
         XCTAssertEqual(store.filteredMemos.map(\.text), [receiptLinesText])
+
+        store.searchText = "has:ocr-field"
+        XCTAssertEqual(store.filteredMemos.map(\.text), [ocrFieldText])
+
+        store.searchText = "has:字段候选"
+        XCTAssertEqual(store.filteredMemos.map(\.text), [ocrFieldText])
 
         store.searchText = "has:task"
         XCTAssertEqual(store.filteredMemos.map(\.text), ["任务资料\n- [ ] 写提纲\n- [x] 校对"])

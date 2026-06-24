@@ -999,3 +999,10 @@
 - 进入并完成阶段 115：OCR 表格/票据候选搜索筛选。阶段 114 推送后继续处理同一 OCR 校对闭环，确认“表格候选”和“票据行候选”需要可组合的 `has:*` 语法。
 - 先用临时 Swift 探针确认旧 `MemoSearchQueryParser` 会把 `has:ocr-table` / `has:receipt-lines` 留作普通文本；新增 `testSearchQueryParserExtractsOCRTableAndReceiptAliases` 和 store 搜索断言，覆盖英文与中文别名。
 - `MemoContentFilter` 新增 `ocrTable`、`receiptLines`，`MemoStore.matchesContentFilter` 基于 OCR memo 中的“表格候选：”和“票据行候选：”摘要行筛选；README 同步 `has:ocr-table` / `has:表格候选`、`has:receipt-lines` / `has:票据行`。
+
+## 2026-06-24T23:59:58+08:00
+
+- 进入并完成阶段 116：OCR 字段候选搜索筛选。阶段 115 后继续复查 OCR 校对闭环，确认阶段 97 生成的“字段候选”仍不能像表格/票据行一样用 `has:*` 集中筛出。
+- 开工前检索 Swift notes/search/OCR field filter 候选，未找到可直接复制进当前本地 memo/OCR 摘要格式的小型 Swift/MIT 模块；本轮继续复用项目内 `MemoSearchQueryParser` 和 `MemoStore.matchesContentFilter`。
+- 先用临时 Swift 探针确认旧 `MemoSearchQueryParser` 会把 `has:ocr-field` / `has:字段候选` 留作普通文本；新增 `testSearchQueryParserExtractsOCRFieldAliases` 和 store 搜索断言，覆盖英文与中文别名。
+- `MemoContentFilter` 新增 `ocrField`，`MemoStore.matchesContentFilter` 基于 OCR memo 中的“字段候选：”摘要行筛选；README 同步 `has:ocr-field` / `has:字段候选`，任务计划、发现、审计和验证记录同步到 OCR v13。

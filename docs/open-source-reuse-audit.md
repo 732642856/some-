@@ -253,6 +253,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 115 继续把 OCR 表格/票据候选接入搜索筛选前，复查项目已有 `MemoSearchQueryParser`、`MemoStore.matchesContentFilter`、`has:ocr` 与 `has:ocr-review` 实现。该阶段只扩展本项目搜索语法和本地文本匹配，不涉及新 OCR 引擎、第三方索引库或数据库迁移，因此不新增外部依赖；直接复用已有 `has:*` 解析模式，新增 `has:ocr-table` / `has:表格候选` 与 `has:receipt-lines` / `has:票据行`。
 
+2026-06-24 本轮实现决策：阶段 116 继续把 OCR 字段候选接入搜索筛选前，检索 `Swift notes app search has filter parser OCR fields GitHub MIT`、`Swift OCR key value field extraction search filter GitHub MIT` 和 `Swift memo app search query parser content filter GitHub MIT`。检索结果没有发现可直接复制进 some 当前本地 OCR 摘要格式、`MemoContentFilter` 和 SwiftUI 搜索状态的成熟 Swift/MIT 模块；该阶段只是在已有“字段候选：”摘要行上补 `has:*` 过滤，不改变 OCR 引擎或数据结构，因此继续复用项目内 `MemoSearchQueryParser` 与 `MemoStore.matchesContentFilter`，新增 `has:ocr-field` / `has:字段候选`。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：
