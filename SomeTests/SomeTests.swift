@@ -1149,6 +1149,42 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(candidates.map(\.id), [matchingMemo.id])
     }
 
+    func testWorkLogSourceFilterEngineCanFilterOCRReviewCandidates() {
+        let calendar = Calendar(identifier: .gregorian)
+        let now = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+        let lowConfidenceMemo = Memo(text: """
+        图片文字：blurry.png
+        置信度：平均 66% · 最低 52%
+
+        识别文字：
+        桌号 A12
+
+        [附件: blurry.png](some-attachment://blurry.png)
+        """)
+        let highConfidenceMemo = Memo(text: """
+        图片文字：clear.png
+        置信度：平均 92% · 最低 84%
+
+        识别文字：
+        合计 128 元
+
+        [附件: clear.png](some-attachment://clear.png)
+        """)
+        let textMemo = Memo(text: "普通会议记录")
+        let memos = [textMemo, highConfidenceMemo, lowConfidenceMemo]
+        let assets = memos.flatMap { MemoAsset.assets(in: $0) }
+
+        let candidates = WorkLogSourceFilterEngine.candidates(
+            from: memos,
+            assets: assets,
+            filter: WorkLogSourceFilter(kind: .ocrReview),
+            now: now,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(candidates.map(\.id), [lowConfidenceMemo.id])
+    }
+
     func testWorkLogSourceFilterEngineLimitsNewestCandidates() {
         let calendar = Calendar(identifier: .gregorian)
         let now = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
