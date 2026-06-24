@@ -1034,3 +1034,11 @@
 - 开工前检索 Swift Vision OCR key-value / form field / receipt parser 候选；未找到可直接复制进当前本地 OCR memo 摘要格式的小型 Swift/MIT 模块，本轮继续复用 `ImageTextRecognizer` 与项目内 `has:*` 规则。
 - 新增并收拢 `testImageTextRecognizerBuildsKeyInfoCandidatesForOCRLines`，覆盖 OCR 行里的日期、电话、邮箱、链接和金额会生成“关键信息候选”；新增负例避免普通编号、会议室号和客服电话短号误触发。
 - `MemoContentFilter` 新增 `ocrKeyInfo`，搜索支持 `has:ocr-key-info` / `has:关键信息候选`，工作日志来源下拉新增“关键信息”，筛选引擎按“关键信息候选：”摘要行匹配。
+
+## 2026-06-24T20:25:18+08:00
+
+- 进入并完成阶段 120：网页摘录关键信息候选与筛选闭环。阶段 119 本地验证并推送后继续扫描本地碎片，发现 `KeyInfoExtractor.swift` 未跟踪且网页摘录关键信息测试、搜索别名和工程引用补丁未收口。
+- 开工前检索 Swift `NSDataDetector`、网页摘录关键信息提取和轻量实体识别候选；结果仍以 Foundation 示例或通用 wrapper 为主，没有可直接复制进当前 memo 摘要和 `has:*` 搜索体系的小型 Swift/MIT 模块。本轮收编未跟踪公共提取器，复用 Apple `NSDataDetector` 和轻量正则。
+- `ImageTextRecognizer` 改为复用 `KeyInfoExtractor.summary(in:)`，避免 OCR 和网页摘录分别维护日期、电话、邮箱、链接、金额提取规则；`KeyInfoExtractor.swift` 加入 app 与 Share Extension sources。
+- `LinkExtractor.webClipText` 在网页摘要/重点中检测到两类以上关键信息时写入“网页关键信息候选：”；搜索新增 `has:web-key-info` / `has:网页关键信息候选`，工作日志来源下拉新增“网页关键”，筛选引擎按摘要行匹配。
+- 新增/收拢 `testLinkExtractorBuildsWebClipTextWithKeyInfoCandidates`、`testSearchQueryParserExtractsWebKeyInfoAliases`，并扩展内容类型搜索和工作日志来源筛选测试，覆盖网页关键信息候选的保存、搜索和日志汇总入口。

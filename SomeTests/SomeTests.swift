@@ -766,12 +766,12 @@ final class SomeTests: XCTestCase {
     }
 
     func testSearchQueryParserExtractsContentFilters() {
-        let query = MemoSearchQueryParser.parse("has:link has:web has:clip has:ocr has:ocr-review has:image-edit has:attachment has:reference has:scrapbook has:worklog has:project-report has:audio has:video has:wardrobe has:outfit has:wear-log has:laundry-log has:packing-list no:task without:backlink 复盘")
+        let query = MemoSearchQueryParser.parse("has:link has:web has:web-key-info has:clip has:ocr has:ocr-review has:image-edit has:attachment has:reference has:scrapbook has:worklog has:project-report has:audio has:video has:wardrobe has:outfit has:wear-log has:laundry-log has:packing-list no:task without:backlink 复盘")
 
         XCTAssertEqual(query.textTerms, ["复盘"])
         XCTAssertEqual(
             Set(query.requiredContentFilters),
-            Set([.attachment, .audio, .clipFragment, .imageEdit, .laundryLog, .link, .ocrReview, .outfit, .packingList, .reference, .scrapbook, .screenshot, .video, .wardrobe, .webClip, .wearLog, .workLog])
+            Set([.attachment, .audio, .clipFragment, .imageEdit, .laundryLog, .link, .ocrReview, .outfit, .packingList, .reference, .scrapbook, .screenshot, .video, .wardrobe, .webClip, .webKeyInfo, .wearLog, .workLog])
         )
         XCTAssertEqual(
             Set(query.excludedContentFilters),
@@ -818,6 +818,13 @@ final class SomeTests: XCTestCase {
         let query = MemoSearchQueryParser.parse("has:ocr-key-info has:关键信息候选")
 
         XCTAssertEqual(query.requiredContentFilters, [.ocrKeyInfo])
+        XCTAssertEqual(query.textTerms, [])
+    }
+
+    func testSearchQueryParserExtractsWebKeyInfoAliases() {
+        let query = MemoSearchQueryParser.parse("has:web-key-info has:网页关键信息候选")
+
+        XCTAssertEqual(query.requiredContentFilters, [.webKeyInfo])
         XCTAssertEqual(query.textTerms, [])
     }
 
@@ -987,6 +994,20 @@ final class SomeTests: XCTestCase {
                 )
             ]
         )
+
+        let webKeyInfoText = LinkExtractor.webClipText(
+            title: "预约页",
+            url: URL(string: "https://example.com/booking")!,
+            summary: "预约时间 2026-06-24 19:30",
+            highlights: ["电话 13800138000"]
+        )
+        store.addMemo(text: webKeyInfoText)
+
+        store.searchText = "has:web-key-info"
+        XCTAssertEqual(store.filteredMemos.map(\.text), [webKeyInfoText])
+
+        store.searchText = "has:网页关键信息候选"
+        XCTAssertEqual(store.filteredMemos.map(\.text), [webKeyInfoText])
 
         store.searchText = "has:clip"
         XCTAssertEqual(store.filteredMemos.map(\.text), [clipFragmentText])
@@ -1332,12 +1353,18 @@ final class SomeTests: XCTestCase {
         图片文字：table.png
         表格候选：3 列 · 2 行数据 · 表头：项目 / 金额 / 备注
         """)
+        let webKeyInfoMemo = Memo(text: """
+        [网页摘录: 预约页](https://example.com/booking)
+        来源：example.com
+        摘要：预约时间 2026-06-24 19:30
+        网页关键信息候选：日期=2026-06-24 19:30 · 电话=13800138000
+        """)
         let receiptMemo = Memo(text: """
         图片文字：receipt.png
         票据行候选：拿铁 18.00 · 蛋糕 32.00
         """)
         let plainMemo = Memo(text: "普通会议记录")
-        let memos = [plainMemo, fieldMemo, layoutMemo, keyInfoMemo, tableMemo, receiptMemo]
+        let memos = [plainMemo, fieldMemo, layoutMemo, keyInfoMemo, tableMemo, webKeyInfoMemo, receiptMemo]
         let assets = memos.flatMap { MemoAsset.assets(in: $0) }
 
         let fieldCandidates = WorkLogSourceFilterEngine.candidates(
@@ -1368,6 +1395,13 @@ final class SomeTests: XCTestCase {
             now: now,
             calendar: calendar
         )
+        let webKeyInfoCandidates = WorkLogSourceFilterEngine.candidates(
+            from: memos,
+            assets: assets,
+            filter: WorkLogSourceFilter(kind: .webKeyInfo),
+            now: now,
+            calendar: calendar
+        )
         let receiptCandidates = WorkLogSourceFilterEngine.candidates(
             from: memos,
             assets: assets,
@@ -1380,6 +1414,7 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(layoutCandidates.map(\.id), [layoutMemo.id])
         XCTAssertEqual(keyInfoCandidates.map(\.id), [keyInfoMemo.id])
         XCTAssertEqual(tableCandidates.map(\.id), [tableMemo.id])
+        XCTAssertEqual(webKeyInfoCandidates.map(\.id), [webKeyInfoMemo.id])
         XCTAssertEqual(receiptCandidates.map(\.id), [receiptMemo.id])
     }
 
@@ -3200,6 +3235,23 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(text.contains("摘要：摘要"))
         XCTAssertTrue(text.contains("摘录卡：摘要 · 重点2条"))
         XCTAssertTrue(text.contains("- 重点一"))
+    }
+
+    func testLinkExtractorBuildsWebClipTextWithKeyInfoCandidates() {
+        let url = URL(string: "https://example.com/booking")!
+        let text = LinkExtractor.webClipText(
+            title: "预约页",
+            url: url,
+            summary: "预约时间 2026-06-24 19:30",
+            highlights: [
+                "电话 13800138000",
+                "邮箱 hello@example.com",
+                "菜单 https://example.com/menu",
+                "合计 128.50元"
+            ]
+        )
+
+        XCTAssertTrue(text.contains("网页关键信息候选：日期=2026-06-24 19:30 · 电话=13800138000 · 邮箱=hello@example.com · 链接=https://example.com/menu · 金额=128.50元"))
     }
 
     func testWebClipExtractorCleansArticleParagraphs() {

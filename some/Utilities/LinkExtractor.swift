@@ -91,6 +91,11 @@ enum LinkExtractor {
         if !cardParts.isEmpty {
             lines.append("摘录卡：\(cardParts.joined(separator: " · "))")
         }
+
+        if let keyInfoSummary = KeyInfoExtractor.summary(in: [summary].compactMap { $0 } + cleanedHighlights) {
+            lines.append("网页关键信息候选：\(keyInfoSummary)")
+        }
+
         if !cleanedHighlights.isEmpty {
             lines.append("重点：")
             lines.append(contentsOf: cleanedHighlights.prefix(5).map { "- \($0)" })

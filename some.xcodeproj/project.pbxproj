@@ -44,6 +44,8 @@
 		7A1000010000000000000038 /* WebClipExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000040 /* WebClipExtractor.swift */; };
 		7A1000010000000000000041 /* ClipFragmentExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000041 /* ClipFragmentExtractor.swift */; };
 		7A1000010000000000000042 /* ClipFragmentExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000041 /* ClipFragmentExtractor.swift */; };
+		7A1000010000000000000044 /* KeyInfoExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000044 /* KeyInfoExtractor.swift */; };
+		7A1000010000000000000045 /* KeyInfoExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000044 /* KeyInfoExtractor.swift */; };
 		7A1000010000000000000033 /* SQLiteMemoDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000036 /* SQLiteMemoDatabase.swift */; };
 		7A1000010000000000000034 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000037 /* libsqlite3.tbd */; };
 		7A1000010000000000000035 /* MemoBackupArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1001010000000000000038 /* MemoBackupArchive.swift */; };
@@ -180,6 +182,7 @@
 		7A1001010000000000000039 /* Speech.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Speech.framework; path = System/Library/Frameworks/Speech.framework; sourceTree = SDKROOT; };
 		7A1001010000000000000040 /* WebClipExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebClipExtractor.swift; sourceTree = "<group>"; };
 		7A1001010000000000000041 /* ClipFragmentExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipFragmentExtractor.swift; sourceTree = "<group>"; };
+		7A1001010000000000000044 /* KeyInfoExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyInfoExtractor.swift; sourceTree = "<group>"; };
 		7A7001010000000000000001 /* MemoRevision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoRevision.swift; sourceTree = "<group>"; };
 		7A2001010000000000000001 /* SharedMemoStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedMemoStorage.swift; sourceTree = "<group>"; };
 		7A2001010000000000000002 /* SharedMemoTextComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedMemoTextComposer.swift; sourceTree = "<group>"; };
@@ -339,6 +342,7 @@
 				7A1001010000000000000035 /* LinkExtractor.swift */,
 				7A1001010000000000000040 /* WebClipExtractor.swift */,
 				7A1001010000000000000041 /* ClipFragmentExtractor.swift */,
+				7A1001010000000000000044 /* KeyInfoExtractor.swift */,
 				7A2001010000000000000001 /* SharedMemoStorage.swift */,
 				7A2001010000000000000002 /* SharedMemoTextComposer.swift */,
 				7A2001010000000000000008 /* MemoSearchQuery.swift */,
@@ -636,6 +640,7 @@
 				7A1000010000000000000032 /* LinkExtractor.swift in Sources */,
 				7A1000010000000000000038 /* WebClipExtractor.swift in Sources */,
 				7A1000010000000000000041 /* ClipFragmentExtractor.swift in Sources */,
+				7A1000010000000000000044 /* KeyInfoExtractor.swift in Sources */,
 				7A1000010000000000000033 /* SQLiteMemoDatabase.swift in Sources */,
 				7A2000010000000000000001 /* SharedMemoStorage.swift in Sources */,
 				7A2000010000000000000002 /* SharedMemoTextComposer.swift in Sources */,
@@ -694,6 +699,7 @@
 				7A8000010000000000000002 /* MemoReferenceParser.swift in Sources */,
 				7A9000010000000000000001 /* LinkExtractor.swift in Sources */,
 				7A1000010000000000000042 /* ClipFragmentExtractor.swift in Sources */,
+				7A1000010000000000000045 /* KeyInfoExtractor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

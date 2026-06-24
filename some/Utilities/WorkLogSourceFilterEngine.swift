@@ -127,6 +127,8 @@ enum WorkLogSourceFilterEngine {
             return false
         case .webClip:
             return !LinkExtractor.webClips(in: memo.text).isEmpty
+        case .webKeyInfo:
+            return memo.text.contains("网页关键信息候选：")
         case .clipFragment:
             return hasAsset(.clipFragment, in: memo, assetsByMemoID: assetsByMemoID)
         case .imageEdit:
