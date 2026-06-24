@@ -199,10 +199,28 @@ enum KeyInfoExtractor {
     }
 
     private static func containsSummaryLine(prefix: String, in text: String) -> Bool {
-        for line in text.split(whereSeparator: \.isNewline) {
+        var isInRecognizedText = false
+        var hasRecognizedContent = false
+
+        for line in text.components(separatedBy: .newlines) {
             let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
             if isRecognizedTextHeader(trimmedLine) {
-                return false
+                isInRecognizedText = true
+                hasRecognizedContent = false
+                continue
+            }
+
+            if isInRecognizedText {
+                if trimmedLine.isEmpty {
+                    if hasRecognizedContent {
+                        isInRecognizedText = false
+                        hasRecognizedContent = false
+                    }
+                    continue
+                }
+
+                hasRecognizedContent = true
+                continue
             }
 
             if trimmedLine.hasPrefix(prefix) {

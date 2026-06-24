@@ -1191,6 +1191,25 @@ final class SomeTests: XCTestCase {
         store.searchText = "has:版面分区"
         XCTAssertEqual(store.filteredMemos.map(\.text), [ocrLayoutText])
 
+        let multiOCRSummaryText = """
+        图片文字：receipt.png
+
+        识别文字：
+        字段候选：这是第一张截图原文
+
+        [附件: receipt.png](some-attachment://receipt.png)
+
+        图片文字：form.png
+        字段候选：姓名=李雷 · 日期=2026-06-24
+
+        识别文字：
+        字段候选：这是第二张截图原文
+        """
+        store.addMemo(text: multiOCRSummaryText)
+
+        store.searchText = "has:ocr-field"
+        XCTAssertEqual(Set(store.filteredMemos.map(\.text)), Set([ocrFieldText, multiOCRSummaryText]))
+
         store.searchText = "has:task"
         XCTAssertEqual(store.filteredMemos.map(\.text), ["任务资料\n- [ ] 写提纲\n- [x] 校对"])
 
@@ -3560,6 +3579,27 @@ final class SomeTests: XCTestCase {
         XCTAssertFalse(KeyInfoExtractor.containsOCRTableSummary(in: recognizedTextOnly))
         XCTAssertFalse(KeyInfoExtractor.containsReceiptLinesSummary(in: recognizedTextOnly))
         XCTAssertFalse(KeyInfoExtractor.containsWebKeyInfoSummary(in: recognizedTextOnly))
+    }
+
+    func testSummaryLineDetectorsReadGeneratedSummariesAfterPreviousOCRBody() {
+        let text = """
+        图片文字：receipt.png
+
+        识别文字：
+        字段候选：这是第一张截图原文
+
+        [附件: receipt.png](some-attachment://receipt.png)
+
+        图片文字：form.png
+        字段候选：姓名=李雷 · 日期=2026-06-24
+        关键信息候选：日期=2026-06-24
+
+        识别文字：
+        字段候选：这是第二张截图原文
+        """
+
+        XCTAssertTrue(KeyInfoExtractor.containsOCRFieldSummary(in: text))
+        XCTAssertTrue(KeyInfoExtractor.containsOCRKeyInfoSummary(in: text))
     }
 
     func testWebClipExtractorCleansArticleParagraphs() {

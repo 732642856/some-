@@ -1198,3 +1198,10 @@
 - 新增 `testClipFragmentExtractorIgnoresMergedMarkersAfterAttachmentMarkdownInsideRecognizedTextBody`，覆盖 OCR 正文先出现附件样式原文、再出现 `摘录片段：` 块时，只保留为 OCR fragment，不生成 merged clip block。
 - 新增 `testMemoAssetsIgnoreClipFragmentMarkersAfterAttachmentMarkdownInsideRecognizedTextBody`，覆盖素材索引和 `has:clip` 搜索不被截图原文里的摘录块污染。
 - `ClipFragmentExtractor.recognizedTextBodyLineIndexes` 改为只用空行结束 OCR 正文段，不再用附件样式行截断。
+
+## 2026-06-25T03:45:00+08:00
+
+- 进入并完成阶段 145：多 OCR block 生成摘要筛选不被前一段 OCR 正文截断。继续扫描 `KeyInfoExtractor.containsSummaryLine` 时发现它遇到第一个 `识别文字：` 就直接返回 false，会漏掉同一 memo 后续 OCR block 前的生成 `字段候选：` / `关键信息候选：` 等摘要。
+- 新增 `testSummaryLineDetectorsReadGeneratedSummariesAfterPreviousOCRBody`，覆盖第一段 OCR 原文里的同名摘要不触发，但空行结束后第二个 OCR block 前的生成摘要仍触发。
+- 在内容筛选综合测试里新增多 OCR block 记录，确认 `has:ocr-field` 能同时命中单 block 和后续 block 生成摘要。
+- `KeyInfoExtractor.containsSummaryLine` 改为按 OCR 正文段跳过，空行结束正文后继续扫描后续生成 metadata。
