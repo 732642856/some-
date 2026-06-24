@@ -111,6 +111,22 @@ enum ClipFragmentExtractor {
         }
     }
 
+    static func ocrProofreadingChecklist(in text: String) -> String? {
+        let fragments = unique(ocrFragments(in: text))
+        guard !fragments.isEmpty else { return nil }
+
+        var lines = ["OCR校对：图片文字校对"]
+        let sources = uniqueLines(fragments.map(\.title))
+        if !sources.isEmpty {
+            lines.append("来源：\(sources.joined(separator: "、"))")
+        }
+
+        lines.append("")
+        lines.append("待校对：")
+        lines.append(contentsOf: fragments.map { "- [ ] \(cleanLine($0.text, fallback: $0.title))" })
+        return lines.joined(separator: "\n")
+    }
+
     private static func webFragments(in text: String) -> [ClipFragment] {
         LinkExtractor.webClips(in: text).flatMap { clip -> [ClipFragment] in
             var fragments: [ClipFragment] = []

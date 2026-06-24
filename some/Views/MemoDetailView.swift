@@ -82,7 +82,7 @@ struct MemoDetailView: View {
                                 AttachmentPreviewList(attachments: attachments)
 
                                 if !imageAttachments(in: attachments).isEmpty {
-                                    imageTextSection(attachments: imageAttachments(in: attachments))
+                                    imageTextSection(attachments: imageAttachments(in: attachments), memo: currentMemo)
                                 }
 
                                 if !audioAttachments(in: attachments).isEmpty {
@@ -314,7 +314,7 @@ struct MemoDetailView: View {
         attachments.filter(\.isImage)
     }
 
-    private func imageTextSection(attachments: [SharedAttachment]) -> some View {
+    private func imageTextSection(attachments: [SharedAttachment], memo: Memo) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("图片文字")
                 .font(.caption.weight(.semibold))
@@ -329,6 +329,27 @@ struct MemoDetailView: View {
                         Image(systemName: "viewfinder")
                             .font(.caption.weight(.semibold))
                         Text("框选识别 \(attachment.displayName)")
+                            .lineLimit(1)
+                        Spacer(minLength: 8)
+                    }
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.accentGreen)
+                    .padding(.horizontal, 12)
+                    .frame(height: 38)
+                    .background(Color.greenTint)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+
+            if ClipFragmentExtractor.ocrProofreadingChecklist(in: memo.text) != nil {
+                Button {
+                    appendOCRProofreadingChecklist(to: memo)
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checklist")
+                            .font(.caption.weight(.semibold))
+                        Text("生成 OCR 校对清单")
                             .lineLimit(1)
                         Spacer(minLength: 8)
                     }
@@ -401,6 +422,22 @@ struct MemoDetailView: View {
                     .font(.caption)
                     .foregroundStyle(Color.secondaryText)
             }
+        }
+    }
+
+    private func appendOCRProofreadingChecklist(to memo: Memo) {
+        guard let checklist = ClipFragmentExtractor.ocrProofreadingChecklist(in: memo.text) else {
+            imageTextStatusText = "没有可生成校对清单的 OCR 文本。"
+            return
+        }
+
+        let updatedText = memo.text.appendingMemoSection(checklist)
+        if store.update(memo, text: updatedText),
+           let updatedMemo = store.memos.first(where: { $0.id == memo.id }) {
+            text = updatedMemo.text
+            imageTextStatusText = "已追加 OCR 校对清单"
+        } else {
+            imageTextStatusText = "OCR 校对清单保存失败。"
         }
     }
 

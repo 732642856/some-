@@ -748,12 +748,12 @@ final class SomeTests: XCTestCase {
     }
 
     func testSearchQueryParserExtractsContentFilters() {
-        let query = MemoSearchQueryParser.parse("has:link has:web has:clip has:ocr has:image-edit has:attachment has:reference has:scrapbook has:worklog has:project-report has:audio has:video has:wardrobe has:outfit has:wear-log has:laundry-log has:packing-list no:task without:backlink 复盘")
+        let query = MemoSearchQueryParser.parse("has:link has:web has:clip has:ocr has:ocr-review has:image-edit has:attachment has:reference has:scrapbook has:worklog has:project-report has:audio has:video has:wardrobe has:outfit has:wear-log has:laundry-log has:packing-list no:task without:backlink 复盘")
 
         XCTAssertEqual(query.textTerms, ["复盘"])
         XCTAssertEqual(
             Set(query.requiredContentFilters),
-            Set([.attachment, .audio, .clipFragment, .imageEdit, .laundryLog, .link, .outfit, .packingList, .reference, .scrapbook, .screenshot, .video, .wardrobe, .webClip, .wearLog, .workLog])
+            Set([.attachment, .audio, .clipFragment, .imageEdit, .laundryLog, .link, .ocrReview, .outfit, .packingList, .reference, .scrapbook, .screenshot, .video, .wardrobe, .webClip, .wearLog, .workLog])
         )
         XCTAssertEqual(
             Set(query.excludedContentFilters),
@@ -765,6 +765,13 @@ final class SomeTests: XCTestCase {
         let query = MemoSearchQueryParser.parse("has:项目汇报 has:复盘日志")
 
         XCTAssertEqual(query.requiredContentFilters, [.workLog])
+        XCTAssertEqual(query.textTerms, [])
+    }
+
+    func testSearchQueryParserExtractsOCRReviewAliases() {
+        let query = MemoSearchQueryParser.parse("has:待校对 has:ocr待校对 has:低置信度")
+
+        XCTAssertEqual(query.requiredContentFilters, [.ocrReview])
         XCTAssertEqual(query.textTerms, [])
     }
 
@@ -1003,6 +1010,46 @@ final class SomeTests: XCTestCase {
 
         store.searchText = "has:packing-list"
         XCTAssertEqual(store.filteredMemos.map(\.text), ["旅行打包：杭州周末\n目的地：杭州\n单品：白衬衫、黑裤"])
+    }
+
+    func testSearchCanFilterLowConfidenceOCRForReview() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let lowConfidenceText = """
+        图片文字：blurry.png
+        置信度：平均 62% · 最低 48%
+
+        识别文字：
+        桌号 A12
+
+        [附件: blurry.png](some-attachment://blurry.png)
+        """
+        let highConfidenceText = """
+        图片文字：clear.png
+        置信度：平均 93% · 最低 88%
+
+        识别文字：
+        合计 128 元
+
+        [附件: clear.png](some-attachment://clear.png)
+        """
+        let missingConfidenceText = """
+        图片文字：legacy.png
+
+        识别文字：
+        老记录文字
+
+        [附件: legacy.png](some-attachment://legacy.png)
+        """
+
+        store.addMemo(text: lowConfidenceText)
+        store.addMemo(text: highConfidenceText)
+        store.addMemo(text: missingConfidenceText)
+
+        store.searchText = "has:ocr-review"
+        XCTAssertEqual(store.filteredMemos.map(\.text), [lowConfidenceText])
+
+        store.searchText = "has:待校对"
+        XCTAssertEqual(store.filteredMemos.map(\.text), [lowConfidenceText])
     }
 
     func testAddWorkLogCreatesStructuredAssetWithReferences() {
@@ -2506,6 +2553,43 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(fragments.map(\.text), ["合计 128 元", "谢谢惠顾", "标题摘录", "正文摘录"])
         XCTAssertEqual(fragments[0].uri, "some-attachment://receipt.png")
         XCTAssertEqual(fragments[2].uri, "some-attachment://article.png")
+    }
+
+    func testClipFragmentExtractorBuildsOCRProofreadingChecklist() throws {
+        let text = """
+        图片文字：receipt.png
+        置信度：平均 82% · 最低 73%
+
+        识别文字：
+        合计 128 元
+        谢谢惠顾
+
+        [附件: receipt.png](some-attachment://receipt.png)
+
+        扫描文字：scan-1.jpg
+        扫描页：第 1 页
+
+        OCR:
+        合计 128 元
+        发票抬头
+
+        [附件: scan-1.jpg](some-attachment://scan-1.jpg)
+        """
+
+        let checklist = try XCTUnwrap(ClipFragmentExtractor.ocrProofreadingChecklist(in: text))
+
+        XCTAssertEqual(
+            checklist,
+            """
+            OCR校对：图片文字校对
+            来源：receipt.png、scan-1.jpg
+
+            待校对：
+            - [ ] 合计 128 元
+            - [ ] 谢谢惠顾
+            - [ ] 发票抬头
+            """
+        )
     }
 
     func testClipFragmentExtractorBuildsMergedText() throws {

@@ -805,3 +805,9 @@
 - 进入并完成阶段 87：衣橱长途天气打包增强。开工前检索 travel packing/weather wardrobe Swift/MIT 候选，未找到适配当前本地素材索引的可复制模块。
 - 新增 `testWardrobePackingSuggestionsAddWeatherEssentialsForLongTrips`，覆盖 4 天晴热阵雨旅行应补可替换上装、防水风衣、防水凉鞋、折叠伞和太阳帽。
 - `WardrobeInsightEngine` 新增 `PackingWeatherNeeds`，按高温、阵雨、低温扩展打包选择和备注；阶段 85 最新远端 CI run `28075916766` 已 completed/success。
+
+## 2026-06-24T14:02:00+08:00
+
+- 进入并完成阶段 88：OCR 批量校对清单。开工前检索 OCR text correction Swift/MIT 候选，未找到可直接复制的轻量模块。
+- 红灯探针确认旧 `ClipFragmentExtractor` 没有 `ocrProofreadingChecklist`；新增 `testClipFragmentExtractorBuildsOCRProofreadingChecklist`，覆盖跳过置信度/扫描页/附件行、多 OCR 块去重和来源聚合。
+- `ClipFragmentExtractor.ocrProofreadingChecklist` 复用现有 OCR fragment 解析生成 Markdown 待办清单；详情页图片文字区域新增“生成 OCR 校对清单”按钮，追加到当前记录。
