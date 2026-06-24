@@ -634,6 +634,10 @@ enum ImageTextRecognizer {
         return "\(Int((clamped * 100).rounded()))%"
     }
 
+    private static func isRecognizedTextHeader(_ line: String) -> Bool {
+        line == "识别文字：" || line == "识别文字:" || line == "OCR：" || line == "OCR:"
+    }
+
     private static func croppedImageData(from image: UIImage, region: ImageTextRegion) -> Data? {
         let normalizedImage = normalizedImage(image)
         guard let cgImage = normalizedImage.cgImage else {
