@@ -267,12 +267,36 @@ enum ImageTextRecognizer {
 
     private static func uniqueRecognizedLines(_ lines: [RecognizedLine]) -> [RecognizedLine] {
         var seen = Set<String>()
-        return lines.compactMap { line in
+        let uniqueLines: [RecognizedLine] = lines.compactMap { line -> RecognizedLine? in
             let normalized = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !normalized.isEmpty, seen.insert(normalized).inserted else {
                 return nil
             }
             return RecognizedLine(text: normalized, confidence: line.confidence, region: line.region)
+        }
+
+        return readingOrderedLines(uniqueLines)
+    }
+
+    private static func readingOrderedLines(_ lines: [RecognizedLine]) -> [RecognizedLine] {
+        guard !lines.isEmpty,
+              lines.allSatisfy({ $0.region != nil }) else {
+            return lines
+        }
+
+        return lines.sorted { first, second in
+            guard let firstRegion = first.region,
+                  let secondRegion = second.region else {
+                return false
+            }
+
+            let firstCenterY = firstRegion.y + firstRegion.height / 2
+            let secondCenterY = secondRegion.y + secondRegion.height / 2
+            if abs(firstCenterY - secondCenterY) > 0.02 {
+                return firstCenterY < secondCenterY
+            }
+
+            return firstRegion.x < secondRegion.x
         }
     }
 

@@ -3899,6 +3899,53 @@ final class SomeTests: XCTestCase {
         )
     }
 
+    func testImageTextRecognizerOrdersRecognizedLinesByLayoutPosition() {
+        let attachment = SharedAttachment(
+            id: "receipt.png",
+            filename: "receipt.png",
+            relativePath: "receipt.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 128
+        )
+
+        let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: [
+                ImageTextRecognizer.RecognizedLine(
+                    text: "底部备注",
+                    confidence: 0.83,
+                    region: ImageTextRegion(x: 0.1, y: 0.72, width: 0.4, height: 0.07)
+                ),
+                ImageTextRecognizer.RecognizedLine(
+                    text: "右上金额",
+                    confidence: 0.9,
+                    region: ImageTextRegion(x: 0.62, y: 0.09, width: 0.25, height: 0.06)
+                ),
+                ImageTextRecognizer.RecognizedLine(
+                    text: "左上标题",
+                    confidence: 0.95,
+                    region: ImageTextRegion(x: 0.08, y: 0.08, width: 0.32, height: 0.06)
+                )
+            ]
+        )
+
+        XCTAssertEqual(
+            text,
+            """
+            图片文字：receipt.png
+            置信度：平均 89% · 最低 83%
+            版面分区：左栏2行 · 右栏1行 · 顶部2行 · 底部1行
+
+            识别文字：
+            左上标题
+            右上金额
+            底部备注
+
+            [附件: receipt.png](some-attachment://receipt.png)
+            """
+        )
+    }
+
     func testImageTextRecognizerKeepsOldMemoFormatWithoutLayoutRegions() {
         let attachment = SharedAttachment(
             id: "receipt.png",

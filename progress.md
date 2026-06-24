@@ -853,3 +853,10 @@
 - 开工前检索 SwiftUI 附件卡片/Markdown 附件渲染、MarkdownUI、swift-markdown、Textual 和 MoeMemos 附件候选，未找到可直接复制的小型 MIT 模块；本轮复用 some 现有 `AttachmentPreviewList` 和 `SharedAttachmentStore.attachments(in:)`。
 - 新增 `testMarkdownMemoBlockParserExtractsAttachmentCards`、`testMarkdownMemoBlockParserKeepsAttachmentReferencesInsideCodeBlocks`、`testMemoReferenceParserKeepsAttachmentReferencesVisibleInReadableText`，覆盖独立附件引用行成为 attachment block，代码块里的附件引用仍保持原样，隐藏引用后附件行和任务行号仍正确。
 - `MarkdownMemoTextView` 新增 attachment block 和显式初始化器，列表行直接用完整 memo 文本渲染为紧凑附件卡片；详情页按原文位置渲染附件卡片，并用 `MemoReferenceParser.originalLineIndex` 维持任务勾选映射。
+
+## 2026-06-24T16:52:00+08:00
+
+- 进入并完成阶段 95：OCR 行级阅读顺序整理。继续处理阶段 92 留下的“有行框但识别文字顺序仍可能跟 Vision 返回顺序走”的缺口。
+- 开工前检索 Swift Vision OCR reading order / boundingBox 候选，未找到可直接复制进 some 本地 OCR 保存链路的小型 MIT 模块；本轮继续复用 Apple Vision 行框和项目已有 `ImageTextRegion`。
+- 新增 `testImageTextRecognizerOrdersRecognizedLinesByLayoutPosition`，覆盖 Vision 返回顺序打乱时，保存的“识别文字”仍按上到下、同一行左到右输出。
+- `ImageTextRecognizer` 在去重后仅对全部带 region 的 `RecognizedLine` 做阅读顺序排序；无行框或部分行缺行框时保持旧输入顺序，避免影响旧 OCR 文本。
