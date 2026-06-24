@@ -1154,3 +1154,9 @@
 - 进入并完成阶段 137：小组件标题保留 OCR 原文附件行。继续扫描 Widget 快照链路时发现 `WidgetSnapshotStore.displayTitle` 仍自己逐行过滤 `[附件:]`，没有复用阶段 135 的整段 OCR 正文判断，可能让桌面小组件标题隐藏截图原文里的附件 Markdown。
 - 新增 `testWidgetSnapshotTitleKeepsAttachmentsInsideRecognizedTextBody`，覆盖 OCR 正文里的同形附件 Markdown 会作为标题文本保留，正文外真实附件引用仍不进入小组件标题。
 - `WidgetSnapshotStore.displayTitle` 改为先调用 `SharedAttachmentStore.displayTextWithoutAttachmentReferences`，继续沿用原来的 Markdown 链接转纯文本和 42 字截断逻辑。
+
+## 2026-06-25T01:58:00+08:00
+
+- 进入并完成阶段 138：截图素材摘要保留 OCR 原文附件行。继续扫描素材索引时发现 `MemoAsset.imageTextBlock` 在生成 screenshot 摘要时无条件过滤 `[附件:]` / `some-attachment://` 行，导致截图原文里的附件 Markdown 从素材摘要和素材搜索上下文里消失。
+- 新增 `testImageTextAssetSummaryKeepsAttachmentMarkdownInsideRecognizedTextBody`，覆盖 OCR 正文内同形附件 Markdown 留在 screenshot summary，空行后的真实附件引用仍用于绑定 `some-attachment://scan.png`。
+- `imageTextBlock` 改为识别正文从 `识别文字：` 后开始、遇到空行停止，只过滤区域/扫描页 metadata，不再过滤正文段内的附件样式文字。

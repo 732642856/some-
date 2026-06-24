@@ -297,6 +297,8 @@ P3 只参考：
 
 2026-06-25 本轮实现决策：阶段 137 修复小组件标题隐藏 OCR 原文附件行前，检索 `Swift MarkdownUI GitHub MIT swift-markdown-ui`、`GitHub Swift WidgetKit notes app open source widget title markdown`、`GitHub Swift iOS widget notes attachment markdown title parser OCR MIT`、`Swift WidgetKit notes snapshot attachment markdown title GitHub MIT` 和 `Swift notes app widget title strip attachment markdown open source MIT`。`gonzalezreal/swift-markdown-ui` 是 MIT 且适合完整 SwiftUI Markdown 渲染，WidgetExamples / WidgetKit 示例适合参考小组件结构；但这些库不理解 some 的 `识别文字：` OCR 正文边界，也不能直接决定哪些 `[附件:]` 行是截图原文、哪些是真实附件引用。本轮不复制第三方源码，复用项目内 `SharedAttachmentStore.displayTextWithoutAttachmentReferences`。
 
+2026-06-25 本轮实现决策：阶段 138 修复截图素材摘要隐藏 OCR 原文附件行前，检索 `Swift OCR notes screenshot asset summary attachment markdown GitHub MIT`、`Swift notes app OCR screenshot asset parser GitHub MIT` 和 `Swift markdown attachment parser OCR text GitHub MIT`。候选仍是通用 Markdown/OCR 示例或完整笔记应用方向，没有可直接复制进当前 `MemoAsset` screenshot 摘要、中文 OCR marker 和 some 附件引用语义的小型模块。本轮不新增依赖，继续复用项目内 `imageTextBlock`，把识别正文限定到空行前的连续正文段，保留正文段内附件样式文字。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

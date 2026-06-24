@@ -1783,14 +1783,14 @@ extension MemoAsset {
         }.map { $0 + 1 } ?? 1
         let recognizedText = lines
             .dropFirst(textStartIndex)
-            .filter { line in
+            .prefix { line in
                 !line.isEmpty
-                    && !line.hasPrefix("区域：")
+            }
+            .filter { line in
+                !line.hasPrefix("区域：")
                     && !line.hasPrefix("区域:")
                     && !line.hasPrefix("扫描页：")
                     && !line.hasPrefix("扫描页:")
-                    && !line.hasPrefix("[附件:")
-                    && !line.hasPrefix("some-attachment://")
             }
             .joined(separator: "\n")
         guard !recognizedText.isEmpty else {
