@@ -881,3 +881,10 @@
 - 开工前检索 work log custom report template、Swift markdown template engine、Swift work report template engine 和 daily report custom template 候选，GitHub Search 均返回 0 个可直接复制的小型 Swift/MIT 模块。
 - 新增 `testWorkLogExporterBuildsCustomTemplateDraft` 和 `testWorkLogExporterCustomTemplateKeepsUnknownPlaceholdersVisible`，覆盖 `{{项目}}`、`{{日期}}`、`{{进展列表}}`、`{{风险列表}}`、`{{下一步列表}}`、`{{备注列表}}` 渲染，以及未知占位符保留。
 - `WorkLogExporter.customReportDraft` 支持可编辑纯文本模板，复用现有工作日志字段抽取、排序和去重；工作日志页新增本机保存的自定义模板编辑区和“自定义模板”导出项。
+
+## 2026-06-24T18:40:00+08:00
+
+- 进入并完成阶段 99：OCR 分隔符表格候选摘要。阶段 98 已由并行流程提交推送并与 `origin/master` 同步，本轮继续处理 OCR 表格扫读缺口。
+- 开工前检索 Apple Vision 表格识别、Swift Vision OCR table extraction、VNRecognizedTextObservation table detection 和 Swift receipt OCR table parser 候选；未找到适合直接复制进当前本地 OCR/memo 链路的小型 Swift/MIT 模块。
+- 新增 `testImageTextRecognizerBuildsTableCandidateForDelimitedRows` 和 `testImageTextRecognizerSkipsTableCandidateWithoutDataRows`，覆盖 `|` 分隔的表头+数据行会生成“表格候选”，只有表头或无匹配数据行时不误判。
+- `ImageTextRecognizer` 新增分隔符型表格候选摘要，支持 `|`、全角 `｜` 和 tab，输出列数、数据行数和前四列表头；原始识别文字仍完整保留，复杂表格结构和自动纠错继续留作后续。

@@ -217,6 +217,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 97 继续补 OCR 表单字段候选摘要前，检索 `Swift Vision OCR key value extraction MIT`、`iOS OCR form field extraction Vision Swift`、`VNRecognizedTextObservation table extraction Swift MIT` 和 `Swift receipt OCR key value parser MIT`，GitHub Search 均返回 0 个可直接复制进 some 当前本地 OCR/memo/素材索引链路的小型 Swift/MIT 模块。完整表格结构识别和自动字段纠错更适合后续评估专门文档分析引擎；本轮只做确定性短字段解析：识别两行以上 `字段：值` 或 `字段: 值` 的 OCR 文本，在 memo 头部写入“字段候选”，原始识别文字仍完整保留。
 
+2026-06-24 本轮实现决策：阶段 99 继续补 OCR 表格候选摘要前，检索 `Apple Vision RecognizeDocumentRequest table Swift OCR example`、`Swift Vision OCR table extraction GitHub MIT`、`VNRecognizedTextObservation table detection Swift GitHub MIT` 和 `Swift receipt OCR table parser GitHub MIT`。Apple 新版 Vision 有文档/表格识别方向，但当前项目仍以 `VNRecognizeTextRequest` 和 iOS 兼容本地 OCR 链路为底座；GitHub 检索没有找到可直接复制进当前 SwiftUI memo/OCR 存储格式的小型 MIT 表格结构模块。Python/深度学习类表格抽取项目不适合本地个人 App 直接嵌入。本轮只识别 `|`、全角 `｜` 或 tab 这类明确分隔符型表格，生成列数、数据行数和表头摘要；复杂表格结构、合并单元格和无分隔符票据行仍留给后续专门阶段。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

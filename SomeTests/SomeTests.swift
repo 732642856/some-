@@ -4139,6 +4139,73 @@ final class SomeTests: XCTestCase {
         )
     }
 
+    func testImageTextRecognizerBuildsTableCandidateForDelimitedRows() {
+        let attachment = SharedAttachment(
+            id: "table.png",
+            filename: "table.png",
+            relativePath: "table.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 256
+        )
+
+        let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: [
+                ImageTextRecognizer.RecognizedLine(text: "商品 | 数量 | 金额", confidence: 0.96),
+                ImageTextRecognizer.RecognizedLine(text: "咖啡 | 2 | 36", confidence: 0.9),
+                ImageTextRecognizer.RecognizedLine(text: "蛋糕 | 1 | 28", confidence: 0.84)
+            ]
+        )
+
+        XCTAssertEqual(
+            text,
+            """
+            图片文字：table.png
+            置信度：平均 90% · 最低 84%
+            表格候选：3列 · 2行 · 商品/数量/金额
+
+            识别文字：
+            商品 | 数量 | 金额
+            咖啡 | 2 | 36
+            蛋糕 | 1 | 28
+
+            [附件: table.png](some-attachment://table.png)
+            """
+        )
+    }
+
+    func testImageTextRecognizerSkipsTableCandidateWithoutDataRows() {
+        let attachment = SharedAttachment(
+            id: "single-row.png",
+            filename: "single-row.png",
+            relativePath: "single-row.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 128
+        )
+
+        let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: [
+                ImageTextRecognizer.RecognizedLine(text: "商品 | 数量 | 金额", confidence: 0.92),
+                ImageTextRecognizer.RecognizedLine(text: "备注：请核对原图", confidence: 0.86)
+            ]
+        )
+
+        XCTAssertEqual(
+            text,
+            """
+            图片文字：single-row.png
+            置信度：平均 89% · 最低 86%
+
+            识别文字：
+            商品 | 数量 | 金额
+            备注：请核对原图
+
+            [附件: single-row.png](some-attachment://single-row.png)
+            """
+        )
+    }
+
     func testImageTextRecognizerSkipsFieldCandidatesForSingleLabelLine() {
         let attachment = SharedAttachment(
             id: "notice.png",

@@ -182,6 +182,10 @@ enum ImageTextRecognizer {
             lines.append("版面分区：\(layoutSummary)")
         }
 
+        if let tableSummary = tableCandidateSummary(for: cleanedLines) {
+            lines.append("表格候选：\(tableSummary)")
+        }
+
         if let fieldSummary = fieldCandidatesSummary(for: cleanedLines) {
             lines.append("字段候选：\(fieldSummary)")
         }
@@ -354,6 +358,51 @@ enum ImageTextRecognizer {
         }
 
         return fields.prefix(4).joined(separator: " · ")
+    }
+
+    private static func tableCandidateSummary(for lines: [RecognizedLine]) -> String? {
+        let rows = lines.compactMap { tableCells(in: $0.text) }
+        guard let header = rows.first,
+              header.count >= 2 else {
+            return nil
+        }
+
+        let dataRows = rows.dropFirst().filter { $0.count == header.count }
+        guard !dataRows.isEmpty else {
+            return nil
+        }
+
+        let headerSummary = header.prefix(4).joined(separator: "/")
+        return "\(header.count)列 · \(dataRows.count)行 · \(headerSummary)"
+    }
+
+    private static func tableCells(in line: String) -> [String]? {
+        let normalized = line.replacingOccurrences(of: "｜", with: "|")
+        let rawCells: [String]
+        if normalized.contains("|") {
+            rawCells = normalized.components(separatedBy: "|")
+        } else if normalized.contains("\t") {
+            rawCells = normalized.components(separatedBy: "\t")
+        } else {
+            return nil
+        }
+
+        let cells = rawCells
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        guard cells.count >= 2,
+              cells.contains(where: containsReadableContent) else {
+            return nil
+        }
+
+        return cells
+    }
+
+    private static func containsReadableContent(_ text: String) -> Bool {
+        text.unicodeScalars.contains { scalar in
+            CharacterSet.alphanumerics.contains(scalar)
+                || (0x4E00...0x9FFF).contains(scalar.value)
+        }
     }
 
     private static func fieldCandidate(in line: String) -> (key: String, value: String)? {
