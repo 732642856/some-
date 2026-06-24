@@ -1101,3 +1101,10 @@
 - 开工前用 GitHub API 检索 Swift notes internal link、memo backlink parser、note reference parser 和 markdown internal reference parser 候选，四组精确查询均为 0；本轮继续复用 some 自有 Markdown-native 引用格式和 OCR 正文边界。
 - 新增 `testMemoAssetsIgnoreReferencesInsideRecognizedTextBody`，覆盖 OCR 正文里的 `引用批注：` 和 `[引用: ...](some-memo://...)` 不生成 reference 素材、不进入目标 memo 反向引用、不命中 `has:reference`。
 - `MemoReferenceParser.references(in:)` 新增识别文字正文行索引，跳过“识别文字：”/`OCR:` 正文里的内部引用；some 生成的引用行、引用批注、详情页隐藏引用行和真实反向引用逻辑保持不变。
+
+## 2026-06-25T00:16:00+08:00
+
+- 进入并完成阶段 130：附件引用忽略 OCR 原文。阶段 129 推送后继续扫描同类解析器，发现 `SharedAttachmentStore.attachments(in:)` 会全文解析 `[附件: ...](some-attachment://...)`，可能让截图原文里的同形 Markdown 误进入附件素材、`has:attachment` 和附件清理引用集。
+- 开工前用 GitHub API 检索 Swift notes attachment parser、markdown attachment reference parser 和 some-attachment OCR parser 候选，精确查询均为 0；该格式是 some 自定义本地附件引用，不适合引入完整 Markdown 或附件库。
+- 新增 `testAttachmentStoreIgnoresReferencesInsideRecognizedTextBody`，覆盖 OCR 正文里的附件 Markdown 被忽略，空行后的 some 生成真实附件引用仍会解析。
+- `SharedAttachmentStore.attachments(in:)` 新增识别文字正文行索引，跳过“识别文字：”/`OCR:` 正文里的附件引用；display 隐藏、素材索引、`has:attachment` 和孤儿附件清理继续共用同一个解析入口。

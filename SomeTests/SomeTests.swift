@@ -3712,6 +3712,23 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(SharedAttachmentStore.attachments(in: text).isEmpty)
     }
 
+    func testAttachmentStoreIgnoresReferencesInsideRecognizedTextBody() {
+        let text = """
+        图片文字：scan.png
+
+        识别文字：
+        截图里展示了旧笔记引用
+        [附件: raw-note.png](some-attachment://raw-note.png)
+
+        [附件: scan.png](some-attachment://scan.png)
+        """
+
+        XCTAssertEqual(
+            SharedAttachmentStore.attachments(in: text).map(\.relativePath),
+            ["scan.png"]
+        )
+    }
+
     func testAttachmentStoreSavesUniqueFilenames() throws {
         let first = try SharedAttachmentStore.save(
             data: Data("first".utf8),

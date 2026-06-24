@@ -105,7 +105,7 @@
 - `has:wear-log` / `has:穿着` / `has:穿着记录`：只看穿着记录
 - `has:laundry-log` / `has:洗护` / `has:护理`：只看洗护记录
 - `has:packing-list` / `has:打包清单` / `has:旅行打包`：只看旅行打包清单
-- `has:attachment`：只看包含本地附件引用的记录
+- `has:attachment`：只看包含本地附件引用的记录；OCR 原始识别文字里的 `some-attachment://` 附件文本不会被当成真实附件
 - `has:task` / `has:open-task` / `has:completed-task`：只看包含任务、未完成任务或已完成任务的记录
 - `has:reference` / `has:backlink`：只看引用了其他记录或被其他记录引用的记录；OCR 原始识别文字里的 `some-memo://` 引用文本不会被当成真实关系
 - `created:2026` / `created:2026-06` / `created:2026-06-22`：按创建年、月或日过滤
@@ -138,7 +138,7 @@
 
 当前版本不接入账号、云同步、广告或第三方分析。笔记内容默认以 SQLite 保存在用户设备本地；启用 App Group 后，主 App 与 Share Extension 会共用同一个本地 SQLite 数据库，小组件只读取主 App 写入 App Group 的轻量快照 JSON。Markdown 导出和完整备份导出由用户主动触发系统分享表。图片缩略图通过 Apple ImageIO 在本机下采样并缓存到 App Group 本地 `ImageThumbnailCache` 目录，视频缩略图通过 Apple AVFoundation 在本机生成并缓存到 App Group 本地 `ThumbnailCache` 目录；素材库维护周期会按当前素材引用清理不再需要的图片/视频缩略图缓存。媒体元数据摘要也在本机读取，不上传原视频、音频或图片。衣橱打包页的“获取天气”由用户主动触发，会把填写的目的地发送给 Open-Meteo 地理编码/天气接口，并把返回的当天温度、天气码和降雨概率写入本地草稿。配置 OpenAI Key 后，AI 语义搜索会把最近使用的记录 embedding 缓存到 App Group 本地 `AICache` 目录，缓存 key 使用模型名和文本 SHA-256 指纹，最多保留 1000 条，不额外保存笔记明文；用户可在设置页清除 AI 语义缓存。
 
-附件当前保存在 App Group 的本地 `Attachments` 目录，memo 正文只保存轻量引用。删除或编辑 memo 时，只会删除已不再被任何 memo 引用的本地附件文件，避免多个 memo 共用同一附件时误删。
+附件当前保存在 App Group 的本地 `Attachments` 目录，memo 正文只保存轻量引用。附件关系只读取 some 生成的附件引用行，避免 OCR 原文里的同形 Markdown 误进入素材索引、搜索或附件清理引用集。删除或编辑 memo 时，只会删除已不再被任何 memo 引用的本地附件文件，避免多个 memo 共用同一附件时误删。
 
 签名和发布相关 ID 已抽成 build settings：`APP_BUNDLE_ID`、`SHARE_EXTENSION_BUNDLE_ID`、`WIDGET_EXTENSION_BUNDLE_ID`、`APP_GROUP_IDENTIFIER`。本机 Xcode 可在 Build Settings 中修改；GitHub Actions 可通过 secrets 注入。
 
