@@ -860,3 +860,10 @@
 - 开工前检索 Swift Vision OCR reading order / boundingBox 候选，未找到可直接复制进 some 本地 OCR 保存链路的小型 MIT 模块；本轮继续复用 Apple Vision 行框和项目已有 `ImageTextRegion`。
 - 新增 `testImageTextRecognizerOrdersRecognizedLinesByLayoutPosition`，覆盖 Vision 返回顺序打乱时，保存的“识别文字”仍按上到下、同一行左到右输出。
 - `ImageTextRecognizer` 在去重后仅对全部带 region 的 `RecognizedLine` 做阅读顺序排序；无行框或部分行缺行框时保持旧输入顺序，避免影响旧 OCR 文本。
+
+## 2026-06-24T17:18:00+08:00
+
+- 进入并完成阶段 96：Markdown 脚注定义阅读渲染。阶段 95 已提交到当前 HEAD，本轮继续补 Markdown 阅读里脚注定义仍只是普通正文的问题。
+- 开工前检索 SwiftUI Markdown footnote renderer、MarkdownUI footnotes 和 swift-markdown footnote support 候选；完整 Markdown/GFM 引擎仍作为后续候选，本轮不引入大依赖。
+- 新增 `testMarkdownMemoBlockParserGroupsFootnotes` 和 `testMarkdownMemoBlockParserKeepsFootnotesInsideCodeBlocks`，覆盖连续脚注定义聚合、后续任务行号保持原始行号，以及代码块内脚注样式不被解析。
+- `MarkdownMemoBlockParser` 新增 footnotes block，`MarkdownMemoTextView` 用轻量脚注区展示脚注 id 和正文；README 同步到 Markdown 阅读渲染 v6。

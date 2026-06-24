@@ -212,6 +212,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 94 继续补 Markdown 附件卡片预览前，检索 `SwiftUI attachment preview card open source MIT GitHub`、`SwiftUI file attachment card GitHub MIT`、`SwiftUI document attachment preview row MIT`、`MarkdownUI SwiftUI GitHub`、`swiftlang swift-markdown GitHub`、`Textual Swift Markdown renderer GitHub` 和 `MoeMemos iOS GitHub attachments`。`MarkdownUI`、`swift-markdown` 和 `Textual` 仍适合后续完整 Markdown/GFM 引擎，MoeMemos 附件处理受项目架构和许可证边界影响不适合直接复制；当前项目已有 `AttachmentPreviewList`、图片预览、视频缩略图、音频/文件图标和 `SharedAttachmentStore` 本地引用解析，本轮复用这些组件，让列表和详情页的独立附件引用行按原文位置渲染为附件卡片，并新增 memo 引用隐藏后的任务行号映射。
 
+2026-06-24 本轮实现决策：阶段 96 继续补 Markdown 脚注定义阅读渲染前，检索 `SwiftUI Markdown footnote renderer MIT GitHub`、`swift-markdown footnote support GitHub` 和 `MarkdownUI footnotes SwiftUI GitHub`，未找到可直接复制进 some 当前轻量阅读器的小型 MIT 脚注模块。`MarkdownUI` / `swift-markdown` 仍适合后续完整 GFM 引擎；本轮只补独立 `[^id]: text` 脚注定义块，继续复用 `MarkdownMemoBlockParser`，避免引入会影响任务勾选行号、附件引用和代码块隔离的大依赖。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

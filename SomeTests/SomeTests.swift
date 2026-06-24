@@ -2277,6 +2277,53 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(codeBlock.code, "[附件: image.png](some-attachment://image.png)")
     }
 
+    func testMarkdownMemoBlockParserGroupsFootnotes() {
+        let text = """
+        正文[^1]
+        [^1]: 第一条脚注
+        [^note]: 第二条脚注
+        - [ ] 后续
+        """
+
+        let blocks = MarkdownMemoBlockParser.blocks(in: text)
+
+        XCTAssertEqual(blocks.count, 3)
+        guard case .footnotes(let footnotes) = blocks[1] else {
+            return XCTFail("Expected footnotes block")
+        }
+        XCTAssertEqual(footnotes.startLineIndex, 1)
+        XCTAssertEqual(footnotes.endLineIndex, 2)
+        XCTAssertEqual(
+            footnotes.items,
+            [
+                MarkdownMemoFootnoteItem(id: "1", text: "第一条脚注"),
+                MarkdownMemoFootnoteItem(id: "note", text: "第二条脚注")
+            ]
+        )
+
+        guard case .line(let taskLine) = blocks[2] else {
+            return XCTFail("Expected task line")
+        }
+        XCTAssertEqual(taskLine.lineIndex, 3)
+        XCTAssertEqual(taskLine.task?.text, "后续")
+    }
+
+    func testMarkdownMemoBlockParserKeepsFootnotesInsideCodeBlocks() {
+        let text = """
+        ```
+        [^1]: 代码里的脚注样式
+        ```
+        """
+
+        let blocks = MarkdownMemoBlockParser.blocks(in: text)
+
+        XCTAssertEqual(blocks.count, 1)
+        guard case .code(let codeBlock) = blocks[0] else {
+            return XCTFail("Expected code block")
+        }
+        XCTAssertEqual(codeBlock.code, "[^1]: 代码里的脚注样式")
+    }
+
     func testStoreToggleTaskUpdatesMemoTextAndTags() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "- [ ] 跟进 #产品\n普通行")

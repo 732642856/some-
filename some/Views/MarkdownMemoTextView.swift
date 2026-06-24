@@ -60,6 +60,8 @@ struct MarkdownMemoTextView: View {
             dividerBlock()
         case .attachment(let attachment):
             attachmentBlock(attachment)
+        case .footnotes(let footnotes):
+            footnotesBlock(footnotes)
         }
     }
 
@@ -210,6 +212,35 @@ struct MarkdownMemoTextView: View {
         )
     }
 
+    private func footnotesBlock(_ footnotes: MarkdownMemoFootnotesBlock) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("脚注")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.secondaryText)
+
+            ForEach(footnotes.items) { item in
+                HStack(alignment: .top, spacing: 8) {
+                    Text(item.id)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(Color.accentGreen)
+                        .frame(minWidth: 18, alignment: .trailing)
+
+                    renderedText(item.text)
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundStyle(Color.secondaryText)
+                        .lineSpacing(3)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.subtleSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
     private func headingFontSize(for level: Int) -> CGFloat {
         switch level {
         case 1: return 22
@@ -260,6 +291,9 @@ enum MarkdownMemoBlockParser {
             } else if let attachment = attachmentBlock(in: line, lineIndex: index) {
                 blocks.append(.attachment(attachment))
                 index += 1
+            } else if let footnotes = footnotesBlock(in: lines, startIndex: index) {
+                blocks.append(.footnotes(footnotes))
+                index = footnotes.endLineIndex + 1
             } else if let table = tableBlock(in: lines, startIndex: index) {
                 blocks.append(.table(table))
                 index = table.endLineIndex + 1
@@ -327,6 +361,45 @@ enum MarkdownMemoBlockParser {
         }
 
         return MarkdownMemoAttachmentBlock(lineIndex: lineIndex, attachment: attachments[0])
+    }
+
+    private static func footnotesBlock(in lines: [String], startIndex: Int) -> MarkdownMemoFootnotesBlock? {
+        guard let firstItem = footnoteItem(in: lines[startIndex]) else {
+            return nil
+        }
+
+        var items = [firstItem]
+        var index = startIndex + 1
+        while index < lines.count, let item = footnoteItem(in: lines[index]) {
+            items.append(item)
+            index += 1
+        }
+
+        return MarkdownMemoFootnotesBlock(
+            startLineIndex: startIndex,
+            endLineIndex: index - 1,
+            items: items
+        )
+    }
+
+    private static func footnoteItem(in line: String) -> MarkdownMemoFootnoteItem? {
+        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.hasPrefix("[^"),
+              let markerRange = trimmed.range(of: "]:") else {
+            return nil
+        }
+
+        let idStart = trimmed.index(trimmed.startIndex, offsetBy: 2)
+        let rawID = String(trimmed[idStart..<markerRange.lowerBound])
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let textStart = markerRange.upperBound
+        let text = String(trimmed[textStart...])
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !rawID.isEmpty, !text.isEmpty else {
+            return nil
+        }
+
+        return MarkdownMemoFootnoteItem(id: rawID, text: text)
     }
 
     private static func tableBlock(in lines: [String], startIndex: Int) -> MarkdownMemoTableBlock? {
@@ -446,6 +519,7 @@ enum MarkdownMemoBlock: Identifiable, Equatable {
     case table(MarkdownMemoTableBlock)
     case divider(MarkdownMemoDividerBlock)
     case attachment(MarkdownMemoAttachmentBlock)
+    case footnotes(MarkdownMemoFootnotesBlock)
 
     var id: String {
         switch self {
@@ -463,6 +537,8 @@ enum MarkdownMemoBlock: Identifiable, Equatable {
             return "divider-\(divider.lineIndex)"
         case .attachment(let attachment):
             return "attachment-\(attachment.lineIndex)-\(attachment.attachment.id)"
+        case .footnotes(let footnotes):
+            return "footnotes-\(footnotes.startLineIndex)-\(footnotes.endLineIndex)"
         }
     }
 }
@@ -500,6 +576,17 @@ struct MarkdownMemoDividerBlock: Equatable {
 struct MarkdownMemoAttachmentBlock: Equatable {
     let lineIndex: Int
     let attachment: SharedAttachment
+}
+
+struct MarkdownMemoFootnotesBlock: Equatable {
+    let startLineIndex: Int
+    let endLineIndex: Int
+    let items: [MarkdownMemoFootnoteItem]
+}
+
+struct MarkdownMemoFootnoteItem: Identifiable, Equatable {
+    let id: String
+    let text: String
 }
 
 struct MarkdownMemoRenderLine: Identifiable, Equatable {
