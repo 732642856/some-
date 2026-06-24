@@ -3783,6 +3783,33 @@ final class SomeTests: XCTestCase {
         )
     }
 
+    func testAttachmentStoreDoesNotRemapReferencesInsideRecognizedTextBody() {
+        let replacement = SharedAttachment(
+            id: "restored.png",
+            filename: "restored.png",
+            relativePath: "restored.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 12
+        )
+        let text = """
+        图片文字：scan.png
+
+        识别文字：
+        截图里展示了旧附件引用
+        [附件: raw-note.png](some-attachment://raw-note.png)
+
+        [附件: raw-note.png](some-attachment://raw-note.png)
+        """
+
+        let remapped = SharedAttachmentStore.replacingAttachmentReferences(
+            in: text,
+            remapping: ["raw-note.png": replacement]
+        )
+
+        XCTAssertTrue(remapped.contains("[附件: raw-note.png](some-attachment://raw-note.png)"))
+        XCTAssertTrue(remapped.hasSuffix("[附件: restored.png](some-attachment://restored.png)"))
+    }
+
     func testAttachmentStoreSavesUniqueFilenames() throws {
         let first = try SharedAttachmentStore.save(
             data: Data("first".utf8),

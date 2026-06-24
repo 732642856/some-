@@ -1122,3 +1122,10 @@
 - 开工前用 GitHub API 检索 Swift notes tag parser、hashtag parser notes app 和 memo tag parser markdown 候选，精确查询均为 0；该问题不是通用 hashtag 语法，而是 some OCR 块边界，本轮继续复用 `TagParser`。
 - 新增 `testTagParserIgnoresTagsInsideRecognizedTextBody` 和 `testAddMemoDoesNotIndexTagsInsideRecognizedTextBody`，覆盖 OCR 正文里的 hashtag 不进入 memo.tags、allTags 或 selectedTag 筛选。
 - `TagParser.extractTags(from:)` 新增识别文字正文行索引，跳过“识别文字：”/`OCR:` 正文里的 tag match；新增、编辑、导入、历史恢复、AI 记忆和统计继续共用这个入口。
+
+## 2026-06-25T00:53:00+08:00
+
+- 进入并完成阶段 133：附件导入 remap 忽略 OCR 原文。继续扫描附件链路时发现 `SharedAttachmentStore.replacingAttachmentReferences(in:remapping:)` 会全文替换 `[附件: ...](some-attachment://...)`，备份导入恢复路径时可能篡改 OCR 原始识别正文里的截图文字。
+- 开工前用 GitHub API 检索 attachment reference remapping、backup restore attachment rewrite 和 some-attachment remapping OCR parser 候选，精确查询均为 0；该问题仍是 some 自定义附件引用与 OCR 正文边界。
+- 新增 `testAttachmentStoreDoesNotRemapReferencesInsideRecognizedTextBody`，覆盖 OCR 正文里的旧附件 Markdown 保持原样，空行后的真实附件引用会被 remap 到恢复后的附件。
+- `replacingAttachmentReferences(in:remapping:)` 复用附件解析器的识别文字正文行索引，只替换正文外的附件引用；备份导入和历史恢复继续使用同一入口。

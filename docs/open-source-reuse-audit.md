@@ -287,6 +287,8 @@ P3 只参考：
 
 2026-06-25 本轮实现决策：阶段 132 修复标签解析与 OCR 原文混排边界前，检索 `Swift notes tag parser OCR MIT`、`Swift hashtag parser notes app MIT` 和 `Swift memo tag parser markdown MIT`，GitHub API 精确查询均返回 `total=0`。当前缺口不是通用 hashtag 语法，而是 some OCR 原文中的话题文字不应升级为 memo 组织标签；本轮继续复用 `TagParser`，只给 tag match 补 OCR 正文行过滤。
 
+2026-06-25 本轮实现决策：阶段 133 修复附件导入 remap 与 OCR 原文混排边界前，检索 `Swift attachment reference remapping parser notes MIT`、`Swift backup restore attachment reference rewrite MIT` 和 `Swift some-attachment remapping OCR parser`，GitHub API 精确查询均返回 `total=0`。当前缺口来自 some 自定义附件引用在备份导入时被路径重写，通用备份/Markdown 库不能理解当前 OCR 正文边界；本轮继续复用 `SharedAttachmentStore.replacingAttachmentReferences`，只补 OCR 正文行过滤。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

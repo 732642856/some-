@@ -269,14 +269,22 @@ enum SharedAttachmentStore {
             return text
         }
 
+        let nsText = text as NSString
+        let lines = text.components(separatedBy: .newlines)
+        let recognizedTextBodyIndexes = recognizedTextBodyLineIndexes(in: lines)
         let matches = expression.matches(
             in: text,
-            range: NSRange(text.startIndex..<text.endIndex, in: text)
+            range: NSRange(location: 0, length: nsText.length)
         )
 
         var output = ""
         var cursor = text.startIndex
         for match in matches {
+            let lineIndex = lineIndex(containing: match.range.location, in: nsText)
+            guard !recognizedTextBodyIndexes.contains(lineIndex) else {
+                continue
+            }
+
             guard
                 let fullRange = Range(match.range(at: 0), in: text),
                 let pathRange = Range(match.range(at: 2), in: text)
