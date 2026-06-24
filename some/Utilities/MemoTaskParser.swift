@@ -21,7 +21,7 @@ enum MemoTaskParser {
                 return nil
             }
 
-            taskItem(in: line, lineIndex: lineIndex)
+            return taskItem(in: line, lineIndex: lineIndex)
         }
     }
 
