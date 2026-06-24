@@ -3777,6 +3777,33 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(ClipFragmentExtractor.assetSummaries(in: text).isEmpty)
     }
 
+    func testClipFragmentExtractorIgnoresMergedMarkersAfterAttachmentMarkdownInsideRecognizedTextBody() {
+        let text = """
+        图片文字：raw-note.png
+
+        识别文字：
+        [附件: raw-card.png](some-attachment://raw-card.png)
+        摘录片段：这是截图原文
+        来源：网页0 · OCR1
+        片段：
+        - [OCR] 1. 截图里原本就有这行
+
+        [附件: raw-note.png](some-attachment://raw-note.png)
+        """
+
+        let fragments = ClipFragmentExtractor.fragments(in: text)
+
+        XCTAssertEqual(fragments.map(\.source), [.ocr, .ocr, .ocr, .ocr, .ocr])
+        XCTAssertEqual(fragments.map(\.text), [
+            "[附件: raw-card.png](some-attachment://raw-card.png)",
+            "摘录片段：这是截图原文",
+            "来源：网页0 · OCR1",
+            "片段：",
+            "- [OCR] 1. 截图里原本就有这行"
+        ])
+        XCTAssertTrue(ClipFragmentExtractor.assetSummaries(in: text).isEmpty)
+    }
+
     func testSelectedWebClipContentSeparatesWebAndOCRFragments() throws {
         let fragments = [
             ClipFragment(source: .web, title: "文章", text: "网页摘要", uri: "https://example.com/a", stableKey: "web-summary"),
@@ -4331,6 +4358,30 @@ final class SomeTests: XCTestCase {
         图片文字：raw-note.png
 
         识别文字：
+        摘录片段：这是截图原文
+        来源：网页0 · OCR1
+        片段：
+        - [OCR] 1. 截图里原本就有这行
+
+        [附件: raw-note.png](some-attachment://raw-note.png)
+        """
+        guard let memo = store.addMemo(text: text) else {
+            return XCTFail("Expected OCR memo")
+        }
+
+        XCTAssertFalse(store.assets(for: memo).contains { $0.kind == .clipFragment })
+
+        store.searchText = "has:clip"
+        XCTAssertTrue(store.filteredMemos.isEmpty)
+    }
+
+    func testMemoAssetsIgnoreClipFragmentMarkersAfterAttachmentMarkdownInsideRecognizedTextBody() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let text = """
+        图片文字：raw-note.png
+
+        识别文字：
+        [附件: raw-card.png](some-attachment://raw-card.png)
         摘录片段：这是截图原文
         来源：网页0 · OCR1
         片段：
