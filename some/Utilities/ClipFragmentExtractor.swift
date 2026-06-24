@@ -129,7 +129,7 @@ enum ClipFragmentExtractor {
 
     static func needsOCRReview(in text: String, confidenceThreshold: Int = 70) -> Bool {
         return imageTextBlocksRaw(in: text).contains { block in
-            guard imageText(in: block) != nil else {
+            guard hasRecognizedTextLines(in: block) else {
                 return false
             }
 
@@ -367,6 +367,22 @@ enum ClipFragmentExtractor {
             }
         }
         return lines
+    }
+
+    private static func hasRecognizedTextLines(in text: String) -> Bool {
+        let lines = text
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        guard let headerIndex = lines.firstIndex(where: isRecognizedTextHeader) else {
+            return false
+        }
+
+        return lines
+            .dropFirst(headerIndex + 1)
+            .prefix { !$0.isEmpty }
+            .contains { line in
+                SharedAttachmentStore.attachments(in: line).isEmpty
+            }
     }
 
     private static func confidencePercentages(in line: String) -> [Int] {

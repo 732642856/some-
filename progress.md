@@ -1225,3 +1225,9 @@
 - 进入并完成阶段 148：截图素材摘要保留元数据前缀原文。继续扫描 `Memo.imageTextBlock` 时发现截图素材摘要会在识别正文里过滤 `区域：` / `扫描页：` 前缀行。
 - 新增 `testImageTextAssetSummaryKeepsMetadataPrefixesInsideRecognizedTextBody`，覆盖 `识别文字：` 后的 `区域：这是截图原文` 和 `扫描页：截图原文` 保留进 screenshot asset summary。
 - `Memo.imageTextBlock` 增加 `hasRecognizedTextHeader` 判断：有明确识别正文 header 时不再过滤正文里的区域/扫描页同形行；无 header 的旧格式仍过滤生成 metadata。
+
+## 2026-06-25T04:47:24+08:00
+
+- 进入并完成阶段 149：低置信度 OCR 待校对 CI 收口。复查 GitHub Actions run `28120722163` 后确认失败集中在阶段 146 新增的两个负例，Build for simulator 已通过，Run tests 在 metadata-only 低置信度图片块上仍误命中。
+- 用最小 Swift 探针复现旧逻辑输出 `old metadata-only block review = true`；根因是 `ClipFragmentExtractor.needsOCRReview` 调用 `imageText(in:) != nil`，而 `imageText(in:)` 的无 header 旧格式兜底会把 `置信度：平均 62%` 当成正文。
+- `ClipFragmentExtractor.needsOCRReview` 改为先调用 `hasRecognizedTextLines(in:)`：必须有严格整行 `识别文字：` / `OCR:` header，且 header 后到空行前存在非附件正文，才允许同块低置信度 metadata 触发 `has:ocr-review` 或工作日志待校对来源。
