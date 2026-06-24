@@ -229,6 +229,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 103 继续处理手帐列表预览同步加载原图前，检索 `SwiftUI scrapbook image layer thumbnail cache MIT`、`SwiftUI canvas image thumbnail preview ImageIO MIT`、`Swift local image thumbnail canvas preview cache MIT` 和 `SwiftUI photo collage thumbnail cache local files MIT`，GitHub Search 均返回 0 个可直接复制进当前手帐列表预览的小型 SwiftUI/MIT 模块；同时复检 Kingfisher、Nuke、SDWebImageSwiftUI 等成熟远程图片库，仍不适配本地 App Group 附件缩略图。阶段 102 已落地的 `ImageThumbnailGenerator` 正好覆盖本地附件缩略图缓存，因此本轮直接复用项目内 ImageIO 缓存，不复制第三方远程图片库源码，不改手帐 JSON 或渲染器。
 
+2026-06-24 本轮实现决策：阶段 104 继续处理手帐编辑器图片图层同步解码原图前，检索 `SwiftUI local image cache ImageIO thumbnail GitHub MIT`、`SwiftUI async local file image view thumbnail GitHub MIT`、`Kingfisher Swift GitHub MIT` 和 `Nuke Swift image loading GitHub MIT`。成熟库仍偏远程图片加载与通用缓存；当前编辑器只需要对已有 App Group 图片附件做预览级缩略图并保留导出原图质量，因此继续复用 `ImageThumbnailGenerator` 和 `ScrapbookImageFilterRenderer`，不新增第三方依赖。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

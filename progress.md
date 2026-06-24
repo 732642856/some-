@@ -916,3 +916,10 @@
 - 开工前复检 SwiftUI 本地文件缩略图缓存、Kingfisher、Nuke、SDWebImageSwiftUI 和 Apple ImageIO 候选；当前缺口只需要复用本项目 App Group 本地缩略图缓存，不引入远程图片库。
 - 新增 `ImageThumbnailGenerator.previewMaximumPixelSize(width:height:scale:)` 和 `testImageThumbnailPreviewPixelSizeUsesScaledLayerBounds`，锁定手帐预览按图层显示尺寸生成小图且最低 64px 的策略。
 - 新增 `ImageThumbnailFillPreview`，手帐列表图片图层改为异步加载 `ImageThumbnailGenerator` 小图缓存，保持原来的裁切填充和圆角外观，避免列表预览同步解码原图。
+
+## 2026-06-24T20:55:00+08:00
+
+- 进入并完成阶段 104：手帐编辑器图片图层缩略图预览。阶段 103 推送后继续扫描剩余同步解码点，确认手帐编辑器图片图层仍在 SwiftUI body 里 `UIImage(contentsOfFile:)` 读原图并套滤镜。
+- 开工前复检 SwiftUI 本地图片缓存、ImageIO 缩略图、Kingfisher 和 Nuke 候选；当前不需要远程图片加载库，继续复用 `ImageThumbnailGenerator` 与 `ScrapbookImageFilterRenderer`。
+- `ImageThumbnailGenerator.previewMaximumPixelSize` 新增 `layerScale`，并增加 `testImageThumbnailPreviewPixelSizeIncludesLayerScale`，让编辑器预览按画布缩放和图层缩放计算小图尺寸。
+- 新增 `AsyncScrapbookImageLayerPreview`，编辑器图片图层异步读取缩略图缓存并后台套照片滤镜，仍按原有取景位置/放大倍率显示；PNG/PDF 导出 renderer 保留原图路径，避免降低导出清晰度。

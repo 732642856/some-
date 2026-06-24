@@ -803,23 +803,12 @@ private struct EditableScrapbookLayerView: View {
         switch layer.kind {
         case .image:
             if let attachmentPath = layer.attachmentPath,
-               let url = SharedAttachmentStore.url(for: attachment(relativePath: attachmentPath)),
-               let image = UIImage(contentsOfFile: url.path) {
-                GeometryReader { proxy in
-                    let previewImage = ScrapbookImageFilterRenderer.image(image, applying: layer.imageFilter)
-                    let drawRect = imageDrawRect(
-                        imageSize: previewImage.size,
-                        viewSize: proxy.size,
-                        cropX: layer.imageCropX,
-                        cropY: layer.imageCropY,
-                        cropScale: layer.imageCropScale
-                    )
-
-                    Image(uiImage: previewImage)
-                        .resizable()
-                        .frame(width: drawRect.width, height: drawRect.height)
-                        .offset(x: drawRect.minX, y: drawRect.minY)
-                }
+               let url = SharedAttachmentStore.url(for: attachment(relativePath: attachmentPath)) {
+                AsyncScrapbookImageLayerPreview(
+                    url: url,
+                    layer: layer,
+                    canvasScale: canvasScale
+                )
                 .clipShape(RoundedRectangle(cornerRadius: CGFloat(layer.cornerRadius ?? 0) * canvasScale, style: .continuous))
                 .overlay(imageBorderOverlay)
             } else {
@@ -928,6 +917,90 @@ private struct EditableScrapbookLayerView: View {
             byteCount: 0
         )
     }
+}
+
+private struct AsyncScrapbookImageLayerPreview: View {
+    let url: URL
+    let layer: ScrapbookLayer
+    let canvasScale: CGFloat
+
+    @State private var image: UIImage?
+    @State private var requestedURL: URL?
+    @State private var requestedPixelSize: CGFloat?
+    @State private var requestedFilter: ScrapbookLayer.ImageFilter?
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack {
+                if let image = image {
+                    let drawRect = imageDrawRect(
+                        imageSize: image.size,
+                        viewSize: proxy.size,
+                        cropX: layer.imageCropX,
+                        cropY: layer.imageCropY,
+                        cropScale: layer.imageCropScale
+                    )
+
+                    Image(uiImage: image)
+                        .resizable()
+                        .frame(width: drawRect.width, height: drawRect.height)
+                        .offset(x: drawRect.minX, y: drawRect.minY)
+                } else {
+                    Image(systemName: "photo")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Color.accentGreen)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.greenTint)
+                }
+            }
+            .clipped()
+            .onAppear(perform: requestThumbnailIfNeeded)
+            .onChange(of: url) { _ in requestThumbnailIfNeeded() }
+            .onChange(of: layer.imageFilter) { _ in requestThumbnailIfNeeded() }
+            .onChange(of: layer.width) { _ in requestThumbnailIfNeeded() }
+            .onChange(of: layer.height) { _ in requestThumbnailIfNeeded() }
+            .onChange(of: layer.scale) { _ in requestThumbnailIfNeeded() }
+            .onChange(of: canvasScale) { _ in requestThumbnailIfNeeded() }
+        }
+    }
+
+    private func requestThumbnailIfNeeded() {
+        let pixelSize = ImageThumbnailGenerator.previewMaximumPixelSize(
+            width: layer.width,
+            height: layer.height,
+            scale: canvasScale,
+            layerScale: layer.scale
+        )
+        guard requestedURL != url ||
+                requestedPixelSize != pixelSize ||
+                requestedFilter != layer.imageFilter else {
+            return
+        }
+
+        requestedURL = url
+        requestedPixelSize = pixelSize
+        requestedFilter = layer.imageFilter
+        image = nil
+        let thumbnailURL = url
+        let thumbnailPixelSize = pixelSize
+        let filter = layer.imageFilter
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let thumbnail = ImageThumbnailGenerator.image(
+                for: thumbnailURL,
+                maximumPixelSize: thumbnailPixelSize
+            ).map { ScrapbookImageFilterRenderer.image($0, applying: filter) }
+
+            DispatchQueue.main.async {
+                guard requestedURL == thumbnailURL,
+                      requestedPixelSize == thumbnailPixelSize,
+                      requestedFilter == filter else {
+                    return
+                }
+                image = thumbnail
+            }
+        }
+    }
 
     private func imageDrawRect(
         imageSize: CGSize,
@@ -955,8 +1028,10 @@ private struct EditableScrapbookLayerView: View {
             height: drawSize.height
         )
     }
+}
 
-    private func color(hex: String?) -> Color? {
+private extension EditableScrapbookLayerView {
+    func color(hex: String?) -> Color? {
         guard let hex = hex else { return nil }
         let trimmed = hex.trimmingCharacters(in: CharacterSet(charactersIn: "# "))
         guard trimmed.count == 6, let value = Int(trimmed, radix: 16) else {
@@ -970,7 +1045,7 @@ private struct EditableScrapbookLayerView: View {
         )
     }
 
-    private func scrapbookFont(for layer: ScrapbookLayer, size: CGFloat) -> Font {
+    func scrapbookFont(for layer: ScrapbookLayer, size: CGFloat) -> Font {
         switch ScrapbookStyleCatalog.normalizedFontKey(layer.fontName) {
         case "serif":
             return .system(size: size, weight: .semibold, design: .serif)

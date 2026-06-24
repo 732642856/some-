@@ -3958,6 +3958,17 @@ final class SomeTests: XCTestCase {
         )
     }
 
+    func testImageThumbnailPreviewPixelSizeIncludesLayerScale() {
+        XCTAssertEqual(
+            ImageThumbnailGenerator.previewMaximumPixelSize(width: 120, height: 80, scale: 0.5, layerScale: 1.5),
+            270
+        )
+        XCTAssertEqual(
+            ImageThumbnailGenerator.previewMaximumPixelSize(width: 120, height: 80, scale: 0.5, layerScale: -2),
+            180
+        )
+    }
+
     func testVideoThumbnailRemoveCachedImageDeletesExpectedFile() throws {
         let sourceURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("cache-delete-\(UUID().uuidString).mov")

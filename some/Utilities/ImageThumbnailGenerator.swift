@@ -86,11 +86,13 @@ enum ImageThumbnailGenerator {
         width: CGFloat,
         height: CGFloat,
         scale: CGFloat,
+        layerScale: Double = 1,
         displayScale: CGFloat = 3,
         minimumPixelSize: CGFloat = 64
     ) -> CGFloat {
         let longestSide = max(width, height)
-        let scaledSize = longestSide * max(0, scale) * max(1, displayScale)
+        let layerScale = CGFloat(layerScale.isFinite ? max(1, layerScale) : 1)
+        let scaledSize = longestSide * max(0, scale) * layerScale * max(1, displayScale)
         return max(minimumPixelSize, scaledSize.rounded(.up))
     }
 
