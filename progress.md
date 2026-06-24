@@ -1087,3 +1087,10 @@
 - 开工前用 GitHub API 检索 Swift memo embedded JSON marker parser 与 notes structured JSON block parser 候选，精确查询没有可直接复制进当前中文 memo/OCR 格式的小型 Swift/MIT 模块；本轮继续复用项目内“识别文字”边界解析。
 - 新增手帐与图片编辑负例测试：OCR 正文里出现图层 JSON 或图片编辑 JSON 时，`layout(in:)` / `recipe(in:)` 返回 nil，素材摘要不显示图层或滤镜；替换手帐布局时只替换 OCR 正文外的生成 marker。
 - 修复阶段 126 推送后的 CI 暴露问题：run `28108975359` 的 Build for simulator 通过、Run tests 失败在 `testClipFragmentExtractorIgnoresMergedMarkersInsideRecognizedTextBody()`，根因是测试错误地要求 OCR fragment 为空；已改为允许 OCR 原文片段存在，只要求不生成 merged clip asset 和 `has:clip` 命中。
+
+## 2026-06-24T23:51:00+08:00
+
+- 进入并完成阶段 128：网页摘录 marker 忽略 OCR 原文。等待阶段 127 CI 时继续只读扫描，发现 `LinkExtractor.webClips(in:)` 会全文解析 `[网页摘录: ...](https://...)`，与阶段 126/127 属于同一类系统生成 marker 与 OCR 原文混排风险。
+- 开工前检索 Swift notes web clip parser、web clipper parser 和 markdown link extractor 候选；可用项目多为完整 Markdown/HTML 引擎或浏览器 clipper，不适合直接复制进当前 some 中文网页摘录块与 OCR 正文边界，本轮继续复用项目内边界解析。
+- 新增 `testLinkExtractorIgnoresWebClipMarkersInsideRecognizedTextBody` 和 `testMemoAssetsIgnoreWebClipMarkersInsideRecognizedTextBody`，覆盖 OCR 正文里的网页摘录 Markdown 不生成 webClip 素材，`has:web` 不命中。
+- `LinkExtractor.webClips(in:)` 新增识别文字正文行索引，跳过“识别文字：”/`OCR:` 正文里的 `[网页摘录: ...]` marker；some 生成的网页摘录块、摘要、重点和 tracking 参数去重行为保持不变。

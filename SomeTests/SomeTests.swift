@@ -3269,6 +3269,22 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(clips.first?.summary, "第一条")
     }
 
+    func testLinkExtractorIgnoresWebClipMarkersInsideRecognizedTextBody() {
+        let text = """
+        图片文字：raw-note.png
+
+        识别文字：
+        [网页摘录: 这是截图原文](https://example.com/raw)
+        摘要：截图里原本就有这行
+        重点：
+        - 截图里的重点
+
+        [附件: raw-note.png](some-attachment://raw-note.png)
+        """
+
+        XCTAssertTrue(LinkExtractor.webClips(in: text).isEmpty)
+    }
+
     func testLinkExtractorBuildsWebClipText() {
         let url = URL(string: "https://example.com/a")!
         let text = LinkExtractor.webClipText(
@@ -3954,6 +3970,29 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(assets.contains { $0.kind == .attachment && $0.uri?.contains(attachment.relativePath) == true })
         XCTAssertTrue(assets.contains { $0.kind == .task && $0.title == "整理素材" && $0.summary == "open" })
         XCTAssertTrue(assets.contains { $0.kind == .reference && $0.uri == "some-memo://\(target.id.uuidString)" })
+    }
+
+    func testMemoAssetsIgnoreWebClipMarkersInsideRecognizedTextBody() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let text = """
+        图片文字：raw-note.png
+
+        识别文字：
+        [网页摘录: 这是截图原文](https://example.com/raw)
+        摘要：截图里原本就有这行
+        重点：
+        - 截图里的重点
+
+        [附件: raw-note.png](some-attachment://raw-note.png)
+        """
+        guard let memo = store.addMemo(text: text) else {
+            return XCTFail("Expected OCR memo")
+        }
+
+        XCTAssertFalse(store.assets(for: memo).contains { $0.kind == .webClip })
+
+        store.searchText = "has:web"
+        XCTAssertTrue(store.filteredMemos.isEmpty)
     }
 
     func testMemoAssetsIndexClipFragments() throws {

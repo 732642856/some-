@@ -277,6 +277,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 127 修复手帐/图片编辑结构化 JSON marker 与 OCR 原文混排边界前，检索 `Swift memo embedded JSON marker parser MIT` 和 `Swift notes structured JSON block parser MIT`，GitHub API 精确查询均返回 `total=0`。该缺口来自 some 自定义正文格式中的 `手帐图层JSON：` / `图片编辑JSON：` marker 与 OCR 原始识别文字共处同一 memo；没有可直接复制的小型 Swift/MIT 模块能理解当前中文 memo、附件和素材摘要边界。本轮不新增依赖，复用项目内“识别文字：”/`OCR:` 正文边界，限制结构化 JSON marker 只从 OCR 正文外读取。
 
+2026-06-24 本轮实现决策：阶段 128 修复网页摘录 marker 与 OCR 原文混排边界前，检索 `GitHub Swift notes web clip parser markdown link MIT`、`GitHub Swift web clipper parser notes app MIT` 和 `GitHub Swift markdown link extractor web clip notes MIT`。结果主要指向完整 Markdown 解析器、HTML/浏览器 clipper 或通用链接提取示例，没有能直接复制进 some 当前 `[网页摘录: 标题](URL)`、摘要/重点和 OCR 正文边界的小型 Swift/MIT 模块。本轮继续复用 `LinkExtractor` 与项目内“识别文字：”/`OCR:` 正文边界，不新增第三方依赖。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

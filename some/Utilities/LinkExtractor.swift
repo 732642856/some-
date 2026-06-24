@@ -40,6 +40,8 @@ enum LinkExtractor {
         }
 
         let nsText = text as NSString
+        let lines = text.components(separatedBy: .newlines)
+        let recognizedTextBodyIndexes = recognizedTextBodyLineIndexes(in: lines)
         let range = NSRange(location: 0, length: nsText.length)
         var clips: [WebClip] = []
         var seen = Set<String>()
@@ -54,11 +56,13 @@ enum LinkExtractor {
                 return
             }
 
+            let lineIndex = lineIndex(containing: result.range.location, in: nsText)
+            guard !recognizedTextBodyIndexes.contains(lineIndex) else { return }
+
             let key = deduplicationKey(for: url)
             guard seen.insert(key).inserted else { return }
 
-            let lineIndex = lineIndex(containing: result.range.location, in: nsText)
-            let followingLines = Array(text.components(separatedBy: .newlines).dropFirst(lineIndex + 1))
+            let followingLines = Array(lines.dropFirst(lineIndex + 1))
             clips.append(
                 WebClip(
                     title: String(text[titleRange]).trimmingCharacters(in: .whitespacesAndNewlines),
@@ -126,6 +130,48 @@ enum LinkExtractor {
         }
 
         return index
+    }
+
+    private static func recognizedTextBodyLineIndexes(in lines: [String]) -> Set<Int> {
+        var indexes = Set<Int>()
+        var isInRecognizedText = false
+        var hasRecognizedContent = false
+
+        for index in lines.indices {
+            let trimmed = lines[index].trimmingCharacters(in: .whitespacesAndNewlines)
+            if isRecognizedTextHeader(trimmed) {
+                isInRecognizedText = true
+                hasRecognizedContent = false
+                continue
+            }
+
+            guard isInRecognizedText else {
+                continue
+            }
+
+            if trimmed.hasPrefix("[附件:") || trimmed.hasPrefix("some-attachment://") {
+                isInRecognizedText = false
+                hasRecognizedContent = false
+                continue
+            }
+
+            if trimmed.isEmpty {
+                if hasRecognizedContent {
+                    isInRecognizedText = false
+                    hasRecognizedContent = false
+                }
+                continue
+            }
+
+            indexes.insert(index)
+            hasRecognizedContent = true
+        }
+
+        return indexes
+    }
+
+    private static func isRecognizedTextHeader(_ line: String) -> Bool {
+        line == "识别文字：" || line == "识别文字:" || line == "OCR：" || line == "OCR:"
     }
 
     private static func summary(after lines: [String]) -> String? {
