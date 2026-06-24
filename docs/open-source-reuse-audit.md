@@ -265,6 +265,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 121 扩展关键信息候选中文日期前，检索 `Swift Chinese date extraction NSDataDetector GitHub MIT`、`Swift regex Chinese date parser GitHub MIT NSDataDetector`、`iOS OCR Chinese date phone email extraction Swift GitHub MIT` 和 Apple `NSDataDetector` 文档方向。结果仍以通用示例、自然语言日期库或完整 OCR/网页工具为主，没有适合直接复制进 some 当前 `KeyInfoExtractor` 的小型 Swift/MIT 模块。该缺口只需要确定性识别 `YYYY年M月D日 HH:mm` 并规范成已有摘要格式，本轮不新增依赖，继续复用 Foundation `NSRegularExpression`。
 
+2026-06-24 本轮实现决策：阶段 122 修复 OCR/网页关键信息筛选串线前，检索 `Swift notes app search filter parser MemoContentFilter GitHub MIT`、`SwiftUI notes app OCR search filter GitHub MIT` 和 `Swift NSDataDetector key info extractor GitHub MIT`。候选仍主要是完整笔记应用、OCR 工具、Tesseract/搜索项目或 `NSDataDetector` wrapper，没有可直接复制进 some 当前 `MemoContentFilter`、`MemoStore` 和 `WorkLogSourceFilterEngine` 的摘要行筛选模块。该问题根因是项目内中文摘要前缀存在包含关系，最小可靠修复是复用阶段 120/121 的共享 `KeyInfoExtractor`，新增按行前缀判断，不引入第三方依赖。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：
