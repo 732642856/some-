@@ -766,3 +766,10 @@
 - 开工前复查回顾页、统计页、`MemoStore.dailyStats`、阶段 80 CI 状态和历史碎片；发现最新远端 run 在 `Run tests` 12 分钟超时，未出现业务断言 annotation，本轮同步把 CI 测试步骤 timeout 提高到 20 分钟。
 - 按 TDD 增加 `testReviewSummaryCountsTodayStreakAndReviewBacklog`，锁定今日记录数、连续记录天数、7 天前可回顾旧记录数量和提示文案。
 - 新增 `MemoReviewSummary` 与 `MemoStore.reviewSummary`，回顾页顶部显示“今日/连续/可回顾”三项指标，并保留历史今天、随机回顾和标签入口。
+
+## 2026-06-24T12:42:00+08:00
+
+- 进入并完成阶段 82：旧记录回看入口。阶段 81 已有可回顾数量，本轮让它变成可点击的旧记录列表。
+- 开工前继续检索 SwiftUI 日记回顾、streak、spaced repetition 和随机 memo 回顾开源候选；未找到适合直接复制进当前 SwiftUI/本地素材索引架构的许可清晰模块。
+- 按 TDD 增加 `testReviewBacklogMemosReturnsOldestActiveCandidates`，锁定 7 天前活跃记录才进入回看列表、归档记录排除、旧记录按创建时间从旧到新展示。
+- `MemoStore.reviewBacklogMemos` 新增最多 3 条旧记录候选，`ReviewView` 新增“旧记录回看”区块，复用 `NavigationLink` 与 `MemoRowView` 直接打开详情。

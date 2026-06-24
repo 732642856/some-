@@ -7,6 +7,19 @@ struct ReviewView: View {
         VStack(alignment: .leading, spacing: 16) {
             ReviewSummaryPanel(summary: store.reviewSummary)
 
+            if !store.reviewBacklogMemos.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    SectionTitle(title: "旧记录回看", systemImage: "clock.arrow.circlepath")
+
+                    ForEach(store.reviewBacklogMemos) { memo in
+                        NavigationLink(value: memo.id) {
+                            MemoRowView(memo: memo)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
             if !store.onThisDayMemos.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
                     SectionTitle(title: "历史今天", systemImage: "calendar.badge.clock")

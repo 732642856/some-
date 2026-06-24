@@ -271,6 +271,10 @@ final class MemoStore: ObservableObject {
         Self.reviewSummary(for: activeMemos)
     }
 
+    var reviewBacklogMemos: [Memo] {
+        Self.reviewBacklogMemos(from: activeMemos)
+    }
+
     @discardableResult
     func addMemo(text: String) -> Memo? {
         guard storageError == nil else {
@@ -1106,6 +1110,32 @@ final class MemoStore: ObservableObject {
             reviewableCount: reviewableCount,
             activeCount: activeMemos.count
         )
+    }
+
+    static func reviewBacklogMemos(
+        from memos: [Memo],
+        today: Date = Date(),
+        calendar: Calendar = .current,
+        reviewAgeDays: Int = 7,
+        limit: Int = 3
+    ) -> [Memo] {
+        guard limit > 0 else { return [] }
+
+        let todayStart = calendar.startOfDay(for: today)
+        let cutoff = calendar.date(byAdding: .day, value: -reviewAgeDays, to: todayStart) ?? todayStart
+
+        return memos
+            .filter { memo in
+                !memo.isArchived && calendar.startOfDay(for: memo.createdAt) <= cutoff
+            }
+            .sorted { lhs, rhs in
+                if lhs.createdAt == rhs.createdAt {
+                    return lhs.id.uuidString < rhs.id.uuidString
+                }
+                return lhs.createdAt < rhs.createdAt
+            }
+            .prefix(limit)
+            .map { $0 }
     }
 
     func exportMarkdown() -> String {

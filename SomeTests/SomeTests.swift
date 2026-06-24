@@ -1932,6 +1932,32 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(summary.prompt, "今天已记录 2 条，连续 3 天。还有 1 条旧记录适合回顾。")
     }
 
+    func testReviewBacklogMemosReturnsOldestActiveCandidates() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let today = Date(timeIntervalSince1970: 1_767_225_600) // 2026-01-01 00:00 UTC
+        let recent = calendar.date(byAdding: .day, value: -3, to: today)!
+        let old = calendar.date(byAdding: .day, value: -20, to: today)!
+        let oldest = calendar.date(byAdding: .day, value: -40, to: today)!
+        let archivedOld = calendar.date(byAdding: .day, value: -50, to: today)!
+        let memos = [
+            Memo(text: "最近不该进入旧记录", createdAt: recent),
+            Memo(text: "很早以前的想法", createdAt: old),
+            Memo(text: "最早的一条灵感", createdAt: oldest),
+            Memo(text: "归档旧记录不展示", createdAt: archivedOld, isArchived: true)
+        ]
+
+        let backlog = MemoStore.reviewBacklogMemos(
+            from: memos,
+            today: today,
+            calendar: calendar,
+            reviewAgeDays: 7,
+            limit: 3
+        )
+
+        XCTAssertEqual(backlog.map(\.text), ["最早的一条灵感", "很早以前的想法"])
+    }
+
     func testCosineSimilarityRanksIdenticalVectorsHighest() {
         let same = SemanticSearchEngine.cosineSimilarity([1, 0, 1], [1, 0, 1])
         let different = SemanticSearchEngine.cosineSimilarity([1, 0, 1], [0, 1, 0])
