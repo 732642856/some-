@@ -120,6 +120,7 @@
 
 - 工作日志生成更像本项目已有 memo/搜索/AI 洞察的组合，不需要先找大型开源 App；应复用现有保存搜索、日期过滤、任务项、标签、引用和 AI composer。
 - 2026-06-22 工作日志 MVP 检索决策：继续前复查 Git 状态、未跟踪文件、当前文件清单和已有工作日志半成品；GitHub API 检索 `SwiftUI work log daily report MIT`、`iOS daily work journal SwiftUI MIT`、`SwiftUI daily report work log` 均返回 0 个候选。本轮不复制第三方源码，直接复用 `Memo`、`MemoAsset.workLog`、`MemoTaskParser`、`MemoReferenceParser` 和 `has:worklog` 搜索，生成可迁移的结构化正文。
+- 2026-06-24 阶段 98 工作日志自定义模板检索决策：检索 `work log custom report template Swift MIT`、`markdown template engine Swift MIT mustache`、`Swift work report template engine GitHub MIT` 和 `daily report custom template markdown open source MIT`，GitHub Search 均返回 0 个可直接复制进当前 SwiftUI 工作日志导出器的小型 Swift/MIT 模块。本轮不引入 Mustache 等模板依赖，直接在 `WorkLogExporter` 内实现受控占位符替换，支持字段值与编号列表，未知占位符保留原样以便发现团队模板拼写问题。
 - flomo 仍有未覆盖能力：禅定模式、小组件、公开 API、MCP 读写接口、AI 语音输入、AI 记忆档案、微信服务号输入替代方案。后续每项开工前继续单独检索可复用实现。
 
 ### 统一素材模型（2026-06-22 实现决策）

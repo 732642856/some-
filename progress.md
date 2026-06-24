@@ -874,3 +874,10 @@
 - 开工前检索 Swift Vision OCR key-value extraction、iOS Vision OCR form field extraction、VNRecognizedTextObservation table extraction 和 Swift receipt OCR parser 候选，GitHub Search 均返回 0 个可直接复制的小型 Swift/MIT 模块。
 - 新增 `testImageTextRecognizerBuildsFieldCandidatesForFormLikeLines`、`testImageTextRecognizerSkipsFieldCandidatesForSingleLabelLine` 和 `testImageTextRecognizerSkipsURLSchemeFieldCandidates`，覆盖两行以上 `字段：值` / `字段: 值` 才生成“字段候选”，单个提示行和 URL scheme 不误判。
 - `ImageTextRecognizer` 在带置信度 OCR memo 里新增字段候选摘要：短字段名去重、最多展示前四项，原始“识别文字”仍完整保留，复杂表格结构和自动字段纠错继续留作后续。
+
+## 2026-06-24T18:10:00+08:00
+
+- 进入并完成阶段 98：工作日志自定义导出模板。阶段 97 已提交推送且远端 CI 正在运行，本轮继续处理工作日志真实团队格式缺口。
+- 开工前检索 work log custom report template、Swift markdown template engine、Swift work report template engine 和 daily report custom template 候选，GitHub Search 均返回 0 个可直接复制的小型 Swift/MIT 模块。
+- 新增 `testWorkLogExporterBuildsCustomTemplateDraft` 和 `testWorkLogExporterCustomTemplateKeepsUnknownPlaceholdersVisible`，覆盖 `{{项目}}`、`{{日期}}`、`{{进展列表}}`、`{{风险列表}}`、`{{下一步列表}}`、`{{备注列表}}` 渲染，以及未知占位符保留。
+- `WorkLogExporter.customReportDraft` 支持可编辑纯文本模板，复用现有工作日志字段抽取、排序和去重；工作日志页新增本机保存的自定义模板编辑区和“自定义模板”导出项。

@@ -344,6 +344,27 @@ enum WorkLogExporter {
         }
     }
 
+    static func customReportDraft(
+        memos: [Memo],
+        assets: [MemoAsset]? = nil,
+        template: String,
+        title: String = "自定义工作汇报"
+    ) -> String {
+        let resolvedAssets = assets ?? memos.flatMap { MemoAsset.assets(in: $0) }
+        let records = workLogRecords(from: memos, assets: resolvedAssets)
+        guard !records.isEmpty else {
+            return "\(title)\n\n暂无可汇总日志。\n"
+        }
+
+        let fieldValues = records
+            .map { fields(in: $0.asset.summary, fallbackText: $0.memo.text) }
+            .sorted(by: sortReportDraftFields)
+        let sourceTemplate = template.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? defaultCustomReportTemplate
+            : template
+        return renderCustomReportTemplate(sourceTemplate, title: title, fieldValues: fieldValues)
+    }
+
     private static func emptyReportDraft(style: ReportDraftStyle) -> String {
         switch style {
         case .standard:
@@ -383,6 +404,56 @@ enum WorkLogExporter {
             appendDraftList(section.title, keys: section.keys, from: fieldValues, to: &lines)
         }
         return lines.joined(separator: "\n") + "\n"
+    }
+
+    private static let defaultCustomReportTemplate = """
+    {{标题}}
+
+    项目：{{项目}}
+    日期：{{日期}}
+
+    已完成：
+    {{进展列表}}
+
+    风险/问题：
+    {{风险列表}}
+
+    下一步：
+    {{下一步列表}}
+    """
+
+    private static func renderCustomReportTemplate(
+        _ template: String,
+        title: String,
+        fieldValues: [[String: String]]
+    ) -> String {
+        var rendered = template.replacingOccurrences(of: "{{标题}}", with: title)
+        let placeholders = customReportPlaceholders(from: fieldValues)
+        placeholders.forEach { placeholder, value in
+            rendered = rendered.replacingOccurrences(of: "{{\(placeholder)}}", with: value)
+        }
+        return rendered.hasSuffix("\n") ? rendered : "\(rendered)\n"
+    }
+
+    private static func customReportPlaceholders(from fieldValues: [[String: String]]) -> [String: String] {
+        var placeholders: [String: String] = [:]
+        let scalarKeys = ["范围", "项目", "日期", "模板", "进展", "问题", "风险", "下一步", "备注"]
+
+        scalarKeys.forEach { key in
+            let values = values(for: [key], from: fieldValues)
+            if !values.isEmpty {
+                placeholders[key] = values.joined(separator: "；")
+            }
+            placeholders["\(key)列表"] = numberedList(values)
+        }
+
+        let riskValues = values(for: ["风险", "问题"], from: fieldValues)
+        placeholders["风险列表"] = numberedList(riskValues)
+        placeholders["问题列表"] = numberedList(riskValues)
+        placeholders["风险/问题列表"] = numberedList(riskValues)
+        placeholders["风险/问题"] = riskValues.joined(separator: "；")
+
+        return placeholders
     }
 
     private static func workLogRecords(
@@ -465,6 +536,20 @@ enum WorkLogExporter {
             return lhsPriority < rhsPriority
         }
         return (lhs["日期"] ?? "") > (rhs["日期"] ?? "")
+    }
+
+    private static func values(for keys: [String], from fieldValues: [[String: String]]) -> [String] {
+        uniqueValues(
+            fieldValues.flatMap { fields -> [String] in
+                keys.compactMap { fields[$0] }
+            }
+        )
+    }
+
+    private static func numberedList(_ values: [String]) -> String {
+        values.enumerated().map { index, value in
+            "\(index + 1). \(value)"
+        }.joined(separator: "\n")
     }
 
     private static func reportDraftTemplatePriority(_ template: String?) -> Int {

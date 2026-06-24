@@ -924,10 +924,26 @@ private struct WorkLogView: View {
     @State private var exportedWorkLog: ExportedDocument?
     @State private var statusText: String?
     @State private var isPolishingWorkLog = false
+    @AppStorage("some.workLogCustomTemplate") private var customReportTemplate = WorkLogView.defaultCustomReportTemplate
 
     private let scopes = ["今日", "本周", "项目", "复盘"]
     private let templates = ["日报", "周报", "项目汇报", "复盘"]
     private let sourceKindOptions: [MemoContentFilter] = [.task, .openTask, .completedTask, .link, .webClip, .clipFragment, .attachment, .reference, .referenceNote, .audio, .video, .screenshot, .ocrReview, .imageEdit, .scrapbook, .wardrobe, .outfit, .wearLog, .laundryLog, .packingList]
+    private static let defaultCustomReportTemplate = """
+    {{标题}}
+
+    项目：{{项目}}
+    日期：{{日期}}
+
+    已完成：
+    {{进展列表}}
+
+    风险/问题：
+    {{风险列表}}
+
+    下一步：
+    {{下一步列表}}
+    """
 
     private var workLogAssets: [MemoAsset] {
         store.assets.filter { $0.kind == .workLog }
@@ -1299,6 +1315,7 @@ private struct WorkLogView: View {
             }
 
             workLogFilterBar
+            customTemplateEditor
 
             let records = filteredWorkLogRecords.sorted {
                 $0.asset.createdAt == $1.asset.createdAt
@@ -1314,6 +1331,42 @@ private struct WorkLogView: View {
                 }
             }
         }
+    }
+
+    private var customTemplateEditor: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Label("自定义模板", systemImage: "text.badge.plus")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.secondaryText)
+
+                Spacer()
+
+                Button {
+                    customReportTemplate = Self.defaultCustomReportTemplate
+                } label: {
+                    Image(systemName: "arrow.counterclockwise")
+                        .frame(width: 32, height: 30)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.secondaryText)
+                .accessibilityLabel("重置自定义工作日志模板")
+            }
+
+            TextEditor(text: $customReportTemplate)
+                .font(.caption.monospaced())
+                .frame(minHeight: 150)
+                .padding(8)
+                .background(Color.subtleSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+        .padding(10)
+        .background(Color.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.border, lineWidth: 1)
+        )
     }
 
     @ViewBuilder
@@ -1567,6 +1620,13 @@ private struct WorkLogView: View {
             content = WorkLogExporter.reportDraft(memos: payload.memos, assets: payload.assets, style: .actionReview)
         case .meetingMinutesDraft:
             content = WorkLogExporter.reportDraft(memos: payload.memos, assets: payload.assets, style: .meetingMinutes)
+        case .customTemplateDraft:
+            content = WorkLogExporter.customReportDraft(
+                memos: payload.memos,
+                assets: payload.assets,
+                template: customReportTemplate,
+                title: "自定义工作汇报"
+            )
         }
 
         do {
@@ -1754,6 +1814,7 @@ private enum WorkLogExportFormat: String, CaseIterable, Hashable {
     case teamWeeklyDraft
     case actionReviewDraft
     case meetingMinutesDraft
+    case customTemplateDraft
 
     var title: String {
         switch self {
@@ -1765,6 +1826,7 @@ private enum WorkLogExportFormat: String, CaseIterable, Hashable {
         case .teamWeeklyDraft: return "团队周报"
         case .actionReviewDraft: return "行动复盘"
         case .meetingMinutesDraft: return "会议纪要"
+        case .customTemplateDraft: return "自定义模板"
         }
     }
 
@@ -1772,7 +1834,7 @@ private enum WorkLogExportFormat: String, CaseIterable, Hashable {
         switch self {
         case .markdown: return "md"
         case .csv: return "csv"
-        case .reportDraft, .standupDraft, .projectBriefDraft, .teamWeeklyDraft, .actionReviewDraft, .meetingMinutesDraft: return "txt"
+        case .reportDraft, .standupDraft, .projectBriefDraft, .teamWeeklyDraft, .actionReviewDraft, .meetingMinutesDraft, .customTemplateDraft: return "txt"
         }
     }
 
@@ -1786,6 +1848,7 @@ private enum WorkLogExportFormat: String, CaseIterable, Hashable {
         case .teamWeeklyDraft: return "person.3.sequence"
         case .actionReviewDraft: return "checklist"
         case .meetingMinutesDraft: return "person.3"
+        case .customTemplateDraft: return "text.badge.plus"
         }
     }
 }

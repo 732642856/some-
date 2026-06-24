@@ -1601,6 +1601,117 @@ final class SomeTests: XCTestCase {
         )
     }
 
+    func testWorkLogExporterBuildsCustomTemplateDraft() {
+        let date = DateFormatters.wardrobeDay.date(from: "2026-06-24")!
+        let firstLog = Memo(
+            text: """
+            工作日志：日报
+            范围：今日
+            项目：some
+            日期：2026-06-24
+            模板：日报
+            进展：完成字段候选摘要
+            问题：CI 等待中
+            下一步：观察远端复验
+            备注：本地 OCR 不上传
+            """,
+            createdAt: date,
+            updatedAt: date
+        )
+        let secondLog = Memo(
+            text: """
+            工作日志：项目汇报
+            范围：项目
+            项目：some
+            日期：2026-06-24
+            模板：项目汇报
+            进展：补自定义模板
+            风险：真机格式待验
+            下一步：收集团队格式偏好
+            """,
+            createdAt: date,
+            updatedAt: date
+        )
+        let template = """
+        {{标题}}
+
+        项目={{项目}}
+        日期={{日期}}
+
+        完成:
+        {{进展列表}}
+
+        风险:
+        {{风险列表}}
+
+        后续:
+        {{下一步列表}}
+
+        备注:
+        {{备注列表}}
+        """
+
+        let draft = WorkLogExporter.customReportDraft(
+            memos: [firstLog, secondLog],
+            template: template,
+            title: "团队自定义格式"
+        )
+
+        XCTAssertEqual(
+            draft,
+            """
+            团队自定义格式
+
+            项目=some
+            日期=2026-06-24
+
+            完成:
+            1. 补自定义模板
+            2. 完成字段候选摘要
+
+            风险:
+            1. 真机格式待验
+            2. CI 等待中
+
+            后续:
+            1. 收集团队格式偏好
+            2. 观察远端复验
+
+            备注:
+            1. 本地 OCR 不上传
+
+            """
+        )
+    }
+
+    func testWorkLogExporterCustomTemplateKeepsUnknownPlaceholdersVisible() {
+        let date = DateFormatters.wardrobeDay.date(from: "2026-06-24")!
+        let log = Memo(
+            text: """
+            工作日志：日报
+            项目：some
+            进展：完成导出
+            """,
+            createdAt: date,
+            updatedAt: date
+        )
+
+        let draft = WorkLogExporter.customReportDraft(
+            memos: [log],
+            template: "{{标题}}\n负责人：{{负责人}}\n{{进展列表}}",
+            title: "自定义"
+        )
+
+        XCTAssertEqual(
+            draft,
+            """
+            自定义
+            负责人：{{负责人}}
+            1. 完成导出
+            """
+        )
+    }
+
     func testSearchCanExcludeContentTypes() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "资料带链接 https://example.com/a")
