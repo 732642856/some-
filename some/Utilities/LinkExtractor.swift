@@ -149,12 +149,6 @@ enum LinkExtractor {
                 continue
             }
 
-            if trimmed.hasPrefix("[附件:") || trimmed.hasPrefix("some-attachment://") {
-                isInRecognizedText = false
-                hasRecognizedContent = false
-                continue
-            }
-
             if trimmed.isEmpty {
                 if hasRecognizedContent {
                     isInRecognizedText = false

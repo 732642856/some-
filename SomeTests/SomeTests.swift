@@ -3422,6 +3422,21 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(LinkExtractor.webClips(in: text).isEmpty)
     }
 
+    func testLinkExtractorIgnoresWebClipMarkersAfterAttachmentMarkdownInsideRecognizedTextBody() {
+        let text = """
+        图片文字：raw-note.png
+
+        识别文字：
+        [附件: raw-card.png](some-attachment://raw-card.png)
+        [网页摘录: 这是截图原文](https://example.com/raw)
+        摘要：截图里原本就有这行
+
+        [附件: raw-note.png](some-attachment://raw-note.png)
+        """
+
+        XCTAssertTrue(LinkExtractor.webClips(in: text).isEmpty)
+    }
+
     func testLinkExtractorBuildsWebClipText() {
         let url = URL(string: "https://example.com/a")!
         let text = LinkExtractor.webClipText(

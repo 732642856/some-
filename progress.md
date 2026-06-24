@@ -1178,3 +1178,9 @@
 - 进入并完成阶段 141：结构化 JSON marker 继续忽略附件样式后的 OCR 原文。继续扫描识别正文 helper 时发现 `Memo` 模型里的 `recognizedTextBodyIndexes` 仍把 `[附件:]` / `some-attachment://` 当作 OCR 正文终止符，导致同一 OCR 正文中附件样式行后面的 `手帐图层JSON：` 可能重新被当成 some 生成 marker。
 - 新增 `testScrapbookLayoutIgnoresMarkerAfterAttachmentMarkdownInsideRecognizedTextBody`，覆盖 OCR 正文先出现附件样式原文、再出现手帐 JSON marker 时，仍不解析 layout，也不把图层摘要写入素材。
 - `Array<String>.recognizedTextBodyIndexes` 改为只用空行结束 OCR 正文段，不再用附件样式行截断。
+
+## 2026-06-25T02:38:00+08:00
+
+- 进入并完成阶段 142：网页摘录 marker 继续忽略附件样式后的 OCR 原文。继续扫描 `LinkExtractor` 时发现网页摘录 marker 的 OCR 正文 helper 仍会在 `[附件:]` / `some-attachment://` 行提前结束。
+- 新增 `testLinkExtractorIgnoresWebClipMarkersAfterAttachmentMarkdownInsideRecognizedTextBody`，覆盖 OCR 正文先出现附件样式原文、再出现 `[网页摘录: ...](https://...)` 时，不生成真实 web clip。
+- `LinkExtractor.recognizedTextBodyLineIndexes` 改为只用空行结束 OCR 正文段，不再用附件样式行截断。
