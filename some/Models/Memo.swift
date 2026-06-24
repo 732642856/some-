@@ -1781,16 +1781,18 @@ extension MemoAsset {
         let textStartIndex = lines.firstIndex { line in
             line == "识别文字：" || line == "识别文字:" || line == "OCR：" || line == "OCR:"
         }.map { $0 + 1 } ?? 1
+        let hasRecognizedTextHeader = textStartIndex > 1
         let recognizedText = lines
             .dropFirst(textStartIndex)
             .prefix { line in
                 !line.isEmpty
             }
             .filter { line in
-                !line.hasPrefix("区域：")
-                    && !line.hasPrefix("区域:")
-                    && !line.hasPrefix("扫描页：")
-                    && !line.hasPrefix("扫描页:")
+                hasRecognizedTextHeader
+                    || (!line.hasPrefix("区域：")
+                        && !line.hasPrefix("区域:")
+                        && !line.hasPrefix("扫描页：")
+                        && !line.hasPrefix("扫描页:"))
             }
             .joined(separator: "\n")
         guard !recognizedText.isEmpty else {

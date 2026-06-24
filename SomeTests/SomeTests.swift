@@ -6054,6 +6054,31 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(asset?.uri, "some-attachment://scan.png")
     }
 
+    func testImageTextAssetSummaryKeepsMetadataPrefixesInsideRecognizedTextBody() {
+        let attachment = SharedAttachment(
+            id: "scan.png",
+            filename: "scan.png",
+            relativePath: "scan.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 128
+        )
+        let memo = Memo(text: """
+        图片文字：scan.png
+
+        识别文字：
+        区域：这是截图原文
+        扫描页：截图原文
+        正文
+
+        \(attachment.referenceLine)
+        """)
+
+        let asset = MemoAsset.assets(in: memo).first { $0.kind == .screenshot }
+
+        XCTAssertEqual(asset?.summary, "区域：这是截图原文\n扫描页：截图原文\n正文")
+        XCTAssertEqual(asset?.uri, "some-attachment://scan.png")
+    }
+
     func testAppendedRegionImageTextCreatesScreenshotAsset() throws {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         let attachment = try SharedAttachmentStore.save(

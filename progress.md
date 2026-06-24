@@ -1219,3 +1219,9 @@
 - 新增 `testClipFragmentExtractorKeepsRecognizedTextHeaderPrefixInsideRecognizedTextBody`，覆盖 OCR 正文里的 `识别文字：截图里原本就有这行` 和 `OCR: 原文标题` 作为普通 OCR fragment 保留。
 - 新增 `testImageTextRecognizerKeepsRecognizedTextHeaderPrefixInsideHighlights`，覆盖详情页 OCR 高亮候选同样保留这些原文行。
 - 两处提取逻辑改为复用严格的 `isRecognizedTextHeader` 整行匹配，只把完整 header 行当作 some 生成的正文起点。
+
+## 2026-06-25T04:38:00+08:00
+
+- 进入并完成阶段 148：截图素材摘要保留元数据前缀原文。继续扫描 `Memo.imageTextBlock` 时发现截图素材摘要会在识别正文里过滤 `区域：` / `扫描页：` 前缀行。
+- 新增 `testImageTextAssetSummaryKeepsMetadataPrefixesInsideRecognizedTextBody`，覆盖 `识别文字：` 后的 `区域：这是截图原文` 和 `扫描页：截图原文` 保留进 screenshot asset summary。
+- `Memo.imageTextBlock` 增加 `hasRecognizedTextHeader` 判断：有明确识别正文 header 时不再过滤正文里的区域/扫描页同形行；无 header 的旧格式仍过滤生成 metadata。

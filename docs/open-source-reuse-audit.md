@@ -317,6 +317,8 @@ P3 只参考：
 
 2026-06-25 本轮实现决策：阶段 147 修复 OCR 正文里 `识别文字：...` / `OCR: ...` 原文行被丢弃前，检索 Swift OCR text block parser / recognized text header parser。结果仍是 OCR 引擎或通用文本清洗，不覆盖 some 保存格式中 header 行与 OCR 原文同形前缀的区分。本轮继续复用现有提取器，只把 header 判断从前缀匹配收敛为整行匹配。
 
+2026-06-25 本轮实现决策：阶段 148 修复截图素材摘要里 `区域：` / `扫描页：` 同形原文被过滤前，检索 Swift OCR memo text block metadata parser / Vision OCR note screenshot asset summary parser。结果仍不覆盖 some header 前 metadata 与 header 后原文同形行的区分。本轮继续复用 `Memo.imageTextBlock`，只把旧格式 metadata 过滤限定在无明确 `识别文字：` header 的路径。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：
