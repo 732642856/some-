@@ -3546,6 +3546,23 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(summaries.first?.summary, "网页摘要 · 合计 128 元")
     }
 
+    func testClipFragmentExtractorIgnoresMergedMarkersInsideRecognizedTextBody() {
+        let text = """
+        图片文字：raw-note.png
+
+        识别文字：
+        摘录片段：这是截图原文
+        来源：网页0 · OCR1
+        片段：
+        - [OCR] 1. 截图里原本就有这行
+
+        [附件: raw-note.png](some-attachment://raw-note.png)
+        """
+
+        XCTAssertTrue(ClipFragmentExtractor.fragments(in: text).isEmpty)
+        XCTAssertTrue(ClipFragmentExtractor.assetSummaries(in: text).isEmpty)
+    }
+
     func testSelectedWebClipContentSeparatesWebAndOCRFragments() throws {
         let fragments = [
             ClipFragment(source: .web, title: "文章", text: "网页摘要", uri: "https://example.com/a", stableKey: "web-summary"),
@@ -3957,6 +3974,29 @@ final class SomeTests: XCTestCase {
 
         store.searchText = "has:摘录片段"
         XCTAssertEqual(store.filteredMemos.map(\.id), [memo.id])
+    }
+
+    func testMemoAssetsIgnoreClipFragmentMarkersInsideRecognizedTextBody() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let text = """
+        图片文字：raw-note.png
+
+        识别文字：
+        摘录片段：这是截图原文
+        来源：网页0 · OCR1
+        片段：
+        - [OCR] 1. 截图里原本就有这行
+
+        [附件: raw-note.png](some-attachment://raw-note.png)
+        """
+        guard let memo = store.addMemo(text: text) else {
+            return XCTFail("Expected OCR memo")
+        }
+
+        XCTAssertFalse(store.assets(for: memo).contains { $0.kind == .clipFragment })
+
+        store.searchText = "has:clip"
+        XCTAssertTrue(store.filteredMemos.isEmpty)
     }
 
     func testMemoAssetsUpdateWhenMemoChanges() {

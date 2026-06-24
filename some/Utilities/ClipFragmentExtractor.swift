@@ -173,7 +173,9 @@ enum ClipFragmentExtractor {
 
     private static func mergedFragmentBlocks(in text: String) -> [(title: String, fragments: [ClipFragment])] {
         let lines = text.components(separatedBy: .newlines)
+        let recognizedTextBodyIndexes = recognizedTextBodyLineIndexes(in: lines)
         let starts = lines.indices.filter { index in
+            !recognizedTextBodyIndexes.contains(index) &&
             lines[index]
                 .trimmingCharacters(in: .whitespacesAndNewlines)
                 .hasPrefix(marker)
@@ -209,6 +211,44 @@ enum ClipFragmentExtractor {
         }
 
         return fragments.isEmpty ? nil : (title, fragments)
+    }
+
+    private static func recognizedTextBodyLineIndexes(in lines: [String]) -> Set<Int> {
+        var indexes = Set<Int>()
+        var isInRecognizedText = false
+        var hasRecognizedContent = false
+
+        for index in lines.indices {
+            let trimmed = lines[index].trimmingCharacters(in: .whitespacesAndNewlines)
+            if isRecognizedTextHeader(trimmed) {
+                isInRecognizedText = true
+                hasRecognizedContent = false
+                continue
+            }
+
+            guard isInRecognizedText else {
+                continue
+            }
+
+            if trimmed.hasPrefix("[附件:") || trimmed.hasPrefix("some-attachment://") {
+                isInRecognizedText = false
+                hasRecognizedContent = false
+                continue
+            }
+
+            if trimmed.isEmpty {
+                if hasRecognizedContent {
+                    isInRecognizedText = false
+                    hasRecognizedContent = false
+                }
+                continue
+            }
+
+            indexes.insert(index)
+            hasRecognizedContent = true
+        }
+
+        return indexes
     }
 
     private static func mergedFragmentItem(in line: String) -> (source: ClipFragmentSource, index: Int, text: String)? {

@@ -1072,3 +1072,11 @@
 - 开工前检索 Swift OCR confidence review filter、Vision OCR confidence metadata 和 notes app OCR low confidence filter 候选；未找到可直接复制进当前中文 OCR memo 格式的小型 Swift/MIT 模块，本轮继续复用项目内 OCR block 切分。
 - 新增搜索与工作日志来源回归数据：OCR metadata 为 `平均 94% · 最低 91%`，但识别正文里写着“置信度：50%”时，不应被 `has:ocr-review` / 待校对来源筛出。
 - `ClipFragmentExtractor.needsOCRReview` 改为先按图片/截图/扫描文字块切分，再只读取块内“识别文字：”/`OCR:` 前的 `置信度：` metadata 行；行为探针通过 `ocr review confidence metadata boundary passed`。
+
+## 2026-06-24T23:11:12+08:00
+
+- 进入并完成阶段 126：摘录片段索引忽略 OCR 原文 marker。阶段 125 推送后继续按“系统生成 marker 与用户原文混排”风险扫描，发现 `ClipFragmentExtractor.mergedFragmentBlocks` 会在全文寻找 `摘录片段：` 起点。
+- 开工前复查旧 Codex 工作区和当前仓库差异，确认旧目录仍是当前主仓库子集，没有独有新功能文件；同时用 GitHub API 检索 Swift notes excerpt / OCR clip fragment / memo marker parser 候选，四组精确查询均为 0 个可直接复制的小型 Swift/MIT 模块。
+- 红灯探针确认 OCR 原始识别正文里出现完整“摘录片段”块形状时，旧逻辑会暴露片段块起点；新增 `testClipFragmentExtractorIgnoresMergedMarkersInsideRecognizedTextBody` 和 `testMemoAssetsIgnoreClipFragmentMarkersInsideRecognizedTextBody`，覆盖工具层、素材索引和 `has:clip` 搜索负例。
+- `ClipFragmentExtractor` 新增识别文字正文行索引，`mergedFragmentBlocks` 跳过处于“识别文字：”/`OCR:` 正文里的 `摘录片段：` marker；some 生成的摘录片段块仍正常进入素材索引。
+- 推进前复验远端阶段 125：GitHub Actions run `28107703222` 已 completed/success。

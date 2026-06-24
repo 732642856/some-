@@ -273,6 +273,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 125 修复 OCR 待校对置信度边界前，检索 `Swift OCR confidence review filter recognized text metadata GitHub MIT`、`iOS Vision OCR confidence metadata review queue Swift GitHub MIT` 和 `Swift notes app OCR low confidence search filter GitHub MIT`。结果以 OCR wrapper、完整工具或通用 Vision 示例为主，没有覆盖 some 这种生成 metadata 与识别正文混排后的低置信度筛选问题。本轮不引入依赖，复用项目内 OCR block 切分，只读取“识别文字”前的生成置信度行。
 
+2026-06-24 本轮实现决策：阶段 126 修复摘录片段 marker 与 OCR 原文混排边界前，检索 `Swift notes excerpt block parser MIT`、`Swift OCR text notes clip fragment parser MIT`、`SwiftUI notes excerpt highlight parser MIT` 和 `Swift memo search content filter marker parser MIT`。GitHub API 四组精确查询均返回 `total=0`，没有可直接复制进当前 `ClipFragmentExtractor`、`MemoAsset` 和 `has:clip` 搜索链路的小型 Swift/MIT 模块。该问题根因是 some 自定义正文格式里的 `摘录片段：` marker 与 OCR 原始识别文字共处同一 memo，本轮继续复用项目内 OCR block/识别文字边界解析，不新增第三方依赖。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：
