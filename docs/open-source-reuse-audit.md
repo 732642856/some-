@@ -221,6 +221,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 99 继续补 OCR 表格候选摘要前，检索 `Apple Vision RecognizeDocumentRequest table Swift OCR example`、`Swift Vision OCR table extraction GitHub MIT`、`VNRecognizedTextObservation table detection Swift GitHub MIT` 和 `Swift receipt OCR table parser GitHub MIT`。Apple 新版 Vision 有文档/表格识别方向，但当前项目仍以 `VNRecognizeTextRequest` 和 iOS 兼容本地 OCR 链路为底座；GitHub 检索没有找到可直接复制进当前 SwiftUI memo/OCR 存储格式的小型 MIT 表格结构模块。Python/深度学习类表格抽取项目不适合本地个人 App 直接嵌入。本轮只识别 `|`、全角 `｜` 或 tab 这类明确分隔符型表格，生成列数、数据行数和表头摘要；复杂表格结构、合并单元格和无分隔符票据行仍留给后续专门阶段。
 
+2026-06-24 本轮实现决策：阶段 100 继续补素材库长列表性能前，检索 `SwiftUI large list image thumbnail prefetch cache GitHub MIT`、`AVAssetImageGenerator thumbnail cache Swift GitHub MIT`、`Swift ImageIO AVFoundation metadata cache GitHub MIT`、`SwiftUI async image thumbnail cache local files GitHub MIT`、`Kingfisher Swift GitHub MIT license image cache`、`Nuke Swift GitHub MIT license image loading`、`CachedAsyncImage SwiftUI GitHub MIT` 和 `HLSThumbnailGenerator Swift GitHub MIT`。Kingfisher、Nuke、CachedAsyncImage 均偏远程图片下载/缓存，HLSThumbnailGenerator 偏 HLS 视频流缩略图；直接复制会引入与 some 当前 App Group 本地附件、`MemoAsset` 索引、图片/音频/视频统一摘要和后台预热生命周期不匹配的依赖。本轮不新增第三方库，复用项目已有 `MediaMetadataExtractor` 内存缓存，新增只读缓存接口，让素材库滚动时只显示已预热摘要或文件大小。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：
