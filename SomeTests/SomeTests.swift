@@ -1774,6 +1774,49 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(MemoReferenceParser.displayTextWithoutReferences(text), "正文 #关系")
     }
 
+    func testMemoReferenceParserMapsVisibleLineToOriginalLineAfterHiddenReference() {
+        let id = UUID()
+        let text = """
+        正文 #关系
+
+        引用批注：这条是项目决策依据
+        [引用: 目标记录](some-memo://\(id.uuidString))
+        - [ ] 跟进
+        """
+
+        XCTAssertEqual(
+            MemoReferenceParser.displayTextWithoutReferences(text),
+            "正文 #关系\n\n- [ ] 跟进"
+        )
+        XCTAssertEqual(
+            MemoReferenceParser.originalLineIndex(forVisibleLine: 2, in: text),
+            4
+        )
+    }
+
+    func testMemoReferenceParserKeepsAttachmentReferencesVisibleInReadableText() {
+        let id = UUID()
+        let text = """
+        正文 #素材
+        [附件: image.png](some-attachment://image.png)
+        [引用: 目标记录](some-memo://\(id.uuidString))
+        - [ ] 跟进
+        """
+
+        XCTAssertEqual(
+            MemoReferenceParser.displayTextWithoutReferences(text),
+            """
+            正文 #素材
+            [附件: image.png](some-attachment://image.png)
+            - [ ] 跟进
+            """
+        )
+        XCTAssertEqual(
+            MemoReferenceParser.originalLineIndex(forVisibleLine: 2, in: text),
+            3
+        )
+    }
+
     func testMemoReferenceParserKeepsDuplicateReferenceNotesInOrder() {
         let id = UUID()
         let text = """
@@ -2192,6 +2235,46 @@ final class SomeTests: XCTestCase {
             return XCTFail("Expected divider")
         }
         XCTAssertEqual(divider.lineIndex, 1)
+    }
+
+    func testMarkdownMemoBlockParserExtractsAttachmentCards() {
+        let text = """
+        正文
+        [附件: image.png](some-attachment://image.png)
+        - [ ] 后续
+        """
+
+        let blocks = MarkdownMemoBlockParser.blocks(in: text)
+
+        XCTAssertEqual(blocks.count, 3)
+        guard case .attachment(let attachmentBlock) = blocks[1] else {
+            return XCTFail("Expected attachment block")
+        }
+        XCTAssertEqual(attachmentBlock.lineIndex, 1)
+        XCTAssertEqual(attachmentBlock.attachment.filename, "image.png")
+        XCTAssertEqual(attachmentBlock.attachment.relativePath, "image.png")
+
+        guard case .line(let taskLine) = blocks[2] else {
+            return XCTFail("Expected task line")
+        }
+        XCTAssertEqual(taskLine.lineIndex, 2)
+        XCTAssertEqual(taskLine.task?.text, "后续")
+    }
+
+    func testMarkdownMemoBlockParserKeepsAttachmentReferencesInsideCodeBlocks() {
+        let text = """
+        ```
+        [附件: image.png](some-attachment://image.png)
+        ```
+        """
+
+        let blocks = MarkdownMemoBlockParser.blocks(in: text)
+
+        XCTAssertEqual(blocks.count, 1)
+        guard case .code(let codeBlock) = blocks[0] else {
+            return XCTFail("Expected code block")
+        }
+        XCTAssertEqual(codeBlock.code, "[附件: image.png](some-attachment://image.png)")
     }
 
     func testStoreToggleTaskUpdatesMemoTextAndTags() {

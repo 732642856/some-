@@ -6,17 +6,10 @@ struct MemoRowView: View {
     let memo: Memo
 
     var body: some View {
-        let displayText = SharedAttachmentStore.displayTextWithoutAttachmentReferences(memo.text)
-        let attachments = SharedAttachmentStore.attachments(in: memo.text)
-
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 10) {
                 VStack(alignment: .leading, spacing: 10) {
-                    if !displayText.isEmpty {
-                        MarkdownMemoTextView(text: displayText)
-                    }
-
-                    AttachmentPreviewList(attachments: attachments, compact: true, allowsSharing: false)
+                    MarkdownMemoTextView(text: memo.text, compactAttachmentPreviews: true)
 
                     if let snippet = store.searchSnippet(for: memo) {
                         Label(snippet, systemImage: "magnifyingglass")

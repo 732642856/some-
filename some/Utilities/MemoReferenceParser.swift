@@ -70,6 +70,30 @@ enum MemoReferenceParser {
     }
 
     static func displayTextWithoutReferences(_ text: String) -> String {
+        visibleTextModelWithoutReferences(for: text).text
+    }
+
+    static func originalLineIndex(forVisibleLine visibleLineIndex: Int, in text: String) -> Int? {
+        let lineMap = visibleTextModelWithoutReferences(for: text).originalLineIndices
+        guard lineMap.indices.contains(visibleLineIndex) else { return nil }
+        return lineMap[visibleLineIndex]
+    }
+
+    static func title(for memo: Memo, maxLength: Int = 28) -> String {
+        let text = SharedAttachmentStore
+            .displayTextWithoutAttachmentReferences(memo.text)
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first { !$0.isEmpty } ?? "未命名随记"
+        guard text.count > maxLength else {
+            return text
+        }
+
+        let endIndex = text.index(text.startIndex, offsetBy: maxLength)
+        return "\(text[..<endIndex])..."
+    }
+
+    private static func visibleTextModelWithoutReferences(for text: String) -> VisibleReferenceTextModel {
         let lines = text.components(separatedBy: .newlines)
         var indexesToRemove: Set<Int> = []
 
@@ -93,26 +117,25 @@ enum MemoReferenceParser {
             }
         }
 
-        return lines
+        var rows = lines
             .enumerated()
             .filter { !indexesToRemove.contains($0.offset) }
-            .map(\.element)
-            .joined(separator: "\n")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-    }
+            .map { ($0.offset, $0.element) }
 
-    static func title(for memo: Memo, maxLength: Int = 28) -> String {
-        let text = SharedAttachmentStore
-            .displayTextWithoutAttachmentReferences(memo.text)
-            .components(separatedBy: .newlines)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .first { !$0.isEmpty } ?? "未命名随记"
-        guard text.count > maxLength else {
-            return text
+        while let first = rows.first,
+              first.1.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            rows.removeFirst()
         }
 
-        let endIndex = text.index(text.startIndex, offsetBy: maxLength)
-        return "\(text[..<endIndex])..."
+        while let last = rows.last,
+              last.1.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            rows.removeLast()
+        }
+
+        return VisibleReferenceTextModel(
+            text: rows.map { $0.1 }.joined(separator: "\n"),
+            originalLineIndices: rows.map { $0.0 }
+        )
     }
 
     private static func title(in text: String, match: NSTextCheckingResult) -> String? {
@@ -155,5 +178,10 @@ enum MemoReferenceParser {
 
     private static func isReferenceNoteLine(_ line: String) -> Bool {
         line.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("引用批注：")
+    }
+
+    private struct VisibleReferenceTextModel {
+        let text: String
+        let originalLineIndices: [Int]
     }
 }

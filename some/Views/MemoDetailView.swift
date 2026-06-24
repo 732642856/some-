@@ -34,9 +34,7 @@ struct MemoDetailView: View {
     var body: some View {
         let currentMemo = store.memos.first(where: { $0.id == memo.id }) ?? memo
         let displayText = isEditing ? text : currentMemo.text
-        let readableText = MemoReferenceParser.displayTextWithoutReferences(
-            SharedAttachmentStore.displayTextWithoutAttachmentReferences(displayText)
-        )
+        let readableText = MemoReferenceParser.displayTextWithoutReferences(displayText)
         let attachments = SharedAttachmentStore.attachments(in: displayText)
         let referencedMemos = store.referencedMemos(from: currentMemo)
         let backlinkMemos = store.backlinkMemos(to: currentMemo)
@@ -67,19 +65,21 @@ struct MemoDetailView: View {
                         ScrollView {
                             VStack(alignment: .leading, spacing: 12) {
                                 if !readableText.isEmpty {
-                                    MarkdownMemoTextView(text: readableText) { lineIndex in
-                                        let originalLineIndex = SharedAttachmentStore.originalLineIndex(
-                                            forVisibleLine: lineIndex,
-                                            in: currentMemo.text
-                                        ) ?? lineIndex
-                                        store.toggleTask(currentMemo, lineIndex: originalLineIndex)
-                                        if let updatedMemo = store.memos.first(where: { $0.id == currentMemo.id }) {
-                                            text = updatedMemo.text
+                                    MarkdownMemoTextView(
+                                        text: readableText,
+                                        allowsAttachmentSharing: true,
+                                        onToggleTask: { lineIndex in
+                                            let originalLineIndex = MemoReferenceParser.originalLineIndex(
+                                                forVisibleLine: lineIndex,
+                                                in: currentMemo.text
+                                            ) ?? lineIndex
+                                            store.toggleTask(currentMemo, lineIndex: originalLineIndex)
+                                            if let updatedMemo = store.memos.first(where: { $0.id == currentMemo.id }) {
+                                                text = updatedMemo.text
+                                            }
                                         }
-                                    }
+                                    )
                                 }
-
-                                AttachmentPreviewList(attachments: attachments)
 
                                 if !imageAttachments(in: attachments).isEmpty {
                                     imageTextSection(attachments: imageAttachments(in: attachments), memo: currentMemo)

@@ -846,3 +846,10 @@
 - 开工前检索 MarkdownUI / swift-markdown / SwiftUI Markdown table renderer / 附件卡片候选；完整引擎仍保留为后续候选，但本轮为了不影响任务勾选行号、引用折叠和附件解析，继续扩展项目内轻量块级解析器。
 - 新增 `testMarkdownMemoBlockParserGroupsTables`、`testMarkdownMemoBlockParserKeepsPipeTextWithoutTableSeparatorAsLines` 和 `testMarkdownMemoBlockParserExtractsDividers`，覆盖 GFM 风格表头/分隔/数据行、普通管道文本不误判，以及 `---` 分隔线。
 - `MarkdownMemoBlockParser` 新增 table/divider block，代码块内表格符号仍保持代码；`MarkdownMemoTextView` 用横向滚动、稳定单元格宽度、表头底色和边框渲染表格，用现有边框色渲染分隔线。
+
+## 2026-06-24T16:24:00+08:00
+
+- 进入并完成阶段 94：Markdown 附件卡片预览。阶段 93 已提交推送，继续处理 Markdown 阅读中附件引用只能以普通预览区堆叠的问题。
+- 开工前检索 SwiftUI 附件卡片/Markdown 附件渲染、MarkdownUI、swift-markdown、Textual 和 MoeMemos 附件候选，未找到可直接复制的小型 MIT 模块；本轮复用 some 现有 `AttachmentPreviewList` 和 `SharedAttachmentStore.attachments(in:)`。
+- 新增 `testMarkdownMemoBlockParserExtractsAttachmentCards`、`testMarkdownMemoBlockParserKeepsAttachmentReferencesInsideCodeBlocks`、`testMemoReferenceParserKeepsAttachmentReferencesVisibleInReadableText`，覆盖独立附件引用行成为 attachment block，代码块里的附件引用仍保持原样，隐藏引用后附件行和任务行号仍正确。
+- `MarkdownMemoTextView` 新增 attachment block 和显式初始化器，列表行直接用完整 memo 文本渲染为紧凑附件卡片；详情页按原文位置渲染附件卡片，并用 `MemoReferenceParser.originalLineIndex` 维持任务勾选映射。

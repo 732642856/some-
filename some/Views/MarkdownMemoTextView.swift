@@ -4,6 +4,20 @@ import SwiftUI
 struct MarkdownMemoTextView: View {
     let text: String
     var onToggleTask: ((Int) -> Void)?
+    var compactAttachmentPreviews = false
+    var allowsAttachmentSharing = false
+
+    init(
+        text: String,
+        compactAttachmentPreviews: Bool = false,
+        allowsAttachmentSharing: Bool = false,
+        onToggleTask: ((Int) -> Void)? = nil
+    ) {
+        self.text = text
+        self.compactAttachmentPreviews = compactAttachmentPreviews
+        self.allowsAttachmentSharing = allowsAttachmentSharing
+        self.onToggleTask = onToggleTask
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -44,6 +58,8 @@ struct MarkdownMemoTextView: View {
             tableBlock(table)
         case .divider:
             dividerBlock()
+        case .attachment(let attachment):
+            attachmentBlock(attachment)
         }
     }
 
@@ -186,6 +202,14 @@ struct MarkdownMemoTextView: View {
             .padding(.vertical, 6)
     }
 
+    private func attachmentBlock(_ attachment: MarkdownMemoAttachmentBlock) -> some View {
+        AttachmentPreviewList(
+            attachments: [attachment.attachment],
+            compact: compactAttachmentPreviews,
+            allowsSharing: allowsAttachmentSharing
+        )
+    }
+
     private func headingFontSize(for level: Int) -> CGFloat {
         switch level {
         case 1: return 22
@@ -233,6 +257,9 @@ enum MarkdownMemoBlockParser {
                         )
                     )
                 )
+            } else if let attachment = attachmentBlock(in: line, lineIndex: index) {
+                blocks.append(.attachment(attachment))
+                index += 1
             } else if let table = tableBlock(in: lines, startIndex: index) {
                 blocks.append(.table(table))
                 index = table.endLineIndex + 1
@@ -290,6 +317,16 @@ enum MarkdownMemoBlockParser {
 
     private static func isFenceLine(_ line: String) -> Bool {
         line.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("```")
+    }
+
+    private static func attachmentBlock(in line: String, lineIndex: Int) -> MarkdownMemoAttachmentBlock? {
+        let attachments = SharedAttachmentStore.attachments(in: line)
+        guard attachments.count == 1,
+              line.trimmingCharacters(in: .whitespacesAndNewlines) == attachments[0].referenceLine else {
+            return nil
+        }
+
+        return MarkdownMemoAttachmentBlock(lineIndex: lineIndex, attachment: attachments[0])
     }
 
     private static func tableBlock(in lines: [String], startIndex: Int) -> MarkdownMemoTableBlock? {
@@ -408,6 +445,7 @@ enum MarkdownMemoBlock: Identifiable, Equatable {
     case quote(MarkdownMemoQuoteBlock)
     case table(MarkdownMemoTableBlock)
     case divider(MarkdownMemoDividerBlock)
+    case attachment(MarkdownMemoAttachmentBlock)
 
     var id: String {
         switch self {
@@ -423,6 +461,8 @@ enum MarkdownMemoBlock: Identifiable, Equatable {
             return "table-\(table.startLineIndex)-\(table.endLineIndex)"
         case .divider(let divider):
             return "divider-\(divider.lineIndex)"
+        case .attachment(let attachment):
+            return "attachment-\(attachment.lineIndex)-\(attachment.attachment.id)"
         }
     }
 }
@@ -455,6 +495,11 @@ struct MarkdownMemoTableBlock: Equatable {
 
 struct MarkdownMemoDividerBlock: Equatable {
     let lineIndex: Int
+}
+
+struct MarkdownMemoAttachmentBlock: Equatable {
+    let lineIndex: Int
+    let attachment: SharedAttachment
 }
 
 struct MarkdownMemoRenderLine: Identifiable, Equatable {
