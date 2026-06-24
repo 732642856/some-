@@ -255,6 +255,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 116 继续把 OCR 字段候选接入搜索筛选前，检索 `Swift notes app search has filter parser OCR fields GitHub MIT`、`Swift OCR key value field extraction search filter GitHub MIT` 和 `Swift memo app search query parser content filter GitHub MIT`，并复查 `usememos/memos`、`laurent22/joplin`、`schappim/macOCR`、`tw93/MiaoYan`。Memos 和 MiaoYan 是 MIT，可参考本地/轻量笔记与搜索产品方向；Joplin 有可搜索笔记和 OCR 搜索议题，可参考功能边界；macOCR/mac-ocr 类项目证明 Apple Vision OCR 本地处理路径可行。它们都没有可直接复制进 some 当前本地 OCR 摘要格式、`MemoContentFilter` 和 SwiftUI 搜索状态的小型 Swift `has:*` 模块；该阶段只是在已有“字段候选：”摘要行上补过滤，不改变 OCR 引擎或数据结构，因此继续复用项目内 `MemoSearchQueryParser` 与 `MemoStore.matchesContentFilter`，新增 `has:ocr-field` / `has:字段候选`。
 
+2026-06-24 本轮实现决策：阶段 117 继续把 OCR 候选用于工作日志来源筛选前，检索 `open source work log filter OCR candidates notes app GitHub MIT`、`SwiftUI work log source filter content type open source MIT`、`Joplin search filter OCR notes work log GitHub` 和 `usememos memo filter content type search GitHub MIT`。开源结果更多是笔记搜索、计时日志或完整 Web/服务端项目，没有可直接复制进 some 当前 SwiftUI 工作日志来源筛选的小型模块。本轮不引入新依赖，直接复用阶段 115/116 的 OCR 摘要行匹配规则，让 `WorkLogSourceFilterEngine` 和来源下拉支持字段、表格、票据候选。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

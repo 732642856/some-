@@ -1007,6 +1007,13 @@
 - 先用临时 Swift 探针确认旧 `MemoSearchQueryParser` 会把 `has:ocr-field` / `has:字段候选` 留作普通文本；新增 `testSearchQueryParserExtractsOCRFieldAliases` 和 store 搜索断言，覆盖英文与中文别名。
 - `MemoContentFilter` 新增 `ocrField`，`MemoStore.matchesContentFilter` 基于 OCR memo 中的“字段候选：”摘要行筛选；README 同步 `has:ocr-field` / `has:字段候选`，任务计划、发现、审计和验证记录同步到 OCR v13。
 
+## 2026-06-24T19:38:34+08:00
+
+- 进入并完成阶段 117：工作日志来源支持 OCR 候选筛选。阶段 116 推送后复查日志勾选来源，确认搜索页已经能筛字段/表格/票据候选，但工作日志来源类型仍只露出 OCR 和待校对。
+- 开工前检索工作日志来源筛选、OCR candidates 和 memo filter 候选；没有找到可直接复制进当前 SwiftUI 工作日志来源列表的小型 Swift/MIT 模块，本轮继续复用 `WorkLogSourceFilterEngine` 与 OCR 摘要行。
+- 红灯探针确认旧 `WorkLogSourceFilterEngine` 在新增 `.ocrField`、`.ocrTable`、`.receiptLines` 后 switch 不穷尽；新增 `testWorkLogSourceFilterEngineCanFilterOCRCandidates`，覆盖字段/表格/票据候选分别筛出。
+- 工作日志来源类型下拉新增“字段”“表格”“票据”，筛选引擎按“字段候选：”“表格候选：”“票据行候选：”摘要行匹配，让 OCR 提炼结果可直接进入日报、周报和项目汇总。
+
 ## 2026-06-24T23:59:59+08:00
 
 - 复查远端 CI 时发现阶段 115 提交 `63341e3` 的 Build for simulator 失败，公开 annotation 明确指向 `WorkLogSourceFilterEngine.swift:109` 和 `ContentView.swift:1752` 的 `switch must be exhaustive`。
