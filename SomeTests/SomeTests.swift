@@ -531,6 +531,24 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(ZenWritingPreference.large.placeholder, "慢慢写。")
     }
 
+    func testZenWritingGoalSummarizesProgress() {
+        XCTAssertEqual(ZenWritingGoal.value(for: 300), .threeHundred)
+        XCTAssertEqual(ZenWritingGoal.value(for: 42), .none)
+        XCTAssertEqual(ZenWritingGoal.none.title, "无目标")
+        XCTAssertEqual(ZenWritingGoal.fiveHundred.title, "500字")
+        XCTAssertNil(ZenWritingGoal.none.targetCount)
+        XCTAssertEqual(ZenWritingGoal.threeHundred.targetCount, 300)
+        XCTAssertEqual(ZenWritingGoal.threeHundred.progressText(currentCount: 128), "128/300 字")
+        XCTAssertEqual(ZenWritingGoal.none.progressText(currentCount: 128), "128 字")
+    }
+
+    func testZenWritingGoalClampsProgressFraction() {
+        XCTAssertEqual(ZenWritingGoal.none.progressFraction(currentCount: 128), 0)
+        XCTAssertEqual(ZenWritingGoal.hundred.progressFraction(currentCount: 0), 0)
+        XCTAssertEqual(ZenWritingGoal.hundred.progressFraction(currentCount: 50), 0.5)
+        XCTAssertEqual(ZenWritingGoal.hundred.progressFraction(currentCount: 130), 1)
+    }
+
     func testWidgetSnapshotSummarizesRecentActiveMemos() {
         let older = makeMemo(
             text: "旧记录 #归档",
