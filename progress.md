@@ -818,3 +818,10 @@
 - 开工前检索 OCR confidence review queue / Vision OCR 校对候选；`SwiftOCRKit` 许可清晰但只是 OCR wrapper，不覆盖 some 的本地 memo 搜索筛选，本轮不引入依赖。
 - `MemoContentFilter` 新增 `ocrReview`，搜索支持 `has:ocr-review`、`has:待校对`、`has:低置信度` 等别名。
 - `ClipFragmentExtractor.needsOCRReview` 解析 `置信度：平均 XX% · 最低 YY%` 行，最低任一百分比低于 70% 且存在 OCR fragment 时才归入待校对；`MemoStore` 全局搜索和工作日志来源筛选复用该规则。
+
+## 2026-06-24T14:52:00+08:00
+
+- 进入并完成阶段 90：Markdown fenced code block 阅读渲染。当前列表和详情页只有逐行 `AttributedString(markdown:)`，代码块会被拆成普通行，且代码里的 `- [ ]` 有误识别成任务的风险。
+- 开工前检索 MarkdownUI / swift-markdown / SwiftUI code block renderer 候选；完整 Markdown 引擎适合后续大改，本轮只补本地轻量块级解析，不引入依赖。
+- `MarkdownMemoBlockParser` 会把成对或未闭合的 fenced code block 聚合为代码块，支持可选语言标签；代码块内任务文本不会产生可勾选任务，代码块后的任务继续保留原始行号。
+- `MarkdownMemoTextView` 用等宽字体、横向滚动和边框渲染代码块，列表与详情页自动复用。

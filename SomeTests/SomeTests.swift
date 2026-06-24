@@ -2004,6 +2004,79 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(unchecked, "第一行\n- [x] 写发布说明\n- [ ] 已完成")
     }
 
+    func testMarkdownMemoBlockParserGroupsFencedCodeBlocks() {
+        let text = """
+        说明
+        ```swift
+        let x = 1
+        - [ ] 代码里的任务不应勾选
+        ```
+        - [ ] 代码后任务
+        """
+
+        let blocks = MarkdownMemoBlockParser.blocks(in: text)
+
+        XCTAssertEqual(blocks.count, 3)
+
+        guard case .line(let introLine) = blocks[0] else {
+            return XCTFail("Expected intro line")
+        }
+        XCTAssertEqual(introLine.lineIndex, 0)
+        XCTAssertEqual(introLine.text, "说明")
+        XCTAssertNil(introLine.task)
+
+        guard case .code(let codeBlock) = blocks[1] else {
+            return XCTFail("Expected fenced code block")
+        }
+        XCTAssertEqual(codeBlock.startLineIndex, 1)
+        XCTAssertEqual(codeBlock.endLineIndex, 4)
+        XCTAssertEqual(codeBlock.language, "swift")
+        XCTAssertEqual(codeBlock.code, "let x = 1\n- [ ] 代码里的任务不应勾选")
+
+        guard case .line(let taskLine) = blocks[2] else {
+            return XCTFail("Expected task line")
+        }
+        XCTAssertEqual(taskLine.lineIndex, 5)
+        XCTAssertEqual(taskLine.task?.text, "代码后任务")
+    }
+
+    func testMarkdownMemoBlockParserKeepsUnclosedFenceAsCodeToEnd() {
+        let text = """
+        ```json
+        {"ok": true}
+        """
+
+        let blocks = MarkdownMemoBlockParser.blocks(in: text)
+
+        XCTAssertEqual(blocks.count, 1)
+
+        guard case .code(let codeBlock) = blocks[0] else {
+            return XCTFail("Expected unclosed fenced code block")
+        }
+        XCTAssertEqual(codeBlock.startLineIndex, 0)
+        XCTAssertEqual(codeBlock.endLineIndex, 1)
+        XCTAssertEqual(codeBlock.language, "json")
+        XCTAssertEqual(codeBlock.code, "{\"ok\": true}")
+    }
+
+    func testMarkdownMemoBlockParserAcceptsFenceWithoutLanguage() {
+        let text = """
+        ```
+        plain code
+        ```
+        """
+
+        let blocks = MarkdownMemoBlockParser.blocks(in: text)
+
+        XCTAssertEqual(blocks.count, 1)
+
+        guard case .code(let codeBlock) = blocks[0] else {
+            return XCTFail("Expected code block without language")
+        }
+        XCTAssertNil(codeBlock.language)
+        XCTAssertEqual(codeBlock.code, "plain code")
+    }
+
     func testStoreToggleTaskUpdatesMemoTextAndTags() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "- [ ] 跟进 #产品\n普通行")
