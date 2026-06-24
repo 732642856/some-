@@ -271,6 +271,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 124 补关键信息候选货币符号金额前，检索 `Swift currency amount regex OCR receipt parser GitHub MIT`、`NSDataDetector currency amount Swift OCR receipt GitHub MIT` 和 `Swift receipt parser amount extraction currency symbol MIT GitHub`。结果多为完整收据 OCR、AI/服务端 parser、通用 Money 类型或示例项目，没有适合直接复制进当前 `KeyInfoExtractor` 的小型 Swift/MIT 金额提取模块。由于当前缺口只是 `¥128.50` / `￥1,280.00` 无“元”后缀金额，本轮继续复用 Foundation 正则，在共享提取器内做最小规则扩展。
 
+2026-06-24 本轮实现决策：阶段 125 修复 OCR 待校对置信度边界前，检索 `Swift OCR confidence review filter recognized text metadata GitHub MIT`、`iOS Vision OCR confidence metadata review queue Swift GitHub MIT` 和 `Swift notes app OCR low confidence search filter GitHub MIT`。结果以 OCR wrapper、完整工具或通用 Vision 示例为主，没有覆盖 some 这种生成 metadata 与识别正文混排后的低置信度筛选问题。本轮不引入依赖，复用项目内 OCR block 切分，只读取“识别文字”前的生成置信度行。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

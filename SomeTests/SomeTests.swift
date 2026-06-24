@@ -1190,6 +1190,15 @@ final class SomeTests: XCTestCase {
 
         [附件: clear.png](some-attachment://clear.png)
         """
+        let recognizedTextConfidenceMentionText = """
+        图片文字：report.png
+        置信度：平均 94% · 最低 91%
+
+        识别文字：
+        报告原文写着：置信度：50%
+
+        [附件: report.png](some-attachment://report.png)
+        """
         let missingConfidenceText = """
         图片文字：legacy.png
 
@@ -1201,6 +1210,7 @@ final class SomeTests: XCTestCase {
 
         store.addMemo(text: lowConfidenceText)
         store.addMemo(text: highConfidenceText)
+        store.addMemo(text: recognizedTextConfidenceMentionText)
         store.addMemo(text: missingConfidenceText)
 
         store.searchText = "has:ocr-review"
@@ -1328,8 +1338,17 @@ final class SomeTests: XCTestCase {
 
         [附件: clear.png](some-attachment://clear.png)
         """)
+        let recognizedTextConfidenceMentionMemo = Memo(text: """
+        图片文字：report.png
+        置信度：平均 94% · 最低 91%
+
+        识别文字：
+        报告原文写着：置信度：50%
+
+        [附件: report.png](some-attachment://report.png)
+        """)
         let textMemo = Memo(text: "普通会议记录")
-        let memos = [textMemo, highConfidenceMemo, lowConfidenceMemo]
+        let memos = [textMemo, highConfidenceMemo, recognizedTextConfidenceMentionMemo, lowConfidenceMemo]
         let assets = memos.flatMap { MemoAsset.assets(in: $0) }
 
         let candidates = WorkLogSourceFilterEngine.candidates(

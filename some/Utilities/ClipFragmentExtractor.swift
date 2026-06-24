@@ -132,13 +132,10 @@ enum ClipFragmentExtractor {
             return false
         }
 
-        return text.components(separatedBy: .newlines).contains { line in
-            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard isConfidenceLine(trimmed) else {
-                return false
+        return imageTextBlocksRaw(in: text).contains { block in
+            confidenceMetadataLines(in: block).contains { line in
+                confidencePercentages(in: line).contains { $0 < confidenceThreshold }
             }
-
-            return confidencePercentages(in: trimmed).contains { $0 < confidenceThreshold }
         }
     }
 
@@ -252,13 +249,17 @@ enum ClipFragmentExtractor {
     }
 
     private static func imageTextBlocks(in text: String) -> [(title: String, lines: [String], attachment: SharedAttachment?)] {
+        imageTextBlocksRaw(in: text).compactMap { imageText(in: $0) }
+    }
+
+    private static func imageTextBlocksRaw(in text: String) -> [String] {
         let rawLines = text.components(separatedBy: .newlines)
         let starts = rawLines.indices.filter { index in
             isImageTextTitle(rawLines[index].trimmingCharacters(in: .whitespacesAndNewlines))
         }
-        return starts.enumerated().compactMap { offset, start in
+        return starts.enumerated().map { offset, start in
             let end = offset + 1 < starts.count ? starts[offset + 1] : rawLines.endIndex
-            return imageText(in: rawLines[start..<end].joined(separator: "\n"))
+            return rawLines[start..<end].joined(separator: "\n")
         }
     }
 
@@ -309,6 +310,25 @@ enum ClipFragmentExtractor {
 
     private static func isConfidenceLine(_ line: String) -> Bool {
         line.hasPrefix("置信度：") || line.hasPrefix("置信度:")
+    }
+
+    private static func isRecognizedTextHeader(_ line: String) -> Bool {
+        line == "识别文字：" || line == "识别文字:" || line == "OCR：" || line == "OCR:"
+    }
+
+    private static func confidenceMetadataLines(in text: String) -> [String] {
+        var lines: [String] = []
+        for line in text.components(separatedBy: .newlines) {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if isRecognizedTextHeader(trimmed) {
+                break
+            }
+
+            if isConfidenceLine(trimmed) {
+                lines.append(trimmed)
+            }
+        }
+        return lines
     }
 
     private static func confidencePercentages(in line: String) -> [Int] {

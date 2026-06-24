@@ -1065,3 +1065,10 @@
 - 新增 `testKeyInfoExtractorBuildsCurrencySymbolAmountWithoutYuanSuffix` 和 `testImageTextRecognizerBuildsKeyInfoCandidatesFromCurrencySymbolAmount`，红灯探针确认旧规则只产出日期/电话、漏掉金额。
 - `KeyInfoExtractor.detectedAmountCandidates` 保留“元”后缀金额，同时新增必须带 `¥` / `￥` 的无后缀金额匹配，并防止 `¥128元` 被截成重复的 `¥128`；网页摘录与 OCR 关键信息候选共用受益。
 - 提交 `6a4e94e` 推送后，GitHub Actions `28105273768` 已完成并返回 success；前一阶段 `d3c0e61` 的 CI `28103411155` 也已 success。
+
+## 2026-06-24T22:39:20+08:00
+
+- 进入并完成阶段 125：OCR 待校对只读取生成置信度。继续扫描同类 metadata/正文混淆风险时发现 `has:ocr-review` 和工作日志“待校对”来源会扫描整条 memo 的所有“置信度：xx%”行。
+- 开工前检索 Swift OCR confidence review filter、Vision OCR confidence metadata 和 notes app OCR low confidence filter 候选；未找到可直接复制进当前中文 OCR memo 格式的小型 Swift/MIT 模块，本轮继续复用项目内 OCR block 切分。
+- 新增搜索与工作日志来源回归数据：OCR metadata 为 `平均 94% · 最低 91%`，但识别正文里写着“置信度：50%”时，不应被 `has:ocr-review` / 待校对来源筛出。
+- `ClipFragmentExtractor.needsOCRReview` 改为先按图片/截图/扫描文字块切分，再只读取块内“识别文字：”/`OCR:` 前的 `置信度：` metadata 行；行为探针通过 `ocr review confidence metadata boundary passed`。
