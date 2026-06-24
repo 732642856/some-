@@ -2810,6 +2810,29 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(taskLine.task?.text, "后续")
     }
 
+    func testMarkdownMemoBlockParserKeepsAttachmentsInsideRecognizedTextBodyAsLines() {
+        let text = """
+        图片文字：scan.png
+
+        识别文字：
+        [附件: raw-note.png](some-attachment://raw-note.png)
+
+        [附件: scan.png](some-attachment://scan.png)
+        """
+
+        let blocks = MarkdownMemoBlockParser.blocks(in: text)
+        let attachmentBlocks = blocks.compactMap { block -> MarkdownMemoAttachmentBlock? in
+            guard case .attachment(let attachment) = block else { return nil }
+            return attachment
+        }
+
+        XCTAssertEqual(attachmentBlocks.map(\.attachment.relativePath), ["scan.png"])
+        XCTAssertTrue(blocks.contains { block in
+            guard case .line(let line) = block else { return false }
+            return line.text == "[附件: raw-note.png](some-attachment://raw-note.png)"
+        })
+    }
+
     func testMarkdownMemoBlockParserKeepsAttachmentReferencesInsideCodeBlocks() {
         let text = """
         ```

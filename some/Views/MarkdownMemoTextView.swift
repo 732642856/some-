@@ -289,7 +289,8 @@ enum MarkdownMemoBlockParser {
                         )
                     )
                 )
-            } else if let attachment = attachmentBlock(in: line, lineIndex: index) {
+            } else if !recognizedTextBodyIndexes.contains(index),
+                      let attachment = attachmentBlock(in: line, lineIndex: index) {
                 blocks.append(.attachment(attachment))
                 index += 1
             } else if let footnotes = footnotesBlock(in: lines, startIndex: index) {

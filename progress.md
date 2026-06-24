@@ -1142,3 +1142,9 @@
 - 进入并完成阶段 135：附件/引用可见文本保留 OCR 原文。继续扫描显示文本链路时发现 `displayTextWithoutAttachmentReferences` 和 `displayTextWithoutReferences` 会逐行调用解析器，丢失 OCR 块上下文，可能把 OCR 原文里的 `[附件:]` / `[引用:]` 从详情正文里隐藏掉。
 - 新增 `testAttachmentStoreKeepsReferencesInsideRecognizedTextBodyVisible` 和 `testMemoReferenceParserKeepsReferencesInsideRecognizedTextBodyVisible`，覆盖 OCR 正文里的同形附件/引用 Markdown 仍作为普通文字显示，正文外的真实附件/引用仍折叠。
 - `SharedAttachmentStore.visibleTextModel` 和 `MemoReferenceParser.visibleTextModelWithoutReferences` 先按整段文本计算识别文字正文行索引，再决定是否隐藏附件/引用行。
+
+## 2026-06-25T01:25:00+08:00
+
+- 进入并完成阶段 136：阅读附件卡渲染保留 OCR 原文。继续扫描 `MarkdownMemoBlockParser` 后发现附件卡分支也逐行调用 `SharedAttachmentStore.attachments(in:)`，会丢失 OCR 块上下文，把 OCR 原文里的 `[附件:]` 渲染成附件卡。
+- 新增 `testMarkdownMemoBlockParserKeepsAttachmentsInsideRecognizedTextBodyAsLines`，覆盖 OCR 正文里的附件 Markdown 保持普通行，正文外真实附件引用仍渲染为附件卡。
+- `MarkdownMemoBlockParser.blocks(in:)` 在附件卡分支也复用识别文字正文行索引，只在 OCR 正文外尝试生成 attachment block。

@@ -293,6 +293,8 @@ P3 只参考：
 
 2026-06-25 本轮实现决策：阶段 135 修复附件/引用可见文本折叠与 OCR 原文混排边界前，复查阶段 130/129 已检索的 attachment/reference parser 候选，仍没有能直接理解 some 中文 OCR 块、附件行和引用批注折叠语义的小型 Swift/MIT 模块。该缺口来自项目内逐行隐藏实现丢失整段 OCR 上下文；本轮继续复用 `SharedAttachmentStore` / `MemoReferenceParser` 的边界 helper，在可见文本模型里按整段文本判断正文行。
 
+2026-06-25 本轮实现决策：阶段 136 修复 Markdown 附件卡渲染与 OCR 原文混排边界前，沿用阶段 134 的 Markdown 渲染器检索结论：没有可直接复制进当前 SwiftUI 轻量块级渲染器、并能理解 some OCR 正文边界的小型 Swift/MIT 模块。本轮继续复用 `MarkdownMemoBlockParser`，在附件卡分支补 OCR 正文行过滤。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：
