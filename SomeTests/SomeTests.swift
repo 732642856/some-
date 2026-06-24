@@ -1297,6 +1297,27 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(store.filteredMemos.map(\.text), [lowConfidenceText])
     }
 
+    func testSearchDoesNotUseLowConfidenceMetadataFromBlockWithoutOCRText() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let text = """
+        图片文字：blurry.png
+        置信度：平均 62% · 最低 48%
+
+        图片文字：clear.png
+        置信度：平均 93% · 最低 88%
+
+        识别文字：
+        合计 128 元
+
+        [附件: clear.png](some-attachment://clear.png)
+        """
+
+        store.addMemo(text: text)
+
+        store.searchText = "has:ocr-review"
+        XCTAssertTrue(store.filteredMemos.isEmpty)
+    }
+
     func testAddWorkLogCreatesStructuredAssetWithReferences() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "完成视频预览\n- [x] 接入缩略图")
@@ -1437,6 +1458,35 @@ final class SomeTests: XCTestCase {
         )
 
         XCTAssertEqual(candidates.map(\.id), [lowConfidenceMemo.id])
+    }
+
+    func testWorkLogSourceFilterEngineRequiresLowConfidenceBlockToContainOCRText() {
+        let calendar = Calendar(identifier: .gregorian)
+        let now = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+        let metadataOnlyLowConfidenceMemo = Memo(text: """
+        图片文字：blurry.png
+        置信度：平均 62% · 最低 48%
+
+        图片文字：clear.png
+        置信度：平均 93% · 最低 88%
+
+        识别文字：
+        合计 128 元
+
+        [附件: clear.png](some-attachment://clear.png)
+        """)
+        let memos = [metadataOnlyLowConfidenceMemo]
+        let assets = memos.flatMap { MemoAsset.assets(in: $0) }
+
+        let candidates = WorkLogSourceFilterEngine.candidates(
+            from: memos,
+            assets: assets,
+            filter: WorkLogSourceFilter(kind: .ocrReview),
+            now: now,
+            calendar: calendar
+        )
+
+        XCTAssertTrue(candidates.isEmpty)
     }
 
     func testWorkLogSourceFilterEngineCanFilterOCRCandidates() {

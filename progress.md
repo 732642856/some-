@@ -1205,3 +1205,10 @@
 - 新增 `testSummaryLineDetectorsReadGeneratedSummariesAfterPreviousOCRBody`，覆盖第一段 OCR 原文里的同名摘要不触发，但空行结束后第二个 OCR block 前的生成摘要仍触发。
 - 在内容筛选综合测试里新增多 OCR block 记录，确认 `has:ocr-field` 能同时命中单 block 和后续 block 生成摘要。
 - `KeyInfoExtractor.containsSummaryLine` 改为按 OCR 正文段跳过，空行结束正文后继续扫描后续生成 metadata。
+
+## 2026-06-25T04:02:00+08:00
+
+- 进入并完成阶段 146：低置信度 OCR 待校对按同一图片文字块判定。继续扫描 `ClipFragmentExtractor.needsOCRReview` 时发现它先用整条 memo 是否存在任意 OCR fragment 作总开关，再扫描所有图片文字块的低置信度 metadata。
+- 新增 `testSearchDoesNotUseLowConfidenceMetadataFromBlockWithoutOCRText`，覆盖低置信度 metadata 所在块没有识别正文、后续高置信度块有 OCR 行时，`has:ocr-review` 不命中。
+- 新增 `testWorkLogSourceFilterEngineRequiresLowConfidenceBlockToContainOCRText`，覆盖工作日志来源筛选同样不把 metadata-only 低置信度块纳入待校对来源。
+- `ClipFragmentExtractor.needsOCRReview` 改为逐块要求 `imageText(in:)` 可解析出 OCR 行后，再检查该块的置信度 metadata。

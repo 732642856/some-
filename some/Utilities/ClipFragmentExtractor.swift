@@ -128,11 +128,11 @@ enum ClipFragmentExtractor {
     }
 
     static func needsOCRReview(in text: String, confidenceThreshold: Int = 70) -> Bool {
-        guard !ocrFragments(in: text).isEmpty else {
-            return false
-        }
-
         return imageTextBlocksRaw(in: text).contains { block in
+            guard imageText(in: block) != nil else {
+                return false
+            }
+
             confidenceMetadataLines(in: block).contains { line in
                 confidencePercentages(in: line).contains { $0 < confidenceThreshold }
             }
