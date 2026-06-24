@@ -3308,6 +3308,16 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(summary, "日期=2026-06-24 19:30 · 电话=13800138000 · 金额=128元")
     }
 
+    func testKeyInfoExtractorBuildsCurrencySymbolAmountWithoutYuanSuffix() {
+        let summary = KeyInfoExtractor.summary(in: [
+            "预约时间 2026-06-24 19:30",
+            "电话 13800138000",
+            "合计 ¥128.50"
+        ])
+
+        XCTAssertEqual(summary, "日期=2026-06-24 19:30 · 电话=13800138000 · 金额=¥128.50")
+    }
+
     func testSummaryLineDetectorsIgnoreRecognizedTextBodyMentions() {
         let generatedSummaryText = """
         图片文字：form.png
@@ -4961,6 +4971,27 @@ final class SomeTests: XCTestCase {
         )
 
         XCTAssertTrue(text?.contains("关键信息候选：日期=2026-06-24 19:30 · 电话=13800138000 · 金额=128元") == true)
+    }
+
+    func testImageTextRecognizerBuildsKeyInfoCandidatesFromCurrencySymbolAmount() {
+        let attachment = SharedAttachment(
+            id: "booking-currency-symbol.png",
+            filename: "booking-currency-symbol.png",
+            relativePath: "booking-currency-symbol.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 256
+        )
+
+        let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: [
+                ImageTextRecognizer.RecognizedLine(text: "预约时间：2026-06-24 19:30", confidence: 0.96),
+                ImageTextRecognizer.RecognizedLine(text: "电话 13800138000", confidence: 0.92),
+                ImageTextRecognizer.RecognizedLine(text: "合计 ¥128.50", confidence: 0.9)
+            ]
+        )
+
+        XCTAssertTrue(text?.contains("关键信息候选：日期=2026-06-24 19:30 · 电话=13800138000 · 金额=¥128.50") == true)
     }
 
     func testImageTextRecognizerSkipsKeyInfoCandidatesForPlainNumberedNotes() {

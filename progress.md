@@ -1057,3 +1057,10 @@
 - 开工前检索 OCR 摘要行筛选、notes app content filter 和 Swift memo search parser 候选；未找到可直接复制进当前 SwiftUI 本地 memo 搜索/日志筛选的小型 Swift/MIT 模块，本轮继续复用项目内摘要前缀规则。
 - `KeyInfoExtractor` 新增 OCR 版面、字段、表格、票据行的摘要检测器，并让所有摘要检测在遇到“识别文字：”/`OCR：` 后停止扫描；`MemoStore` 和 `WorkLogSourceFilterEngine` 改为复用同一套检测器。
 - 新增 `testSummaryLineDetectorsIgnoreRecognizedTextBodyMentions`，并扩展搜索与工作日志候选测试，覆盖原始识别文字中的同名“候选”词不会触发 `has:*` 或日志来源筛选。
+
+## 2026-06-24T22:12:40+08:00
+
+- 进入并完成阶段 124：关键信息候选支持货币符号金额。Stage 123 推送后继续扫描网页/OCR 关键信息真实输入，确认共享提取器只能识别 `128元` / `¥128元`，会漏掉票据和预约页常见的 `¥128.50`、`￥1,280.00`。
+- 开工前检索 Swift currency amount regex、OCR receipt parser 和 `NSDataDetector` 金额候选；未找到可直接复制进当前轻量 `KeyInfoExtractor` 的 Swift/MIT 小模块，本轮继续复用 Foundation 正则。
+- 新增 `testKeyInfoExtractorBuildsCurrencySymbolAmountWithoutYuanSuffix` 和 `testImageTextRecognizerBuildsKeyInfoCandidatesFromCurrencySymbolAmount`，红灯探针确认旧规则只产出日期/电话、漏掉金额。
+- `KeyInfoExtractor.detectedAmountCandidates` 保留“元”后缀金额，同时新增必须带 `¥` / `￥` 的无后缀金额匹配，并防止 `¥128元` 被截成重复的 `¥128`；网页摘录与 OCR 关键信息候选共用受益。

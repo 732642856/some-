@@ -126,10 +126,13 @@ enum KeyInfoExtractor {
     }
 
     private static func detectedAmountCandidates(in text: String) -> [Candidate] {
-        matches(in: text, pattern: #"[¥￥]?\s*\d+(?:[\.,]\d{1,2})?\s*元"#)
-            .map { amount in
-                Candidate(label: "金额", value: amount.replacingOccurrences(of: " ", with: ""))
-            }
+        let amountNumberPattern = #"(?:\d{1,3}(?:,\d{3})+|\d+)(?:[\.,]\d{1,2})?"#
+        let yuanAmounts = matches(in: text, pattern: #"[¥￥]?\s*"# + amountNumberPattern + #"\s*元"#)
+        let symbolAmounts = matches(in: text, pattern: #"[¥￥]\s*"# + amountNumberPattern + #"(?![\d\.,]|\s*元)"#)
+
+        return (yuanAmounts + symbolAmounts).map { amount in
+            Candidate(label: "金额", value: amount.replacingOccurrences(of: " ", with: ""))
+        }
     }
 
     private static func normalizedPhoneNumber(_ candidate: String) -> String? {
