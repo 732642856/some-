@@ -1003,6 +1003,6 @@
 ## 2026-06-24T23:59:58+08:00
 
 - 进入并完成阶段 116：OCR 字段候选搜索筛选。阶段 115 后继续复查 OCR 校对闭环，确认阶段 97 生成的“字段候选”仍不能像表格/票据行一样用 `has:*` 集中筛出。
-- 开工前检索 Swift notes/search/OCR field filter 候选，未找到可直接复制进当前本地 memo/OCR 摘要格式的小型 Swift/MIT 模块；本轮继续复用项目内 `MemoSearchQueryParser` 和 `MemoStore.matchesContentFilter`。
+- 开工前检索并复查 Memos、Joplin、macOCR、MiaoYan 等开源笔记/OCR 项目；它们能提供搜索、OCR 可搜索和本地优先笔记方向参考，但没有可直接复制进当前本地 memo/OCR 摘要格式的小型 Swift `has:*` 模块，本轮继续复用项目内 `MemoSearchQueryParser` 和 `MemoStore.matchesContentFilter`。
 - 先用临时 Swift 探针确认旧 `MemoSearchQueryParser` 会把 `has:ocr-field` / `has:字段候选` 留作普通文本；新增 `testSearchQueryParserExtractsOCRFieldAliases` 和 store 搜索断言，覆盖英文与中文别名。
 - `MemoContentFilter` 新增 `ocrField`，`MemoStore.matchesContentFilter` 基于 OCR memo 中的“字段候选：”摘要行筛选；README 同步 `has:ocr-field` / `has:字段候选`，任务计划、发现、审计和验证记录同步到 OCR v13。
