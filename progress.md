@@ -1184,3 +1184,10 @@
 - 进入并完成阶段 142：网页摘录 marker 继续忽略附件样式后的 OCR 原文。继续扫描 `LinkExtractor` 时发现网页摘录 marker 的 OCR 正文 helper 仍会在 `[附件:]` / `some-attachment://` 行提前结束。
 - 新增 `testLinkExtractorIgnoresWebClipMarkersAfterAttachmentMarkdownInsideRecognizedTextBody`，覆盖 OCR 正文先出现附件样式原文、再出现 `[网页摘录: ...](https://...)` 时，不生成真实 web clip。
 - `LinkExtractor.recognizedTextBodyLineIndexes` 改为只用空行结束 OCR 正文段，不再用附件样式行截断。
+
+## 2026-06-25T03:02:00+08:00
+
+- 进入并完成阶段 143：内部引用继续忽略附件样式后的 OCR 原文。继续扫描 `MemoReferenceParser` 时发现引用/反链 helper 仍会在 `[附件:]` / `some-attachment://` 行提前结束。
+- 新增 `testMemoReferenceParserIgnoresReferencesAfterAttachmentMarkdownInsideRecognizedTextBody`，覆盖 OCR 正文先出现附件样式原文、再出现 `some-memo://` 引用时，不生成真实引用且保留可见原文。
+- 新增 `testMemoAssetsIgnoreReferencesAfterAttachmentMarkdownInsideRecognizedTextBody`，覆盖素材、反链和 `has:reference` 搜索均不被截图原文里的引用污染。
+- `MemoReferenceParser.recognizedTextBodyLineIndexes` 改为只用空行结束 OCR 正文段，不再用附件样式行截断。

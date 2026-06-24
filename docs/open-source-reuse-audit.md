@@ -307,6 +307,8 @@ P3 只参考：
 
 2026-06-25 本轮实现决策：阶段 142 修复网页摘录 marker 在附件样式 OCR 原文后外溢前，复查阶段 128 的 Swift web clipper / Markdown link extractor 检索结论，仍没有可直接复制进 some `[网页摘录: ...](https://...)` marker 与 OCR 正文边界的小型 Swift/MIT 模块。本轮继续复用 `LinkExtractor`，只把正文终止条件从附件行收敛为空行。
 
+2026-06-25 本轮实现决策：阶段 143 修复内部引用 marker 在附件样式 OCR 原文后外溢前，继续检索 `swift-markdown`、Ink、Down、MarkdownUI 等 Swift Markdown/渲染项目。它们适合通用 Markdown AST、HTML 或 SwiftUI 渲染，但没有直接覆盖 some 中文 OCR 正文段、`some-memo://` 自定义 scheme、引用批注、反链和可见文本保真这一组合语义的小型模块。本轮继续复用 `MemoReferenceParser`，只把正文终止条件从附件行收敛为空行。参考：https://github.com/swiftlang/swift-markdown、https://github.com/JohnSundell/Ink、https://github.com/johnxnguyen/down、https://github.com/gonzalezreal/swift-markdown-ui。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

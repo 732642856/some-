@@ -2348,6 +2348,26 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(MemoReferenceParser.displayTextWithoutReferences(text).contains("[引用: 目标记录](some-memo://\(id.uuidString))"))
     }
 
+    func testMemoReferenceParserIgnoresReferencesAfterAttachmentMarkdownInsideRecognizedTextBody() {
+        let id = UUID()
+        let text = """
+        图片文字：raw-note.png
+
+        识别文字：
+        [附件: raw-card.png](some-attachment://raw-card.png)
+        引用批注：截图里的批注
+        [引用: 目标记录](some-memo://\(id.uuidString))
+
+        [附件: raw-note.png](some-attachment://raw-note.png)
+        """
+
+        XCTAssertTrue(MemoReferenceParser.references(in: text).isEmpty)
+
+        let visible = MemoReferenceParser.displayTextWithoutReferences(text)
+        XCTAssertTrue(visible.contains("引用批注：截图里的批注"))
+        XCTAssertTrue(visible.contains("[引用: 目标记录](some-memo://\(id.uuidString))"))
+    }
+
     func testMemoReferenceParserKeepsDuplicateReferenceNotesInOrder() {
         let id = UUID()
         let text = """
@@ -4217,6 +4237,32 @@ final class SomeTests: XCTestCase {
         图片文字：raw-note.png
 
         识别文字：
+        引用批注：截图里原本就有这行
+        [引用: 目标记录](some-memo://\(target.id.uuidString))
+
+        [附件: raw-note.png](some-attachment://raw-note.png)
+        """
+        guard let memo = store.addMemo(text: text) else {
+            return XCTFail("Expected OCR memo")
+        }
+
+        XCTAssertFalse(store.assets(for: memo).contains { $0.kind == .reference })
+        XCTAssertTrue(store.backlinkMemos(to: target).isEmpty)
+
+        store.searchText = "has:reference"
+        XCTAssertTrue(store.filteredMemos.isEmpty)
+    }
+
+    func testMemoAssetsIgnoreReferencesAfterAttachmentMarkdownInsideRecognizedTextBody() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        guard let target = store.addMemo(text: "目标记录 #素材") else {
+            return XCTFail("Expected target memo")
+        }
+        let text = """
+        图片文字：raw-note.png
+
+        识别文字：
+        [附件: raw-card.png](some-attachment://raw-card.png)
         引用批注：截图里原本就有这行
         [引用: 目标记录](some-memo://\(target.id.uuidString))
 
