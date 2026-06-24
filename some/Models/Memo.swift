@@ -140,7 +140,7 @@ struct ScrapbookPageLayout: Codable, Equatable {
         guard let encoded = text
             .components(separatedBy: .newlines)
             .map({ $0.trimmingCharacters(in: .whitespacesAndNewlines) })
-            .first(where: { $0.hasPrefix(marker) })?
+            .firstStructuredMarkerLine(hasPrefix: marker)?
             .dropFirst(marker.count),
               let data = Data(base64Encoded: String(encoded)) else {
             return nil
@@ -155,8 +155,11 @@ struct ScrapbookPageLayout: Codable, Equatable {
         }
 
         var didReplace = false
-        var lines = text.components(separatedBy: .newlines).map { line -> String in
-            if line.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix(marker) {
+        let originalLines = text.components(separatedBy: .newlines)
+        let trimmedLines = originalLines.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        let recognizedTextBodyIndexes = trimmedLines.recognizedTextBodyIndexes
+        var lines = originalLines.enumerated().map { index, line -> String in
+            if !recognizedTextBodyIndexes.contains(index), trimmedLines[index].hasPrefix(marker) {
                 didReplace = true
                 return encodedLine
             }
@@ -879,7 +882,7 @@ struct ImageEditRecipe: Codable, Equatable {
         guard let encoded = text
             .components(separatedBy: .newlines)
             .map({ $0.trimmingCharacters(in: .whitespacesAndNewlines) })
-            .first(where: { $0.hasPrefix(marker) })?
+            .firstStructuredMarkerLine(hasPrefix: marker)?
             .dropFirst(marker.count),
               let data = Data(base64Encoded: String(encoded)) else {
             return nil
@@ -1918,5 +1921,60 @@ extension MemoAsset {
             hash &*= 1_099_511_628_211
         }
         return hash
+    }
+}
+
+private extension Array where Element == String {
+    var recognizedTextBodyIndexes: Set<Int> {
+        var indexes = Set<Int>()
+        var isInRecognizedText = false
+        var hasRecognizedContent = false
+
+        for index in indices {
+            let line = self[index]
+            if line.isRecognizedTextHeader {
+                isInRecognizedText = true
+                hasRecognizedContent = false
+                continue
+            }
+
+            guard isInRecognizedText else {
+                continue
+            }
+
+            if line.hasPrefix("[附件:") || line.hasPrefix("some-attachment://") {
+                isInRecognizedText = false
+                hasRecognizedContent = false
+                continue
+            }
+
+            if line.isEmpty {
+                if hasRecognizedContent {
+                    isInRecognizedText = false
+                    hasRecognizedContent = false
+                }
+                continue
+            }
+
+            indexes.insert(index)
+            hasRecognizedContent = true
+        }
+
+        return indexes
+    }
+
+    func firstStructuredMarkerLine(hasPrefix prefix: String) -> String? {
+        let bodyIndexes = recognizedTextBodyIndexes
+        return enumerated()
+            .first { index, line in
+                !bodyIndexes.contains(index) && line.hasPrefix(prefix)
+            }?
+            .element
+    }
+}
+
+private extension String {
+    var isRecognizedTextHeader: Bool {
+        self == "识别文字：" || self == "识别文字:" || self == "OCR：" || self == "OCR:"
     }
 }

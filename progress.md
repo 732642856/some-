@@ -1080,3 +1080,10 @@
 - 红灯探针确认 OCR 原始识别正文里出现完整“摘录片段”块形状时，旧逻辑会暴露片段块起点；新增 `testClipFragmentExtractorIgnoresMergedMarkersInsideRecognizedTextBody` 和 `testMemoAssetsIgnoreClipFragmentMarkersInsideRecognizedTextBody`，覆盖工具层、素材索引和 `has:clip` 搜索负例。
 - `ClipFragmentExtractor` 新增识别文字正文行索引，`mergedFragmentBlocks` 跳过处于“识别文字：”/`OCR:` 正文里的 `摘录片段：` marker；some 生成的摘录片段块仍正常进入素材索引。
 - 推进前复验远端阶段 125：GitHub Actions run `28107703222` 已 completed/success。
+
+## 2026-06-24T23:33:00+08:00
+
+- 进入并完成阶段 127：结构化 JSON marker 忽略 OCR 原文。继续沿阶段 126 的同类风险扫描，发现 `ScrapbookPageLayout.layout(in:)` 和 `ImageEditRecipe.recipe(in:)` 会在全文寻找 `手帐图层JSON：` / `图片编辑JSON：`，OCR 原文可能被误当 some 生成的结构化 JSON。
+- 开工前用 GitHub API 检索 Swift memo embedded JSON marker parser 与 notes structured JSON block parser 候选，精确查询没有可直接复制进当前中文 memo/OCR 格式的小型 Swift/MIT 模块；本轮继续复用项目内“识别文字”边界解析。
+- 新增手帐与图片编辑负例测试：OCR 正文里出现图层 JSON 或图片编辑 JSON 时，`layout(in:)` / `recipe(in:)` 返回 nil，素材摘要不显示图层或滤镜；替换手帐布局时只替换 OCR 正文外的生成 marker。
+- 修复阶段 126 推送后的 CI 暴露问题：run `28108975359` 的 Build for simulator 通过、Run tests 失败在 `testClipFragmentExtractorIgnoresMergedMarkersInsideRecognizedTextBody()`，根因是测试错误地要求 OCR fragment 为空；已改为允许 OCR 原文片段存在，只要求不生成 merged clip asset 和 `has:clip` 命中。

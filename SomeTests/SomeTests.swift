@@ -3559,7 +3559,10 @@ final class SomeTests: XCTestCase {
         [附件: raw-note.png](some-attachment://raw-note.png)
         """
 
-        XCTAssertTrue(ClipFragmentExtractor.fragments(in: text).isEmpty)
+        let fragments = ClipFragmentExtractor.fragments(in: text)
+
+        XCTAssertEqual(fragments.map(\.source), [.ocr, .ocr, .ocr, .ocr])
+        XCTAssertEqual(fragments.map(\.text), ["摘录片段：这是截图原文", "来源：网页0 · OCR1", "片段：", "- [OCR] 1. 截图里原本就有这行"])
         XCTAssertTrue(ClipFragmentExtractor.assetSummaries(in: text).isEmpty)
     }
 
@@ -6295,6 +6298,52 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(ScrapbookPageLayout.layout(in: updatedText)?.layers.first?.title, "贴纸")
     }
 
+    func testScrapbookLayoutIgnoresMarkerInsideRecognizedTextBody() throws {
+        let rawLayout = ScrapbookPageLayout(canvasWidth: 640, canvasHeight: 640, layers: [])
+        let rawLine = try XCTUnwrap(rawLayout.encodedLine())
+        let text = """
+        手帐页面：OCR 原文
+        模板：测试
+
+        识别文字：
+        \(rawLine)
+
+        [附件: raw-note.png](some-attachment://raw-note.png)
+        """
+
+        XCTAssertNil(ScrapbookPageLayout.layout(in: text))
+
+        let asset = MemoAsset.assets(in: Memo(text: text)).first { $0.kind == .scrapbookPage }
+        XCTAssertEqual(asset?.title, "OCR 原文")
+        XCTAssertFalse(asset?.summary?.contains("图层：") == true)
+        XCTAssertFalse(asset?.summary?.contains(ScrapbookPageLayout.marker) == true)
+    }
+
+    func testScrapbookLayoutReplacementIgnoresMarkerInsideRecognizedTextBody() throws {
+        let rawLayout = ScrapbookPageLayout(canvasWidth: 640, canvasHeight: 640, layers: [])
+        let rawLine = try XCTUnwrap(rawLayout.encodedLine())
+        let replacementLayout = ScrapbookPageLayout(
+            layers: [
+                ScrapbookLayer(kind: .sticker, title: "贴纸", text: "今日", x: 100, y: 120, width: 160, height: 60)
+            ]
+        )
+        let text = """
+        手帐页面：OCR 原文
+        模板：测试
+
+        识别文字：
+        \(rawLine)
+
+        [附件: raw-note.png](some-attachment://raw-note.png)
+        """
+
+        let updatedText = try XCTUnwrap(ScrapbookPageLayout.replacingLayout(in: text, with: replacementLayout))
+
+        XCTAssertTrue(updatedText.contains(rawLine))
+        XCTAssertEqual(updatedText.components(separatedBy: ScrapbookPageLayout.marker).count, 3)
+        XCTAssertEqual(ScrapbookPageLayout.layout(in: updatedText)?.layers.first?.title, "贴纸")
+    }
+
     func testScrapbookImageLayerCompositionRoundTripsAndDefaults() throws {
         let layer = ScrapbookLayer(
             kind: .image,
@@ -6811,6 +6860,32 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(recipe.background, ImageEditRecipe.Background())
         XCTAssertEqual(recipe.subjectExtraction, ImageEditRecipe.SubjectExtraction())
         XCTAssertEqual(recipe.cleanupPatches, [])
+    }
+
+    func testImageEditRecipeIgnoresMarkerInsideRecognizedTextBody() throws {
+        let rawRecipe = ImageEditRecipe(
+            sourceAttachmentPath: "source.jpg",
+            outputAttachmentPath: "raw-output.png",
+            filter: .fresh,
+            cropPreset: .square
+        )
+        let rawLine = try XCTUnwrap(rawRecipe.encodedLine())
+        let text = """
+        图片编辑：OCR 原文
+        滤镜：原图
+
+        识别文字：
+        \(rawLine)
+
+        [附件: source.jpg](some-attachment://source.jpg)
+        """
+
+        XCTAssertNil(ImageEditRecipe.recipe(in: text))
+
+        let asset = MemoAsset.assets(in: Memo(text: text)).first { $0.kind == .imageEdit }
+        XCTAssertEqual(asset?.title, "OCR 原文")
+        XCTAssertFalse(asset?.summary?.contains("清新") == true)
+        XCTAssertFalse(asset?.summary?.contains(ImageEditRecipe.marker) == true)
     }
 
     func testImageEditCropAdjustmentAppliesGestureChangesWithinBounds() {
