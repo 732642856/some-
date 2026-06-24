@@ -958,3 +958,10 @@
 - 开工前复查 Mantis、SwiftyCrop、TOCropViewController 和 SwiftOCRKit。它们都是可继续评估的 MIT 候选，但本轮只是局部预览性能修补，直接引入完整裁剪器或 OCR wrapper 会比复用现有 ImageIO 缩略图更重。
 - 新增 `testImageThumbnailTextRegionPreviewMaximumPixelSizeMatchesEditorPreview`，锁定 OCR 框选预览与图片编辑器同用 1600px 大图交互预览上限。
 - `ImageTextRegionPickerView` 改为 `onAppear` 后台加载 `ImageThumbnailGenerator.imageTextRegionPreviewMaximumPixelSize` 缩略图，并显示加载态；“识别区域”仍把归一化区域交给外层 `recognizeText`，后者继续读取原始附件数据做 OCR。
+
+## 2026-06-24T23:25:00+08:00
+
+- 进入并完成阶段 110：视频缩略图清理保留全集。阶段 108 修复图片缩略图后继续审计同类代码，确认视频缩略图维护也把默认 60 个预热上限同时用于 `VideoThumbnailGenerator.pruneCache(keeping:)`。
+- 开工前复查 Kingfisher/Nuke 缓存裁剪候选和项目内 `VideoThumbnailGenerator`，根因仍是 some 自己的素材引用集合和预热集合混用，不适合引入第三方图片库。
+- 新增 `testVideoThumbnailSourceURLsCanReturnAllReferencedVideosForPruning`，覆盖 `limit: 1` 只返回一个预热视频 URL，但 `limit: nil` 返回所有引用视频 URL；用 Swift typecheck 探针确认旧 `Int` limit 对 `nil` 会失败，新 `Int?` 签名通过。
+- `VideoThumbnailGenerator.sourceURLs` 的 `limit` 改为可选；素材库 `maintainMediaCaches` 继续用默认上限预热视频缩略图，同时用 `limit: nil` 的全量视频 URL 调用 `VideoThumbnailGenerator.pruneCache`，避免误删仍被引用的视频缩略图。

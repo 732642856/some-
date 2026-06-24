@@ -85,15 +85,18 @@ enum VideoThumbnailGenerator {
 
     static func sourceURLs(
         in assets: [MemoAsset],
-        limit: Int = 60,
+        limit: Int? = 60,
         fileManager: FileManager = .default
     ) -> [URL] {
         var urls: [URL] = []
         var seenPaths = Set<String>()
 
         for asset in assets {
-            guard urls.count < limit,
-                  isVideoAsset(asset),
+            if let limit = limit, urls.count >= limit {
+                break
+            }
+
+            guard isVideoAsset(asset),
                   let attachment = AttachmentReferenceResolver.attachment(from: asset),
                   let url = SharedAttachmentStore.url(for: attachment, fileManager: fileManager) else {
                 continue

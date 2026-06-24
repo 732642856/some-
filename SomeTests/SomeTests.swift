@@ -4262,6 +4262,53 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(urls.first?.lastPathComponent, firstVideo.relativePath)
     }
 
+    func testVideoThumbnailSourceURLsCanReturnAllReferencedVideosForPruning() {
+        let memoID = UUID()
+        let firstVideo = SharedAttachment(
+            id: "first.mov",
+            filename: "first.mov",
+            relativePath: "first.mov",
+            typeIdentifier: UTType.quickTimeMovie.identifier,
+            byteCount: 10
+        )
+        let secondVideo = SharedAttachment(
+            id: "second.mp4",
+            filename: "second.mp4",
+            relativePath: "second.mp4",
+            typeIdentifier: UTType.mpeg4Movie.identifier,
+            byteCount: 20
+        )
+        let assets = [
+            MemoAsset(
+                memoID: memoID,
+                kind: .video,
+                title: firstVideo.displayName,
+                uri: firstVideo.referenceURI,
+                typeIdentifier: firstVideo.typeIdentifier,
+                byteCount: firstVideo.byteCount,
+                createdAt: Date(),
+                updatedAt: Date()
+            ),
+            MemoAsset(
+                memoID: memoID,
+                kind: .attachment,
+                title: secondVideo.displayName,
+                uri: secondVideo.referenceURI,
+                typeIdentifier: secondVideo.typeIdentifier,
+                byteCount: secondVideo.byteCount,
+                createdAt: Date(),
+                updatedAt: Date()
+            )
+        ]
+
+        let preheatURLs = VideoThumbnailGenerator.sourceURLs(in: assets, limit: 1)
+        let pruneURLs = VideoThumbnailGenerator.sourceURLs(in: assets, limit: nil)
+
+        XCTAssertEqual(preheatURLs.count, 1)
+        XCTAssertEqual(pruneURLs.count, 2)
+        XCTAssertEqual(pruneURLs.map(\.lastPathComponent), ["first.mov", "second.mp4"])
+    }
+
     func testImageTextRecognizerBuildsMemoText() {
         let attachment = SharedAttachment(
             id: "receipt.png",

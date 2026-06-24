@@ -241,6 +241,7 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 109 继续处理 OCR 框选图片文字页同步解码原图前，通过 GitHub API 复查 `guoyingtao/Mantis`（MIT、Swift、2026-06-09 推送）、`benedom/SwiftyCrop`（MIT、SwiftUI、2026-06-23 推送）、`TimOliver/TOCropViewController`（MIT、Objective-C、2026-04-07 推送）和 `DrcKarim/SwiftOCRKit`（MIT、Swift、2026-02-21 推送）。Mantis/SwiftyCrop/TOCropViewController 适合后续完整裁剪器接入评估，SwiftOCRKit 适合后续 OCR 封装评估；当前缺口只是本地图片附件的框选预览性能，some 已有归一化选区模型和原附件 OCR 识别链路，因此不复制第三方源码，不新增 SPM，复用 `ImageThumbnailGenerator` 和 Apple ImageIO 做 1600px 预览缩略图。
 
+2026-06-24 本轮实现决策：阶段 110 继续审计视频缩略图缓存清理长列表风险前，检索 `Swift video thumbnail cache prune referenced assets AVAssetImageGenerator GitHub MIT`、`iOS local video thumbnail cache cleanup Swift GitHub MIT` 和 `AVAssetImageGenerator thumbnail cache Swift prune GitHub`，并复查阶段 108 的 Kingfisher/Nuke 结论和项目内 `VideoThumbnailGenerator`。候选仍偏系统 API 示例、HLS 缩略图或通用图片缓存；none 能直接理解 some 的本地视频附件引用，且当前视频缩略图由 AVFoundation 生成。根因是 `VideoThumbnailGenerator.sourceURLs` 的预热上限被误用为清理保留集。本轮不新增依赖，只让视频 URL 提取也支持 `limit: nil`，素材库维护用限量集合预热、全量视频引用集合清理。
 
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
