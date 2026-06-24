@@ -1586,6 +1586,8 @@ final class MemoStore: ObservableObject {
             return assets(for: memo).contains { $0.kind == .screenshot }
         case .ocrReview:
             return ClipFragmentExtractor.needsOCRReview(in: memo.text)
+        case .ocrLayout:
+            return memo.text.contains("版面分区：")
         case .ocrField:
             return memo.text.contains("字段候选：")
         case .ocrTable:

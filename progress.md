@@ -1019,3 +1019,10 @@
 - 复查远端 CI 时发现阶段 115 提交 `63341e3` 的 Build for simulator 失败，公开 annotation 明确指向 `WorkLogSourceFilterEngine.swift:109` 和 `ContentView.swift:1752` 的 `switch must be exhaustive`。
 - 根因：新增 OCR 字段/表格/票据行 `MemoContentFilter` 后，主搜索筛选已接线，但工作日志来源筛选和来源标题两个 switch 没同步分支；本地 `swiftc -typecheck` 也复现了缺 `.ocrField`、`.ocrTable`、`.receiptLines`。
 - 新增 `testWorkLogSourceFilterEngineCanFilterOCRCandidates`，覆盖工作日志来源筛选能按“字段候选：”“表格候选：”“票据行候选：”筛出对应 OCR memo；`sourceKindOptions` 下拉同步加入字段、表格和票据类型。
+
+## 2026-06-24T23:59:59+08:00
+
+- 进入并完成阶段 118：OCR 版面分区搜索与日志来源筛选。阶段 117 收口后继续复查阶段 92 的 OCR 版面摘要，确认“版面分区：”已经保存到 memo，但搜索和工作日志来源下拉都没有结构化入口。
+- 开工前检索 `Swift Vision OCR layout sections search filter GitHub MIT`、`VNRecognizedTextObservation boundingBox layout section Swift GitHub MIT`、`open source notes OCR layout search filter GitHub` 和 `Joplin OCR search filters layout GitHub`；没有找到可直接复制进当前 SwiftUI memo 搜索/日志来源架构的小型模块，本轮继续复用项目内 `MemoSearchQueryParser`、`MemoStore.matchesContentFilter` 和 `WorkLogSourceFilterEngine`。
+- 红灯探针确认旧 `MemoContentFilter` 没有 `.ocrLayout`，`has:ocr-layout` / `has:版面分区` 不能被解析为内容筛选；另用旧 `WorkLogSourceFilterEngine` 验证新增枚举会触发 switch 不穷尽。
+- 新增 `testSearchQueryParserExtractsOCRLayoutAliases`，扩展内容类型搜索测试和工作日志来源候选测试；搜索语法新增 `has:ocr-layout` / `has:版面分区`，工作日志来源类型下拉新增“版面”，按“版面分区：”摘要行筛选多栏截图和扫描页。

@@ -793,6 +793,13 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(query.textTerms, [])
     }
 
+    func testSearchQueryParserExtractsOCRLayoutAliases() {
+        let query = MemoSearchQueryParser.parse("has:ocr-layout has:版面分区")
+
+        XCTAssertEqual(query.requiredContentFilters, [.ocrLayout])
+        XCTAssertEqual(query.textTerms, [])
+    }
+
     func testSearchQueryParserExtractsOCRTableAndReceiptAliases() {
         let query = MemoSearchQueryParser.parse("has:ocr-table has:表格候选 has:receipt-lines has:票据行")
 
@@ -1033,6 +1040,14 @@ final class SomeTests: XCTestCase {
         store.addMemo(text: ocrTableText)
         store.addMemo(text: receiptLinesText)
         store.addMemo(text: ocrFieldText)
+        let ocrLayoutText = """
+        图片文字：layout.png
+        版面分区：左栏2行 · 右栏1行 · 顶部2行 · 底部1行
+
+        识别文字：
+        左栏事项
+        """
+        store.addMemo(text: ocrLayoutText)
 
         store.searchText = "has:ocr-table"
         XCTAssertEqual(store.filteredMemos.map(\.text), [ocrTableText])
@@ -1051,6 +1066,12 @@ final class SomeTests: XCTestCase {
 
         store.searchText = "has:字段候选"
         XCTAssertEqual(store.filteredMemos.map(\.text), [ocrFieldText])
+
+        store.searchText = "has:ocr-layout"
+        XCTAssertEqual(store.filteredMemos.map(\.text), [ocrLayoutText])
+
+        store.searchText = "has:版面分区"
+        XCTAssertEqual(store.filteredMemos.map(\.text), [ocrLayoutText])
 
         store.searchText = "has:task"
         XCTAssertEqual(store.filteredMemos.map(\.text), ["任务资料\n- [ ] 写提纲\n- [x] 校对"])
@@ -1272,6 +1293,13 @@ final class SomeTests: XCTestCase {
         识别文字：
         姓名：李雷
         """)
+        let layoutMemo = Memo(text: """
+        图片文字：layout.png
+        版面分区：左栏2行 · 右栏1行 · 顶部2行 · 底部1行
+
+        识别文字：
+        左栏事项
+        """)
         let tableMemo = Memo(text: """
         图片文字：table.png
         表格候选：3 列 · 2 行数据 · 表头：项目 / 金额 / 备注
@@ -1281,13 +1309,20 @@ final class SomeTests: XCTestCase {
         票据行候选：拿铁 18.00 · 蛋糕 32.00
         """)
         let plainMemo = Memo(text: "普通会议记录")
-        let memos = [plainMemo, fieldMemo, tableMemo, receiptMemo]
+        let memos = [plainMemo, fieldMemo, layoutMemo, tableMemo, receiptMemo]
         let assets = memos.flatMap { MemoAsset.assets(in: $0) }
 
         let fieldCandidates = WorkLogSourceFilterEngine.candidates(
             from: memos,
             assets: assets,
             filter: WorkLogSourceFilter(kind: .ocrField),
+            now: now,
+            calendar: calendar
+        )
+        let layoutCandidates = WorkLogSourceFilterEngine.candidates(
+            from: memos,
+            assets: assets,
+            filter: WorkLogSourceFilter(kind: .ocrLayout),
             now: now,
             calendar: calendar
         )
@@ -1307,6 +1342,7 @@ final class SomeTests: XCTestCase {
         )
 
         XCTAssertEqual(fieldCandidates.map(\.id), [fieldMemo.id])
+        XCTAssertEqual(layoutCandidates.map(\.id), [layoutMemo.id])
         XCTAssertEqual(tableCandidates.map(\.id), [tableMemo.id])
         XCTAssertEqual(receiptCandidates.map(\.id), [receiptMemo.id])
     }

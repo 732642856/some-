@@ -257,6 +257,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 117 继续把 OCR 候选用于工作日志来源筛选前，检索 `open source work log filter OCR candidates notes app GitHub MIT`、`SwiftUI work log source filter content type open source MIT`、`Joplin search filter OCR notes work log GitHub` 和 `usememos memo filter content type search GitHub MIT`。开源结果更多是笔记搜索、计时日志或完整 Web/服务端项目，没有可直接复制进 some 当前 SwiftUI 工作日志来源筛选的小型模块。本轮不引入新依赖，直接复用阶段 115/116 的 OCR 摘要行匹配规则，让 `WorkLogSourceFilterEngine` 和来源下拉支持字段、表格、票据候选。
 
+2026-06-24 本轮实现决策：阶段 118 继续把 OCR 版面分区纳入搜索和工作日志来源前，检索 `Swift Vision OCR layout sections search filter GitHub MIT`、`VNRecognizedTextObservation boundingBox layout section Swift GitHub MIT`、`open source notes OCR layout search filter GitHub` 和 `Joplin OCR search filters layout GitHub`。结果没有发现能直接复制进当前 `MemoContentFilter` / `MemoSearchQueryParser` / `WorkLogSourceFilterEngine` 的轻量 Swift 模块；Joplin、Memos 类项目仍只能参考可搜索笔记和过滤器产品方向。由于阶段 92 已把 `VNRecognizedTextObservation.boundingBox` 提炼为“版面分区：”摘要，本轮不引入新 OCR 或索引依赖，只复用已有摘要行，新增 `has:ocr-layout` / `has:版面分区` 和工作日志“版面”来源筛选。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：
