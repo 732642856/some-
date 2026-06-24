@@ -133,7 +133,7 @@ enum ClipFragmentExtractor {
                 return false
             }
 
-            confidenceMetadataLines(in: block).contains { line in
+            return confidenceMetadataLines(in: block).contains { line in
                 confidencePercentages(in: line).contains { $0 < confidenceThreshold }
             }
         }
