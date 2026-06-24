@@ -5300,6 +5300,53 @@ final class SomeTests: XCTestCase {
         XCTAssertFalse(weatherSuggestion?.itemNames.contains("黑裤") == true)
     }
 
+    func testWardrobeSceneSuggestionsIncludeShoesBagsAndAccessories() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        store.addWardrobeItem(
+            name: "白衬衫",
+            category: "上装",
+            colors: ["白"],
+            seasons: ["春"],
+            scenes: ["通勤"]
+        )
+        store.addWardrobeItem(
+            name: "黑西裤",
+            category: "下装",
+            colors: ["黑"],
+            seasons: ["春"],
+            scenes: ["通勤"]
+        )
+        store.addWardrobeItem(
+            name: "乐福鞋",
+            category: "鞋履",
+            colors: ["黑"],
+            seasons: ["春"],
+            scenes: ["通勤"]
+        )
+        store.addWardrobeItem(
+            name: "通勤包",
+            category: "包包",
+            colors: ["黑"],
+            seasons: ["春"],
+            scenes: ["通勤"]
+        )
+        store.addWardrobeItem(
+            name: "珍珠耳钉",
+            category: "饰品",
+            colors: ["白"],
+            seasons: ["春"],
+            scenes: ["通勤"]
+        )
+
+        let insights = WardrobeInsightEngine.insights(for: store.assets)
+        let sceneSuggestion = insights.suggestions.first { $0.id == "scene-通勤" }
+
+        XCTAssertEqual(
+            sceneSuggestion?.itemNames,
+            ["白衬衫", "黑西裤", "乐福鞋", "通勤包", "珍珠耳钉"]
+        )
+    }
+
     func testWardrobeWeatherInsightKeepsForecastPhraseIntact() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         let wornDate = DateFormatters.wardrobeDay.date(from: "2026-06-23")!

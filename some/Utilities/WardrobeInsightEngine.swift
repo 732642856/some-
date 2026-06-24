@@ -423,7 +423,7 @@ enum WardrobeInsightEngine {
 
         if let seed = unusedItems.first(where: { !unavailableNames.contains(wardrobeNormalizedName($0.name)) }) {
             let companions = companionItems(for: seed, in: availableItems)
-            let draftItems = ([seed] + companions).uniquedByName().map(\.name)
+            let draftItems = outfitBalancedItems(from: [seed] + companions, fallbackItems: availableItems).map(\.name)
             suggestions.append(
                 WardrobeOutfitSuggestion(
                     id: "unused-\(seed.id.uuidString)",
@@ -499,9 +499,12 @@ enum WardrobeInsightEngine {
                 if lhsScore == rhsScore {
                     return lhs.wearCount == rhs.wearCount ? lhs.name < rhs.name : lhs.wearCount < rhs.wearCount
                 }
-                return lhsScore > rhsScore
-            }
-        let draftItems = categoryBalancedItems(from: matchedItems.isEmpty ? items : matchedItems).map(\.name)
+            return lhsScore > rhsScore
+        }
+        let draftItems = outfitBalancedItems(
+            from: matchedItems.isEmpty ? items : matchedItems,
+            fallbackItems: items
+        ).map(\.name)
         guard !draftItems.isEmpty else { return nil }
 
         return WardrobeOutfitSuggestion(
@@ -754,7 +757,7 @@ enum WardrobeInsightEngine {
             .sorted { $0.outfitCount == $1.outfitCount ? $0.name < $1.name : $0.outfitCount < $1.outfitCount }
         guard !sceneItems.isEmpty else { return nil }
 
-        let draftItems = categoryBalancedItems(from: sceneItems).map(\.name)
+        let draftItems = outfitBalancedItems(from: sceneItems, fallbackItems: items).map(\.name)
         guard !draftItems.isEmpty else { return nil }
 
         return WardrobeOutfitSuggestion(
@@ -773,7 +776,7 @@ enum WardrobeInsightEngine {
         let seasonItems = items
             .filter { $0.seasons.contains(season) }
             .sorted { $0.outfitCount == $1.outfitCount ? $0.name < $1.name : $0.outfitCount < $1.outfitCount }
-        let draftItems = categoryBalancedItems(from: seasonItems).map(\.name)
+        let draftItems = outfitBalancedItems(from: seasonItems, fallbackItems: items).map(\.name)
         guard !draftItems.isEmpty else { return nil }
 
         return WardrobeOutfitSuggestion(
@@ -840,6 +843,41 @@ enum WardrobeInsightEngine {
             selected.append(item)
             if selected.count == 4 { break }
         }
+        return selected
+    }
+
+    private static func outfitBalancedItems(
+        from preferredItems: [WardrobeItemInsight],
+        fallbackItems: [WardrobeItemInsight]
+    ) -> [WardrobeItemInsight] {
+        let allCandidates = (preferredItems + fallbackItems).uniquedByName()
+        var selected: [WardrobeItemInsight] = []
+        var selectedKeys = Set<String>()
+
+        func appendCategory(_ category: String, from items: [WardrobeItemInsight]) {
+            guard let item = items.first(where: { $0.category == category }) else { return }
+            appendItem(item)
+        }
+
+        func appendItem(_ item: WardrobeItemInsight) {
+            guard selectedKeys.insert(wardrobeNormalizedName(item.name)).inserted else { return }
+            selected.append(item)
+        }
+
+        ["上装", "下装", "连衣裙", "外套", "鞋履", "包包", "饰品"].forEach { category in
+            appendCategory(category, from: preferredItems)
+        }
+
+        ["上装", "下装", "连衣裙", "外套", "鞋履", "包包", "饰品"].forEach { category in
+            appendCategory(category, from: allCandidates)
+        }
+
+        if selected.count < min(allCandidates.count, 5) {
+            for item in categoryBalancedItems(from: allCandidates) {
+                appendItem(item)
+            }
+        }
+
         return selected
     }
 

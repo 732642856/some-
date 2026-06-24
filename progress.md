@@ -979,3 +979,10 @@
 - 开工前检索 Swift/Mustache 模板引擎和工作日志模板候选；GRMustache.swift 与 swift-mustache 都是完整模板引擎，当前需求只需受控占位符替换和未知占位符保留，因此不新增依赖。
 - 新增 `testWorkLogExporterCustomTemplateIncludesSummaryMetricsAndSources`，覆盖 `{{日志数}}`、`{{项目数}}`、`{{风险数}}`、`{{下一步数}}`、`{{来源列表}}`、`{{创建时间列表}}` 和 `{{日期范围}}`。
 - 默认自定义模板同步展示记录数、日期范围和来源列表；README、任务计划、发现、开源审计和验证记录同步到工作日志 v11。
+
+## 2026-06-24T23:59:00+08:00
+
+- 进入并完成阶段 113：衣橱搭配补齐鞋包饰品。阶段 112 推送后复查衣橱洞察，确认打包建议已经会选鞋履、包包和饰品，但普通天气/场景/季节/低频单品建议仍可能只返回衣服类组合。
+- 开工前检索 Swift/iOS/open source wardrobe outfit planner、accessories/bags/shoes recommendation 候选；完整衣橱项目多为 Web/AGPL/后端栈或与当前本地 SwiftUI 模型不匹配，本轮不复制第三方代码。
+- 新增 `testWardrobeSceneSuggestionsIncludeShoesBagsAndAccessories`，覆盖通勤场景搭配草稿应同时带出上装、下装、鞋履、包包和饰品。
+- `WardrobeInsightEngine` 新增 `outfitBalancedItems`，普通天气、场景、季节和低频单品建议改用 outfit 专用选择器；打包清单仍保留按天数和天气扩展数量的独立选择逻辑。

@@ -247,6 +247,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 112 继续扩展工作日志自定义模板前，检索 `Swift string template placeholder engine custom report MIT GitHub Mustache`、`Swift work log report template placeholders GitHub MIT` 和 `Swift Mustache template engine GitHub MIT`。`groue/GRMustache.swift` 为 MIT，支持完整 Mustache 语法，当前 README 标注需要 Xcode 16+/Swift 6；`hummingbird-project/swift-mustache` 为 Apache-2.0，面向通用 Mustache 渲染。some 当前只需要本机工作日志的受控字段替换、计数和编号列表，并且希望未知占位符原样保留以提示拼写错误；直接引入完整模板引擎会扩大依赖和模板语义。本轮继续复用 `WorkLogExporter` 的轻量替换器，只新增日志数、项目数、风险数、下一步数、来源列表、创建时间列表和日期范围等确定性占位符。
 
+2026-06-24 本轮实现决策：阶段 113 继续补衣橱穿搭完整度前，检索 `open source wardrobe outfit planner accessories bags shoes recommendation GitHub MIT Swift`、`Swift wardrobe outfit planner accessories bags GitHub MIT`、`capsule wardrobe outfit recommendation accessories bags open source GitHub MIT` 和 `iOS closet app outfit planner open source GitHub MIT`。检索结果多为 Web/后端完整衣橱项目、AGPL/copyleft 项目或与 some 当前 SwiftUI 本地 memo/素材索引模型不匹配的示例；MixnMatch/OOTD 类仓库可参考按类型/颜色组成 outfit 的产品思路，但不适合直接复制进当前代码。本轮继续复用 `WardrobeInsightEngine`，新增本地 outfit 专用类别平衡选择器，让普通搭配建议也补齐鞋履、包包和饰品。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：
