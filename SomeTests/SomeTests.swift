@@ -1109,6 +1109,12 @@ final class SomeTests: XCTestCase {
         store.searchText = "has:关键信息候选"
         XCTAssertEqual(store.filteredMemos.map(\.text), [ocrKeyInfoText])
 
+        store.searchText = "has:web-key-info"
+        XCTAssertEqual(store.filteredMemos.map(\.text), [webKeyInfoText])
+
+        store.searchText = "has:网页关键信息候选"
+        XCTAssertEqual(store.filteredMemos.map(\.text), [webKeyInfoText])
+
         store.searchText = "has:ocr-layout"
         XCTAssertEqual(store.filteredMemos.map(\.text), [ocrLayoutText])
 
@@ -3267,6 +3273,16 @@ final class SomeTests: XCTestCase {
         )
 
         XCTAssertTrue(text.contains("网页关键信息候选：日期=2026-06-24 19:30 · 电话=13800138000 · 金额=128元"))
+    }
+
+    func testKeyInfoExtractorBuildsChineseDateWhenFieldTouchesDate() {
+        let summary = KeyInfoExtractor.summary(in: [
+            "预约时间2026年6月24日 19:30",
+            "电话 13800138000",
+            "合计 128元"
+        ])
+
+        XCTAssertEqual(summary, "日期=2026-06-24 19:30 · 电话=13800138000 · 金额=128元")
     }
 
     func testWebClipExtractorCleansArticleParagraphs() {

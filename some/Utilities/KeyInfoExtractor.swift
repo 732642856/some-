@@ -1,6 +1,9 @@
 import Foundation
 
 enum KeyInfoExtractor {
+    private static let keyInfoLinePrefix = "关键信息候选："
+    private static let webKeyInfoLinePrefix = "网页关键信息候选："
+
     struct Candidate: Equatable {
         let label: String
         let value: String
@@ -28,6 +31,14 @@ enum KeyInfoExtractor {
         return uniqueCandidates.prefix(limit).map(\.summary).joined(separator: " · ")
     }
 
+    static func containsOCRKeyInfoSummary(in text: String) -> Bool {
+        containsSummaryLine(prefix: keyInfoLinePrefix, in: text)
+    }
+
+    static func containsWebKeyInfoSummary(in text: String) -> Bool {
+        containsSummaryLine(prefix: webKeyInfoLinePrefix, in: text)
+    }
+
     private static func detectedDateCandidates(in text: String) -> [Candidate] {
         let numericDates = matches(in: text, pattern: #"\b\d{4}[./-]\d{1,2}[./-]\d{1,2}(?:\s+\d{1,2}:\d{2})?\b"#)
             .map { normalized in
@@ -39,7 +50,7 @@ enum KeyInfoExtractor {
 
     private static func chineseDateMatches(in text: String) -> [String] {
         guard let regex = try? NSRegularExpression(
-            pattern: #"\b(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日(?:\s*(\d{1,2}):(\d{2}))?"#,
+            pattern: #"(?<!\d)(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日(?:\s*(\d{1,2}):(\d{2}))?"#,
             options: []
         ) else {
             return []
@@ -161,6 +172,12 @@ enum KeyInfoExtractor {
             }
 
             return Candidate(label: candidate.label, value: value)
+        }
+    }
+
+    private static func containsSummaryLine(prefix: String, in text: String) -> Bool {
+        text.split(whereSeparator: \.isNewline).contains { line in
+            line.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix(prefix)
         }
     }
 

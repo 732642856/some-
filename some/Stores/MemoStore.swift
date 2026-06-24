@@ -1579,7 +1579,7 @@ final class MemoStore: ObservableObject {
         case .webClip:
             return !LinkExtractor.webClips(in: memo.text).isEmpty
         case .webKeyInfo:
-            return memo.text.contains("网页关键信息候选：")
+            return KeyInfoExtractor.containsWebKeyInfoSummary(in: memo.text)
         case .clipFragment:
             return assets(for: memo).contains { $0.kind == .clipFragment }
         case .imageEdit:
@@ -1591,7 +1591,7 @@ final class MemoStore: ObservableObject {
         case .ocrLayout:
             return memo.text.contains("版面分区：")
         case .ocrKeyInfo:
-            return memo.text.contains("关键信息候选：")
+            return KeyInfoExtractor.containsOCRKeyInfoSummary(in: memo.text)
         case .ocrField:
             return memo.text.contains("字段候选：")
         case .ocrTable:

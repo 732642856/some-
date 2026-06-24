@@ -1049,3 +1049,4 @@
 - 开工前检索 Swift 中文日期提取、`NSDataDetector` 和网页关键信息提取候选；没有找到可直接复制进当前共享提取器的小型 Swift/MIT 模块，本轮继续复用 Foundation 正则和现有候选去重。
 - 新增 `testLinkExtractorBuildsKeyInfoCandidatesFromChineseDateText` 和 `testImageTextRecognizerBuildsKeyInfoCandidatesFromChineseDateText`，先用临时探针确认中文日期不会生成“网页关键信息候选”，再让 `KeyInfoExtractor` 识别中文年月日和可选时间并规范为 `yyyy-MM-dd HH:mm`。
 - 因为 OCR 和网页摘录共用 `KeyInfoExtractor.summary(in:)`，这次中文日期增强会同时覆盖网页摘录候选和 OCR 关键信息候选。
+- 远端 Stage 120 CI run `28099053149` 的 Build for simulator 通过、Run tests 失败；公开 annotation 指向 `testSearchCanFilterByContentTypes()`，根因是 OCR `has:ocr-key-info` 用普通 substring 匹配“关键信息候选：”，误把“网页关键信息候选：”也纳入 OCR 结果。本轮把 OCR/网页关键信息摘要改为共享按行前缀判断，并补搜索与工作日志来源回归断言。
