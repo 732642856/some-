@@ -1474,6 +1474,50 @@ final class SomeTests: XCTestCase {
         )
     }
 
+    func testWorkLogExporterBuildsMeetingMinutesDraft() {
+        let date = DateFormatters.wardrobeDay.date(from: "2026-06-24")!
+        let log = Memo(
+            text: """
+            工作日志：会议记录
+            范围：会议
+            项目：some
+            日期：2026-06-24
+            模板：复盘
+            进展：确定链接去重范围
+            问题：需要等待 CI
+            下一步：继续工作日志模板
+            备注：参会人：我；决议：先做确定性模板
+            """,
+            createdAt: date,
+            updatedAt: date
+        )
+
+        let draft = WorkLogExporter.reportDraft(memos: [log], style: .meetingMinutes)
+
+        XCTAssertEqual(
+            draft,
+            """
+            会议纪要
+
+            项目：some
+            日期：2026-06-24
+
+            议题/结论：
+            1. 确定链接去重范围
+
+            待确认：
+            1. 需要等待 CI
+
+            行动项：
+            1. 继续工作日志模板
+
+            备注：
+            1. 参会人：我；决议：先做确定性模板
+
+            """
+        )
+    }
+
     func testSearchCanExcludeContentTypes() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "资料带链接 https://example.com/a")
@@ -2328,6 +2372,21 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(clips[0].url.absoluteString, "https://example.com/a")
         XCTAssertEqual(clips[0].summary, "这是一段网页摘要")
         XCTAssertEqual(clips[0].highlights, ["第一条重点", "第二条重点"])
+    }
+
+    func testLinkExtractorDeduplicatesWebClipTrackingParameterVariants() {
+        let text = """
+        [网页摘录: Example Article](https://example.com/a?utm_source=newsletter&id=42)
+        摘要：第一条
+
+        [网页摘录: Example Article Duplicate](https://example.com/a?id=42&utm_medium=social#top)
+        摘要：第二条
+        """
+
+        let clips = LinkExtractor.webClips(in: text)
+
+        XCTAssertEqual(clips.map(\.url.absoluteString), ["https://example.com/a?utm_source=newsletter&id=42"])
+        XCTAssertEqual(clips.first?.summary, "第一条")
     }
 
     func testLinkExtractorBuildsWebClipText() {

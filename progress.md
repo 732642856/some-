@@ -780,3 +780,16 @@
 - 开工前检索 Swift URL normalization / remove utm 参数候选，GitHub Search 未找到可直接复制的 Swift/MIT 小模块；本轮只做项目内去重 key，不引入依赖。
 - 新增 `testLinkExtractorDeduplicatesTrackingParameterVariants` 和 `testSharedMemoComposerDeduplicatesTrackingParameterVariants`，覆盖输入卡片检测与 Share Extension 文本合成两条路径。
 - `LinkExtractor.deduplicationKey` 使用 `URLComponents` 去除 fragment、`utm_*`、`fbclid`、`gclid`、`gbraid`、`wbraid`、`yclid`、`mc_cid`、`mc_eid`、`igshid`、`spm` 后排序 query 作为去重 key；保存时仍保留第一条原始 URL。
+
+## 2026-06-24T12:42:21+08:00
+
+- 进入并完成阶段 84：网页摘录卡跟踪参数去重。阶段 83 只覆盖 URL 检测和分享文本合成，本轮继续补同一规则在网页摘录卡素材解析里的遗漏。
+- 红灯探针确认旧 `LinkExtractor.webClips(in:)` 会把两个 tracking 变体网页摘录解析成 2 个 clip；绿灯探针确认修复后只保留第一条原始 URL 和摘要。
+- 新增 `testLinkExtractorDeduplicatesWebClipTrackingParameterVariants`，锁定网页摘录卡解析复用 `deduplicationKey`，避免素材索引重复生成同一网页。
+
+## 2026-06-24T13:18:00+08:00
+
+- 进入并完成阶段 85：工作日志会议纪要导出。阶段 83/84 的远端 run 仍在运行，本轮继续补工作日志真实办公输出缺口。
+- 开工前检索会议纪要 Markdown 模板和 Swift 工作日志会议纪要候选，GitHub Search 没有可直接复制进当前 Swift 导出器的模块。
+- 新增 `testWorkLogExporterBuildsMeetingMinutesDraft`，锁定会议纪要输出项目/日期、议题/结论、待确认、行动项和备注。
+- `WorkLogExporter.ReportDraftStyle` 新增 `.meetingMinutes`，工作日志导出菜单新增“会议纪要” txt 导出项，复用现有字段抽取和分享文件流程。

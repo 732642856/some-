@@ -54,7 +54,7 @@ enum LinkExtractor {
                 return
             }
 
-            let key = url.absoluteString
+            let key = deduplicationKey(for: url)
             guard seen.insert(key).inserted else { return }
 
             let lineIndex = lineIndex(containing: result.range.location, in: nsText)
