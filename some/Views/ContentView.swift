@@ -2942,6 +2942,7 @@ private struct AssetLibraryView: View {
         DispatchQueue.global(qos: .utility).async {
             let metadataResult = MediaMetadataExtractor.preheatSummaries(for: attachments)
             _ = ImageThumbnailGenerator.preheatCache(for: imageURLs, maximumPixelSize: 162)
+            _ = ImageThumbnailGenerator.pruneCache(keeping: imageURLs)
             _ = VideoThumbnailGenerator.preheatCache(for: urls)
             _ = VideoThumbnailGenerator.pruneCache(keeping: urls)
 

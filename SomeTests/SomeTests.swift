@@ -3967,6 +3967,62 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(result.skippedCount, 1)
     }
 
+    func testImageThumbnailPruneCacheKeepsExpectedFile() throws {
+        let keptSourceURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("image-cache-keep-\(UUID().uuidString).jpg")
+        let removedSourceURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("image-cache-remove-\(UUID().uuidString).jpg")
+        try Data("kept".utf8).write(to: keptSourceURL)
+        try Data("removed".utf8).write(to: removedSourceURL)
+        defer {
+            try? FileManager.default.removeItem(at: keptSourceURL)
+            try? FileManager.default.removeItem(at: removedSourceURL)
+        }
+
+        let keptCacheURL = try XCTUnwrap(
+            ImageThumbnailGenerator.cachedImageURL(for: keptSourceURL, maximumPixelSize: 24)
+        )
+        let removedCacheURL = try XCTUnwrap(
+            ImageThumbnailGenerator.cachedImageURL(for: removedSourceURL, maximumPixelSize: 24)
+        )
+        let keptLargeCacheURL = try XCTUnwrap(
+            ImageThumbnailGenerator.cachedImageURL(for: keptSourceURL, maximumPixelSize: 64)
+        )
+        let removedLargeCacheURL = try XCTUnwrap(
+            ImageThumbnailGenerator.cachedImageURL(for: removedSourceURL, maximumPixelSize: 64)
+        )
+        let legacyCacheURL = keptCacheURL.deletingLastPathComponent()
+            .appendingPathComponent("legacy-orphan-\(UUID().uuidString).jpg")
+        try FileManager.default.createDirectory(
+            at: keptCacheURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try Data("kept-cache".utf8).write(to: keptCacheURL)
+        try Data("kept-large-cache".utf8).write(to: keptLargeCacheURL)
+        try Data("removed-cache".utf8).write(to: removedCacheURL)
+        try Data("removed-large-cache".utf8).write(to: removedLargeCacheURL)
+        try Data("legacy-cache".utf8).write(to: legacyCacheURL)
+        defer {
+            try? FileManager.default.removeItem(at: keptCacheURL)
+            try? FileManager.default.removeItem(at: keptLargeCacheURL)
+            try? FileManager.default.removeItem(at: removedCacheURL)
+            try? FileManager.default.removeItem(at: removedLargeCacheURL)
+            try? FileManager.default.removeItem(at: legacyCacheURL)
+        }
+
+        let result = ImageThumbnailGenerator.pruneCache(
+            keeping: [keptSourceURL]
+        )
+
+        XCTAssertGreaterThanOrEqual(result.removedCount, 3)
+        XCTAssertEqual(result.failedCount, 0)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: keptCacheURL.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: keptLargeCacheURL.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: removedCacheURL.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: removedLargeCacheURL.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: legacyCacheURL.path))
+    }
+
     func testImageThumbnailPreviewPixelSizeUsesScaledLayerBounds() {
         XCTAssertEqual(
             ImageThumbnailGenerator.previewMaximumPixelSize(width: 120, height: 80, scale: 0.5),

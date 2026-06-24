@@ -233,6 +233,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 105 继续补本地 AI 搜索英文 typo 容错前，检索 `Swift fuzzy search Levenshtein MIT`、`Swift edit distance fuzzy search MIT GitHub`、`Fuzzywuzzy_swift`、`StringMetric.swift`、`SwiftyLevenshtein` 和 `FuzzyMatch`。MIT 候选多已多年未维护，`FuzzyMatch` 更适合完整 fuzzy finder；some 当前只缺单个英文/数字关键词多打一字、少打一字或错一字时的本地搜索兜底，因此不复制第三方源码，只在现有 `SemanticSearchEngine.localSearch` 中加入编辑距离 1 的低权重匹配，并保留精确共享词优先。
 
+2026-06-24 本轮实现决策：阶段 106 继续补图片缩略图缓存清理前，检索 `Swift image thumbnail cache prune MIT` 和 `iOS local thumbnail cache cleanup Swift MIT`，GitHub Search 均返回 0 个可直接复制的小型 Swift/MIT 清理模块。Kingfisher/Nuke 等成熟库仍面向远程图片请求和自身缓存生命周期；some 当前需要的是 App Group 本地附件缩略图和素材索引联动清理，因此复用本项目 `VideoThumbnailGenerator.pruneCache` 的维护思路，在 `ImageThumbnailGenerator` 内实现源图版本前缀清理，不新增依赖。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

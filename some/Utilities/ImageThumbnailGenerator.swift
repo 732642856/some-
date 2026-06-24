@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 enum ImageThumbnailGenerator {
     struct CacheMaintenanceResult: Equatable {
         var warmedCount: Int
+        var removedCount: Int = 0
         var failedCount: Int
         var skippedCount: Int
     }
@@ -61,7 +62,7 @@ enum ImageThumbnailGenerator {
         }
 
         return directory.appendingPathComponent(
-            "\(cacheKey(for: url, maximumPixelSize: maximumPixelSize)).jpg",
+            "\(cacheFilename(for: url, maximumPixelSize: maximumPixelSize)).jpg",
             isDirectory: false
         )
     }
@@ -153,6 +154,42 @@ enum ImageThumbnailGenerator {
         return result
     }
 
+    static func pruneCache(
+        keeping sourceURLs: [URL],
+        fileManager: FileManager = .default
+    ) -> CacheMaintenanceResult {
+        guard let cacheDirectory = try? thumbnailCacheDirectory(fileManager: fileManager),
+              let cachedFiles = try? fileManager.contentsOfDirectory(
+                at: cacheDirectory,
+                includingPropertiesForKeys: nil
+              ) else {
+            return CacheMaintenanceResult(warmedCount: 0, failedCount: 0, skippedCount: 0)
+        }
+
+        let keepPrefixes = Set(
+            sourceURLs.compactMap {
+                cacheSourceKey(for: $0).map { "\($0)-" }
+            }
+        )
+
+        var result = CacheMaintenanceResult(warmedCount: 0, failedCount: 0, skippedCount: 0)
+        for file in cachedFiles where file.pathExtension.lowercased() == "jpg" {
+            let filename = file.lastPathComponent
+            guard !keepPrefixes.contains(where: { filename.hasPrefix($0) }) else {
+                continue
+            }
+
+            do {
+                try fileManager.removeItem(at: file)
+                result.removedCount += 1
+            } catch {
+                result.failedCount += 1
+            }
+        }
+
+        return result
+    }
+
     private static func isImageAsset(_ asset: MemoAsset) -> Bool {
         guard asset.kind == .attachment || asset.kind == .screenshot || asset.kind == .imageEdit,
               let type = asset.typeIdentifier.flatMap(UTType.init) else {
@@ -204,15 +241,24 @@ enum ImageThumbnailGenerator {
         return directory
     }
 
-    private static func cacheKey(for url: URL, maximumPixelSize: CGFloat) -> String {
+    private static func cacheFilename(for url: URL, maximumPixelSize: CGFloat) -> String {
+        let pixelKey = "px\(Int(maximumPixelSize.rounded()))"
+        guard let sourceKey = cacheSourceKey(for: url) else {
+            return fnv1a64([url.standardizedFileURL.path, pixelKey].joined(separator: "|"))
+        }
+        return "\(sourceKey)-\(pixelKey)"
+    }
+
+    private static func cacheSourceKey(for url: URL) -> String? {
         let values = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey])
         let modifiedAt = Int(values?.contentModificationDate?.timeIntervalSince1970 ?? 0)
-        let fileSize = values?.fileSize ?? 0
+        guard let fileSize = values?.fileSize, fileSize > 0 else {
+            return nil
+        }
         let rawKey = [
             url.standardizedFileURL.path,
             "\(fileSize)",
-            "\(modifiedAt)",
-            "\(Int(maximumPixelSize.rounded()))"
+            "\(modifiedAt)"
         ].joined(separator: "|")
 
         return fnv1a64(rawKey)

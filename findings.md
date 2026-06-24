@@ -104,13 +104,14 @@
 - 2026-06-24：阶段 103 开工前检索 `SwiftUI scrapbook image layer thumbnail cache MIT`、`SwiftUI canvas image thumbnail preview ImageIO MIT`、`Swift local image thumbnail canvas preview cache MIT` 和 `SwiftUI photo collage thumbnail cache local files MIT`，GitHub Search 均返回 0 个可直接复制进当前手帐列表预览的小型 SwiftUI/MIT 模块。本轮继续复用阶段 102 的 `ImageThumbnailGenerator`，只把手帐列表图片图层从同步解码原图改为异步小图预览。
 - 2026-06-24：阶段 104 开工前复查 Git 状态、手帐编辑器图片图层、`ScrapbookImageFilterRenderer`、`ImageThumbnailGenerator` 和剩余同步解码点；检索 SwiftUI 本地图片缓存、ImageIO 缩略图、Kingfisher 和 Nuke 候选。第三方库仍主要面向远程图片加载，当前继续复用项目内本地缩略图缓存，让手帐编辑器图片图层异步加载缩略图并后台套滤镜，导出路径继续用原图。
 - 2026-06-24：阶段 105 开工前检索 Swift 模糊搜索和编辑距离候选。`Fuzzywuzzy_swift`、`StringMetric.swift`、`SwiftyLevenshtein` 为 MIT 但多年未维护且偏通用字符串评分；`FuzzyMatch` 近期活跃但为 Apache-2.0 包级 fuzzy matcher。当前只需本地 AI 搜索里防漏单字符英文/数字 typo，不需要引入完整依赖；本轮在现有带权词项搜索中加入低权重编辑距离 1 匹配，精确命中仍优先。
+- 2026-06-24：阶段 106 开工前检索 `Swift image thumbnail cache prune MIT` 和 `iOS local thumbnail cache cleanup Swift MIT`，GitHub Search 均返回 0 个可直接复制的小型 Swift/MIT 清理模块。项目已有 `VideoThumbnailGenerator.pruneCache`，因此图片缩略图清理复用同类本地缓存维护模式，但按源图片路径/大小/修改时间生成版本前缀，保留同一源图的不同尺寸缓存，避免误删附件卡片、素材库和手帐图层各自需要的小图。
 - 2026-06-23：CI 失败复查：runs `28018991662` / `28019499635` 的 Build for simulator 均通过，Run tests 失败 annotation 指向 `appintentsmetadataprocessor --module-name ZIPFoundation`。根因是 Xcode 16.4 测试构建仍会对 Swift Package 跑 App Intents metadata processor；正式 build 需要继续验证 ZIPFoundation，测试阶段可临时移除 package 引用并用 `CI_DISABLE_ZIP_BACKUP` stub 跳过 ZIP 专属测试。
 - 2026-06-23：CI 收口复查：run `28022556308` 的 Build for simulator 已通过，Run tests annotation 只剩搜索日期解析相关 `XCTAssertTrue failed`。本地发现 `MemoSearchQueryParser.dateRange` 使用 Gregorian calendar 但未显式设置 calendar 自身时区，只在 `DateComponents` 设置 `TimeZone.current`；在 CI 模拟器时区下可能让月份/日期范围起点与测试预期漂移。
 - 2026-06-23：CI 收口复查：run `28031203527` 已越过 AppIntents metadata processor，转而暴露 `testWorkLogExporterBuildsShareableReportDraft` 的真实业务断言失败。根因是汇报稿按记录时间/输入顺序汇总时，日报可能排在项目汇报之前；修复方向是让 `WorkLogExporter.reportDraft` 按模板优先级排序，项目汇报优先于日报，并把测试改为完整文本等值断言。
 
 ## 当前缺口
 
-- 媒体预览：视频附件已有本地缩略图缓存，图片附件、手帐列表图片图层和手帐编辑器图片图层已有 ImageIO 下采样缩略图缓存，媒体元数据摘要、图片缩略图预热、视频缩略图预热/清理和图片/音频/视频元数据摘要批量预热均已接入素材库生命周期；素材库列表行、手帐列表预览和手帐编辑预览已改为只读取缩略图/预热摘要缓存或文件大小，避免滚动和拖拽排版时同步解析原图和音视频元数据。后续需用真实长列表验证滚动性能、缓存淘汰和内存峰值。
+- 媒体预览：视频附件已有本地缩略图缓存，图片附件、手帐列表图片图层和手帐编辑器图片图层已有 ImageIO 下采样缩略图缓存，媒体元数据摘要、图片缩略图预热/清理、视频缩略图预热/清理和图片/音频/视频元数据摘要批量预热均已接入素材库生命周期；素材库列表行、手帐列表预览和手帐编辑预览已改为只读取缩略图/预热摘要缓存或文件大小，避免滚动和拖拽排版时同步解析原图和音视频元数据。后续需用真实长列表验证滚动性能、缓存淘汰和内存峰值。
 - 工作日志：已有勾选记录生成结构化日志 v10；支持按标签、素材类型、时间和关键词筛选来源记录，支持项目字段、日期范围和日报/周报/项目汇报/复盘模板，工作日志列表支持项目/模板/日期筛选，并可把当前结果导出为带本地汇报摘要的 Markdown、结构化 CSV、通用汇报稿、站会稿、项目简报、团队周报、行动复盘、会议纪要、可编辑自定义模板或可选 AI 润色汇报；后续可继续用真实团队格式验证占位符覆盖是否足够。
 - 快速记录：已有普通快速输入、首次记录模板、禅定专注记录 v3、小组件快照 v1 和 App Shortcuts 快速入口；专注模式提供大文本框、本地草稿、舒适/大字/紧凑文字偏好、字数目标、进度条、实时字数/行数/标签统计和一键保存；小组件可查看今日/全部计数、最近记录并跳回记录/专注/详情；快捷指令可保存随记并打开专注、工作日志、衣橱或 AI 整理页；后续可继续按真实写作习惯补更多专注偏好。
 - 回顾/习惯：已有每日回顾提醒、历史今天、随机回顾、标签入口、热力图和高频标签；阶段 81 补回顾页顶部摘要，显示今日记录、连续记录天数和可回顾旧记录数量；阶段 82 把 7 天前旧记录列成可点击回看入口，帮助普通用户形成每日回看路径。

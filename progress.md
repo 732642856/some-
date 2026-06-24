@@ -930,3 +930,10 @@
 - 开工前检索 Swift fuzzy search / Levenshtein 候选，确认可用库偏完整 fuzzy finder 或多年未维护；当前只需防漏英文/数字关键词单字符 typo，因此不引入依赖。
 - 新增 `testLocalSemanticSearchMatchesSingleTypoEnglishTerm`，覆盖 `roadmapp` 能命中正文里的 `roadmap` 且命中词展示为原 memo 词。
 - `SemanticSearchEngine.localSearch` 在没有精确共享词时才启用 ASCII 英文/数字编辑距离 1 匹配，并以低权重计分，避免覆盖标签、中文片段和已有精确词排序。
+
+## 2026-06-24T21:45:00+08:00
+
+- 进入并完成阶段 106：图片缩略图缓存孤儿清理。阶段 105 推送后继续处理媒体缓存长期累积缺口，确认视频缩略图已有 prune，图片缩略图还只有生成/预热。
+- 开工前检索 Swift 图片缩略图缓存清理候选，未找到可直接复制的小型 Swift/MIT 模块；本轮复用项目内视频缓存维护模式。
+- 新增 `testImageThumbnailPruneCacheKeepsExpectedFile`，覆盖删除不再引用的图片缩略图缓存，同时保留当前源图的多个尺寸缓存。
+- `ImageThumbnailGenerator` 新增 `pruneCache`，缓存文件名改为源图版本前缀 + 目标尺寸；素材库维护周期在预热图片缩略图后清理 `ImageThumbnailCache` 孤儿 `.jpg`。
