@@ -57,7 +57,7 @@ enum MediaMetadataExtractor {
         for attachment: SharedAttachment,
         fileManager: FileManager = .default
     ) -> String? {
-        let cacheKey = "\(attachment.relativePath):\(attachment.typeIdentifier):\(attachment.byteCount)" as NSString
+        let cacheKey = summaryCacheKey(for: attachment) as NSString
         if let cached = summaryCache.object(forKey: cacheKey) {
             return cached as String
         }
@@ -75,6 +75,10 @@ enum MediaMetadataExtractor {
 
         summaryCache.setObject(summary as NSString, forKey: cacheKey)
         return summary
+    }
+
+    static func cachedSummary(for attachment: SharedAttachment) -> String? {
+        summaryCache.object(forKey: summaryCacheKey(for: attachment) as NSString) as String?
     }
 
     static func metadata(
@@ -147,7 +151,7 @@ enum MediaMetadataExtractor {
         var seenKeys = Set<String>()
 
         for attachment in attachments {
-            let key = "\(attachment.relativePath):\(attachment.typeIdentifier):\(attachment.byteCount)"
+            let key = summaryCacheKey(for: attachment)
             guard seenKeys.insert(key).inserted else {
                 result.skippedCount += 1
                 continue
@@ -161,6 +165,10 @@ enum MediaMetadataExtractor {
         }
 
         return result
+    }
+
+    private static func summaryCacheKey(for attachment: SharedAttachment) -> String {
+        "\(attachment.relativePath):\(attachment.typeIdentifier):\(attachment.byteCount)"
     }
 
     private static func isMediaAsset(_ asset: MemoAsset) -> Bool {

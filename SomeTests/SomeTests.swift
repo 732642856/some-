@@ -3804,6 +3804,30 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(MediaMetadataExtractor.summary(for: attachment)?.contains("9x7") == true)
     }
 
+    func testMediaMetadataCachedSummaryOnlyUsesPreheatedCache() throws {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 11, height: 6), format: format).image { context in
+            UIColor.systemTeal.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 11, height: 6))
+        }
+        let attachment = try SharedAttachmentStore.save(
+            data: try XCTUnwrap(image.pngData()),
+            suggestedFilename: "metadata-cached-\(UUID().uuidString).png",
+            typeIdentifier: UTType.png.identifier
+        )
+        defer { SharedAttachmentStore.delete(attachment) }
+
+        XCTAssertNil(MediaMetadataExtractor.cachedSummary(for: attachment))
+
+        let result = MediaMetadataExtractor.preheatSummaries(for: [attachment])
+
+        XCTAssertEqual(result.warmedCount, 1)
+        XCTAssertEqual(result.failedCount, 0)
+        XCTAssertEqual(result.skippedCount, 0)
+        XCTAssertTrue(MediaMetadataExtractor.cachedSummary(for: attachment)?.contains("11x6") == true)
+    }
+
     func testVideoThumbnailCacheURLChangesWhenFileChanges() throws {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("cache-key-\(UUID().uuidString).mov")

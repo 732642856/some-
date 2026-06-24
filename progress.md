@@ -888,3 +888,10 @@
 - 开工前检索 Apple Vision 表格识别、Swift Vision OCR table extraction、VNRecognizedTextObservation table detection 和 Swift receipt OCR table parser 候选；未找到适合直接复制进当前本地 OCR/memo 链路的小型 Swift/MIT 模块。
 - 新增 `testImageTextRecognizerBuildsTableCandidateForDelimitedRows` 和 `testImageTextRecognizerSkipsTableCandidateWithoutDataRows`，覆盖 `|` 分隔的表头+数据行会生成“表格候选”，只有表头或无匹配数据行时不误判。
 - `ImageTextRecognizer` 新增分隔符型表格候选摘要，支持 `|`、全角 `｜` 和 tab，输出列数、数据行数和前四列表头；原始识别文字仍完整保留，复杂表格结构和自动纠错继续留作后续。
+
+## 2026-06-24T19:05:00+08:00
+
+- 进入并完成阶段 100：素材库媒体摘要缓存只读刷新。继续前复查工作树碎片，发现 `MediaMetadataExtractor`、`AssetLibraryView` 和媒体缓存测试已有正向半成品，先收拢为独立阶段。
+- 开工前检索 SwiftUI media metadata prefetch cache、AVAsset/ImageIO metadata cache 和 iOS media asset metadata preheat cache 候选，GitHub Search 均返回 0 个可直接复制的小型 Swift/MIT 模块。
+- 新增 `testMediaMetadataCachedSummaryOnlyUsesPreheatedCache`，覆盖素材库行读取的 `cachedSummary` 不会自行解析文件，只有 `preheatSummaries` 后才返回摘要。
+- `MediaMetadataExtractor` 抽出统一 summary cache key 并暴露只读 `cachedSummary`；素材库后台预热媒体摘要后递增 `mediaCacheVersion` 刷新行视图，`AssetRowView` 改为只读缓存，避免滚动列表时同步读取图片/音频/视频元数据。

@@ -2814,6 +2814,7 @@ private struct AssetLibraryView: View {
     @EnvironmentObject private var store: MemoStore
     @State private var selectedKind: MemoAssetKind?
     @State private var warmedMediaSignature = ""
+    @State private var mediaCacheVersion = 0
 
     private var filteredAssets: [MemoAsset] {
         guard let selectedKind = selectedKind else {
@@ -2834,9 +2835,9 @@ private struct AssetLibraryView: View {
             } else {
                 ForEach(filteredAssets) { asset in
                     if let memo = memo(for: asset) {
-                        AssetNavigationRow(asset: asset, memo: memo)
+                        AssetNavigationRow(asset: asset, memo: memo, mediaCacheVersion: mediaCacheVersion)
                     } else {
-                        AssetRowView(asset: asset, memo: nil)
+                        AssetRowView(asset: asset, memo: nil, mediaCacheVersion: mediaCacheVersion)
                     }
                 }
             }
@@ -2908,9 +2909,15 @@ private struct AssetLibraryView: View {
         let attachments = MediaMetadataExtractor.sourceAttachments(in: store.assets)
         let urls = VideoThumbnailGenerator.sourceURLs(in: store.assets)
         DispatchQueue.global(qos: .utility).async {
-            _ = MediaMetadataExtractor.preheatSummaries(for: attachments)
+            let metadataResult = MediaMetadataExtractor.preheatSummaries(for: attachments)
             _ = VideoThumbnailGenerator.preheatCache(for: urls)
             _ = VideoThumbnailGenerator.pruneCache(keeping: urls)
+
+            if metadataResult.warmedCount > 0 {
+                DispatchQueue.main.async {
+                    mediaCacheVersion += 1
+                }
+            }
         }
     }
 
@@ -2943,6 +2950,13 @@ private struct AssetNavigationRow: View {
 
     let asset: MemoAsset
     let memo: Memo
+    let mediaCacheVersion: Int
+
+    init(asset: MemoAsset, memo: Memo, mediaCacheVersion: Int = 0) {
+        self.asset = asset
+        self.memo = memo
+        self.mediaCacheVersion = mediaCacheVersion
+    }
 
     var body: some View {
         if asset.kind == .webClip,
@@ -2951,14 +2965,14 @@ private struct AssetNavigationRow: View {
             Button {
                 openURL(url)
             } label: {
-                AssetRowView(asset: asset, memo: memo)
+                AssetRowView(asset: asset, memo: memo, mediaCacheVersion: mediaCacheVersion)
             }
             .buttonStyle(.plain)
         } else if let attachment = imageAttachment {
             Button {
                 editingImageAttachment = attachment
             } label: {
-                AssetRowView(asset: asset, memo: memo)
+                AssetRowView(asset: asset, memo: memo, mediaCacheVersion: mediaCacheVersion)
             }
             .buttonStyle(.plain)
             .sheet(item: $editingImageAttachment) { attachment in
@@ -2968,7 +2982,7 @@ private struct AssetNavigationRow: View {
             }
         } else {
             NavigationLink(value: memo.id) {
-                AssetRowView(asset: asset, memo: memo)
+                AssetRowView(asset: asset, memo: memo, mediaCacheVersion: mediaCacheVersion)
             }
             .buttonStyle(.plain)
         }
@@ -2988,6 +3002,13 @@ private struct AssetNavigationRow: View {
 private struct AssetRowView: View {
     let asset: MemoAsset
     let memo: Memo?
+    let mediaCacheVersion: Int
+
+    init(asset: MemoAsset, memo: Memo?, mediaCacheVersion: Int = 0) {
+        self.asset = asset
+        self.memo = memo
+        self.mediaCacheVersion = mediaCacheVersion
+    }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -3099,7 +3120,7 @@ private struct AssetRowView: View {
         }
 
         if let attachment = attachment,
-           let mediaSummary = MediaMetadataExtractor.summary(for: attachment) {
+           let mediaSummary = MediaMetadataExtractor.cachedSummary(for: attachment) {
             return mediaSummary
         }
 
