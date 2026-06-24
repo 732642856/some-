@@ -1006,3 +1006,9 @@
 - 开工前检索并复查 Memos、Joplin、macOCR、MiaoYan 等开源笔记/OCR 项目；它们能提供搜索、OCR 可搜索和本地优先笔记方向参考，但没有可直接复制进当前本地 memo/OCR 摘要格式的小型 Swift `has:*` 模块，本轮继续复用项目内 `MemoSearchQueryParser` 和 `MemoStore.matchesContentFilter`。
 - 先用临时 Swift 探针确认旧 `MemoSearchQueryParser` 会把 `has:ocr-field` / `has:字段候选` 留作普通文本；新增 `testSearchQueryParserExtractsOCRFieldAliases` 和 store 搜索断言，覆盖英文与中文别名。
 - `MemoContentFilter` 新增 `ocrField`，`MemoStore.matchesContentFilter` 基于 OCR memo 中的“字段候选：”摘要行筛选；README 同步 `has:ocr-field` / `has:字段候选`，任务计划、发现、审计和验证记录同步到 OCR v13。
+
+## 2026-06-24T23:59:59+08:00
+
+- 复查远端 CI 时发现阶段 115 提交 `63341e3` 的 Build for simulator 失败，公开 annotation 明确指向 `WorkLogSourceFilterEngine.swift:109` 和 `ContentView.swift:1752` 的 `switch must be exhaustive`。
+- 根因：新增 OCR 字段/表格/票据行 `MemoContentFilter` 后，主搜索筛选已接线，但工作日志来源筛选和来源标题两个 switch 没同步分支；本地 `swiftc -typecheck` 也复现了缺 `.ocrField`、`.ocrTable`、`.receiptLines`。
+- 新增 `testWorkLogSourceFilterEngineCanFilterOCRCandidates`，覆盖工作日志来源筛选能按“字段候选：”“表格候选：”“票据行候选：”筛出对应 OCR memo；`sourceKindOptions` 下拉同步加入字段、表格和票据类型。

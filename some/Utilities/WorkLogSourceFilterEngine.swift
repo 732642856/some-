@@ -135,6 +135,12 @@ enum WorkLogSourceFilterEngine {
             return hasAsset(.screenshot, in: memo, assetsByMemoID: assetsByMemoID)
         case .ocrReview:
             return ClipFragmentExtractor.needsOCRReview(in: memo.text)
+        case .ocrField:
+            return memo.text.contains("字段候选：")
+        case .ocrTable:
+            return memo.text.contains("表格候选：")
+        case .receiptLines:
+            return memo.text.contains("票据行候选：")
         case .scrapbook:
             return hasAsset(.scrapbookPage, in: memo, assetsByMemoID: assetsByMemoID)
         case .audio:

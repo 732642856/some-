@@ -1262,6 +1262,55 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(candidates.map(\.id), [lowConfidenceMemo.id])
     }
 
+    func testWorkLogSourceFilterEngineCanFilterOCRCandidates() {
+        let calendar = Calendar(identifier: .gregorian)
+        let now = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
+        let fieldMemo = Memo(text: """
+        图片文字：form.png
+        字段候选：姓名=李雷 · 日期=2026-06-24
+
+        识别文字：
+        姓名：李雷
+        """)
+        let tableMemo = Memo(text: """
+        图片文字：table.png
+        表格候选：3 列 · 2 行数据 · 表头：项目 / 金额 / 备注
+        """)
+        let receiptMemo = Memo(text: """
+        图片文字：receipt.png
+        票据行候选：拿铁 18.00 · 蛋糕 32.00
+        """)
+        let plainMemo = Memo(text: "普通会议记录")
+        let memos = [plainMemo, fieldMemo, tableMemo, receiptMemo]
+        let assets = memos.flatMap { MemoAsset.assets(in: $0) }
+
+        let fieldCandidates = WorkLogSourceFilterEngine.candidates(
+            from: memos,
+            assets: assets,
+            filter: WorkLogSourceFilter(kind: .ocrField),
+            now: now,
+            calendar: calendar
+        )
+        let tableCandidates = WorkLogSourceFilterEngine.candidates(
+            from: memos,
+            assets: assets,
+            filter: WorkLogSourceFilter(kind: .ocrTable),
+            now: now,
+            calendar: calendar
+        )
+        let receiptCandidates = WorkLogSourceFilterEngine.candidates(
+            from: memos,
+            assets: assets,
+            filter: WorkLogSourceFilter(kind: .receiptLines),
+            now: now,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(fieldCandidates.map(\.id), [fieldMemo.id])
+        XCTAssertEqual(tableCandidates.map(\.id), [tableMemo.id])
+        XCTAssertEqual(receiptCandidates.map(\.id), [receiptMemo.id])
+    }
+
     func testWorkLogSourceFilterEngineLimitsNewestCandidates() {
         let calendar = Calendar(identifier: .gregorian)
         let now = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
