@@ -773,3 +773,10 @@
 - 开工前继续检索 SwiftUI 日记回顾、streak、spaced repetition 和随机 memo 回顾开源候选；未找到适合直接复制进当前 SwiftUI/本地素材索引架构的许可清晰模块。
 - 按 TDD 增加 `testReviewBacklogMemosReturnsOldestActiveCandidates`，锁定 7 天前活跃记录才进入回看列表、归档记录排除、旧记录按创建时间从旧到新展示。
 - `MemoStore.reviewBacklogMemos` 新增最多 3 条旧记录候选，`ReviewView` 新增“旧记录回看”区块，复用 `NavigationLink` 与 `MemoRowView` 直接打开详情。
+
+## 2026-06-24T12:58:00+08:00
+
+- 进入并完成阶段 83：链接导入跟踪参数去重。阶段 82 新 CI 已通过 build 并进入 Run tests，本轮继续处理网页摘录/分享导入的重复链接噪音。
+- 开工前检索 Swift URL normalization / remove utm 参数候选，GitHub Search 未找到可直接复制的 Swift/MIT 小模块；本轮只做项目内去重 key，不引入依赖。
+- 新增 `testLinkExtractorDeduplicatesTrackingParameterVariants` 和 `testSharedMemoComposerDeduplicatesTrackingParameterVariants`，覆盖输入卡片检测与 Share Extension 文本合成两条路径。
+- `LinkExtractor.deduplicationKey` 使用 `URLComponents` 去除 fragment、`utm_*`、`fbclid`、`gclid`、`gbraid`、`wbraid`、`yclid`、`mc_cid`、`mc_eid`、`igshid`、`spm` 后排序 query 作为去重 key；保存时仍保留第一条原始 URL。

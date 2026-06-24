@@ -23,7 +23,7 @@ enum LinkExtractor {
             guard let url = result?.url else { return }
             guard url.scheme != SharedAttachmentStore.referenceScheme else { return }
             guard url.scheme != MemoReferenceParser.scheme else { return }
-            let key = url.absoluteString
+            let key = deduplicationKey(for: url)
 
             if seen.insert(key).inserted {
                 urls.append(url)
@@ -181,5 +181,43 @@ enum LinkExtractor {
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         return cleaned.isEmpty ? fallback : cleaned
+    }
+
+    static func deduplicationKey(for url: URL) -> String {
+        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            return url.absoluteString
+        }
+
+        components.fragment = nil
+        components.queryItems = components.queryItems?
+            .filter { !isTrackingQueryItem($0) }
+            .sorted { lhs, rhs in
+                if lhs.name == rhs.name {
+                    return (lhs.value ?? "") < (rhs.value ?? "")
+                }
+                return lhs.name < rhs.name
+            }
+
+        if components.queryItems?.isEmpty == true {
+            components.queryItems = nil
+        }
+
+        return components.url?.absoluteString ?? url.absoluteString
+    }
+
+    private static func isTrackingQueryItem(_ item: URLQueryItem) -> Bool {
+        let name = item.name.lowercased()
+        return name.hasPrefix("utm_")
+            || [
+                "fbclid",
+                "gclid",
+                "gbraid",
+                "wbraid",
+                "yclid",
+                "mc_cid",
+                "mc_eid",
+                "igshid",
+                "spm"
+            ].contains(name)
     }
 }

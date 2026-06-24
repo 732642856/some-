@@ -2289,6 +2289,14 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(LinkExtractor.displayText(for: urls[0]), "example.com")
     }
 
+    func testLinkExtractorDeduplicatesTrackingParameterVariants() {
+        let urls = LinkExtractor.urls(
+            in: "资料 https://example.com/a?utm_source=newsletter&id=42 和 https://example.com/a?id=42&utm_medium=social#top"
+        )
+
+        XCTAssertEqual(urls.map(\.absoluteString), ["https://example.com/a?utm_source=newsletter&id=42"])
+    }
+
     func testLinkExtractorIgnoresAttachmentReferences() {
         let text = "资料 https://example.com/a\n\n[附件: image.png](some-attachment://image.png)"
         let urls = LinkExtractor.urls(in: text)
@@ -2522,6 +2530,27 @@ final class SomeTests: XCTestCase {
         )
 
         XCTAssertEqual(text, "这是一段摘录\n\nhttps://example.com/a")
+    }
+
+    func testSharedMemoComposerDeduplicatesTrackingParameterVariants() {
+        let text = SharedMemoTextComposer.compose(
+            texts: ["  这是一段摘录  "],
+            urls: [
+                URL(string: "https://example.com/a?utm_source=newsletter&id=42")!,
+                URL(string: "https://example.com/a?id=42&utm_medium=social#top")!
+            ]
+        )
+
+        XCTAssertEqual(text, "这是一段摘录\n\nhttps://example.com/a?utm_source=newsletter&id=42")
+    }
+
+    func testSharedMemoComposerDoesNotAppendEquivalentTrackingURLAlreadyInText() {
+        let text = SharedMemoTextComposer.compose(
+            texts: ["资料 https://example.com/a?id=42&utm_source=newsletter"],
+            urls: [URL(string: "https://example.com/a?utm_medium=social&id=42#top")!]
+        )
+
+        XCTAssertEqual(text, "资料 https://example.com/a?id=42&utm_source=newsletter")
     }
 
     func testSharedMemoComposerDoesNotAppendURLAlreadyInText() {
