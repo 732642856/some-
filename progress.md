@@ -811,3 +811,10 @@
 - 进入并完成阶段 88：OCR 批量校对清单。开工前检索 OCR text correction Swift/MIT 候选，未找到可直接复制的轻量模块。
 - 红灯探针确认旧 `ClipFragmentExtractor` 没有 `ocrProofreadingChecklist`；新增 `testClipFragmentExtractorBuildsOCRProofreadingChecklist`，覆盖跳过置信度/扫描页/附件行、多 OCR 块去重和来源聚合。
 - `ClipFragmentExtractor.ocrProofreadingChecklist` 复用现有 OCR fragment 解析生成 Markdown 待办清单；详情页图片文字区域新增“生成 OCR 校对清单”按钮，追加到当前记录。
+
+## 2026-06-24T14:28:00+08:00
+
+- 进入并完成阶段 89：低置信度 OCR 待校对筛选。阶段 88 已有校对清单入口，本轮继续让用户能先筛出最需要校对的 OCR 记录。
+- 开工前检索 OCR confidence review queue / Vision OCR 校对候选；`SwiftOCRKit` 许可清晰但只是 OCR wrapper，不覆盖 some 的本地 memo 搜索筛选，本轮不引入依赖。
+- `MemoContentFilter` 新增 `ocrReview`，搜索支持 `has:ocr-review`、`has:待校对`、`has:低置信度` 等别名。
+- `ClipFragmentExtractor.needsOCRReview` 解析 `置信度：平均 XX% · 最低 YY%` 行，最低任一百分比低于 70% 且存在 OCR fragment 时才归入待校对；`MemoStore` 搜索筛选复用该规则。

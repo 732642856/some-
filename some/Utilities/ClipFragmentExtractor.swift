@@ -127,6 +127,21 @@ enum ClipFragmentExtractor {
         return lines.joined(separator: "\n")
     }
 
+    static func needsOCRReview(in text: String, confidenceThreshold: Int = 70) -> Bool {
+        guard !ocrFragments(in: text).isEmpty else {
+            return false
+        }
+
+        return text.components(separatedBy: .newlines).contains { line in
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard isConfidenceLine(trimmed) else {
+                return false
+            }
+
+            return confidencePercentages(in: trimmed).contains { $0 < confidenceThreshold }
+        }
+    }
+
     private static func webFragments(in text: String) -> [ClipFragment] {
         LinkExtractor.webClips(in: text).flatMap { clip -> [ClipFragment] in
             var fragments: [ClipFragment] = []
@@ -290,6 +305,27 @@ enum ClipFragmentExtractor {
     private static func imageTextTitlePrefix(in line: String) -> String? {
         let prefixes = ["图片文字：", "图片文字:", "截图文字：", "截图文字:", "扫描文字：", "扫描文字:"]
         return prefixes.first(where: { line.hasPrefix($0) })
+    }
+
+    private static func isConfidenceLine(_ line: String) -> Bool {
+        line.hasPrefix("置信度：") || line.hasPrefix("置信度:")
+    }
+
+    private static func confidencePercentages(in line: String) -> [Int] {
+        guard let regex = try? NSRegularExpression(pattern: #"([0-9]{1,3})\s*%"#, options: []) else {
+            return []
+        }
+
+        let range = NSRange(line.startIndex..<line.endIndex, in: line)
+        return regex.matches(in: line, options: [], range: range).compactMap { match in
+            guard match.numberOfRanges >= 2,
+                  let percentageRange = Range(match.range(at: 1), in: line)
+            else {
+                return nil
+            }
+
+            return Int(line[percentageRange])
+        }
     }
 
     private static func attachmentURI(for attachment: SharedAttachment?) -> String? {

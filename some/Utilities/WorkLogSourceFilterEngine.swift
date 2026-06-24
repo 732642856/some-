@@ -133,6 +133,8 @@ enum WorkLogSourceFilterEngine {
             return hasAsset(.imageEdit, in: memo, assetsByMemoID: assetsByMemoID)
         case .screenshot:
             return hasAsset(.screenshot, in: memo, assetsByMemoID: assetsByMemoID)
+        case .ocrReview:
+            return ClipFragmentExtractor.needsOCRReview(in: memo.text)
         case .scrapbook:
             return hasAsset(.scrapbookPage, in: memo, assetsByMemoID: assetsByMemoID)
         case .audio:

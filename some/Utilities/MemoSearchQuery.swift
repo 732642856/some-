@@ -13,6 +13,7 @@ enum MemoContentFilter: String, CaseIterable, Hashable {
     case clipFragment = "clip-fragment"
     case imageEdit = "image-edit"
     case screenshot
+    case ocrReview = "ocr-review"
     case scrapbook
     case audio
     case video
@@ -202,6 +203,8 @@ enum MemoSearchQueryParser {
             return .imageEdit
         case "ocr", "image-text", "screenshot", "screenshots", "scan", "scan-text", "图片文字", "截图", "截图文字", "识别文字":
             return .screenshot
+        case "ocr-review", "ocrreview", "ocr-low-confidence", "low-confidence-ocr", "needs-ocr-review", "review-ocr", "ocr-proofread", "ocr-proofreading", "proofread-ocr", "待校对", "ocr待校对", "识别待校对", "图片文字待校对", "低置信度", "低置信度ocr":
+            return .ocrReview
         case "scrapbook", "journal", "journaling", "handbook", "layout", "layouts", "collage", "collages", "page", "pages", "手帐", "手帳", "电子手帐", "拼贴", "拼贴页", "页面", "排版":
             return .scrapbook
         case "audio", "audios", "voice", "voices", "recording", "recordings", "录音", "音频", "语音":
