@@ -204,7 +204,7 @@ P3 只参考：
 
 2026-06-22 本轮实现决策：图片/截图 OCR MVP 采用 Apple Vision `VNRecognizeTextRequest`，导入图片后异步识别文字，识别成功则保存为“图片文字” memo 并保留原附件引用；素材索引新增 `screenshot` 类型，搜索新增 `has:ocr` / `has:screenshot` / `has:图片文字`。没有复制 `OpenFind` 或 `SwiftOCRKit` 源码，也没有引入未验证的 SPM 依赖。
 
-2026-06-24 本轮实现决策：阶段 92 继续补 OCR 版面分区摘要前，检索 `Swift Vision OCR text blocks layout segmentation GitHub MIT`、`VNRecognizedTextObservation boundingBox reading order Swift MIT`、`iOS OCR layout analysis Swift Vision GitHub MIT` 和 `Swift OCR document layout analysis Vision license MIT`，未找到可直接复制进 some 当前本地 memo/OCR/素材索引架构的轻量 MIT 模块。Apple Vision 已在 `VNRecognizedTextObservation.boundingBox` 提供文字行框位置，本轮不引入第三方 OCR 引擎或文档分析依赖，只把行框转换为已有 `ImageTextRegion`，保存左/右栏与顶部/中部/底部行数摘要；后续表格、表单字段和阅读顺序校正再单独评估。
+2026-06-24 本轮实现决策：阶段 92 继续补 OCR 版面分区摘要前，检索 `Swift Vision OCR text blocks layout segmentation GitHub MIT`、`VNRecognizedTextObservation boundingBox reading order Swift MIT`、`iOS OCR layout analysis Swift Vision GitHub MIT` 和 `Swift OCR document layout analysis Vision license MIT`，未找到可直接复制进 some 当前本地 memo/OCR/素材索引架构的轻量 MIT 模块。Apple Vision 已在 `VNRecognizedTextObservation.boundingBox` 提供文字行框位置，本轮不引入第三方 OCR 引擎或文档分析依赖，只把行框转换为已有 `ImageTextRegion`，保存左/右栏与顶部/中部/底部行数摘要；复杂表格和表单字段级校正后续单独评估。
 
 2026-06-24 本轮实现决策：阶段 95 继续补 OCR 行级阅读顺序整理前，检索 `Swift Vision OCR reading order boundingBox GitHub MIT`、`VNRecognizedTextObservation reading order Swift MIT` 和 `iOS OCR document reading order Swift Vision`，未找到可直接复制进 some 当前本地 OCR 保存链路的轻量 Swift/MIT 模块。Apple Vision 已在 `VNRecognizedTextObservation.boundingBox` 提供行框位置，本轮继续复用 `ImageTextRegion`，只在全部去重行都有 region 时按中心点从上到下、同一行从左到右排序，不引入第三方 OCR/document layout 依赖。
 
