@@ -3708,6 +3708,85 @@ final class SomeTests: XCTestCase {
         )
     }
 
+    func testImageTextRecognizerBuildsMemoTextWithLayoutSections() {
+        let attachment = SharedAttachment(
+            id: "scan.png",
+            filename: "scan.png",
+            relativePath: "scan.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 256
+        )
+
+        let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: [
+                ImageTextRecognizer.RecognizedLine(
+                    text: "左上标题",
+                    confidence: 0.96,
+                    region: ImageTextRegion(x: 0.08, y: 0.08, width: 0.3, height: 0.06)
+                ),
+                ImageTextRecognizer.RecognizedLine(
+                    text: "右上金额",
+                    confidence: 0.88,
+                    region: ImageTextRegion(x: 0.62, y: 0.1, width: 0.25, height: 0.06)
+                ),
+                ImageTextRecognizer.RecognizedLine(
+                    text: "左下备注",
+                    confidence: 0.79,
+                    region: ImageTextRegion(x: 0.1, y: 0.72, width: 0.32, height: 0.08)
+                )
+            ]
+        )
+
+        XCTAssertEqual(
+            text,
+            """
+            图片文字：scan.png
+            置信度：平均 88% · 最低 79%
+            版面分区：左栏2行 · 右栏1行 · 顶部2行 · 底部1行
+
+            识别文字：
+            左上标题
+            右上金额
+            左下备注
+
+            [附件: scan.png](some-attachment://scan.png)
+            """
+        )
+    }
+
+    func testImageTextRecognizerKeepsOldMemoFormatWithoutLayoutRegions() {
+        let attachment = SharedAttachment(
+            id: "receipt.png",
+            filename: "receipt.png",
+            relativePath: "receipt.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 128
+        )
+
+        let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: [
+                ImageTextRecognizer.RecognizedLine(text: "合计 128 元", confidence: 0.9),
+                ImageTextRecognizer.RecognizedLine(text: "谢谢惠顾", confidence: 0.8)
+            ]
+        )
+
+        XCTAssertEqual(
+            text,
+            """
+            图片文字：receipt.png
+            置信度：平均 85% · 最低 80%
+
+            识别文字：
+            合计 128 元
+            谢谢惠顾
+
+            [附件: receipt.png](some-attachment://receipt.png)
+            """
+        )
+    }
+
     func testImageTextRecognizerBuildsMemoTextWithRegion() {
         let attachment = SharedAttachment(
             id: "receipt.png",

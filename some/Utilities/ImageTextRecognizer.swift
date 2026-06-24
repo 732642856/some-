@@ -49,10 +49,35 @@ enum ImageTextRecognizer {
     struct RecognizedLine: Equatable {
         let text: String
         let confidence: Float?
+        let region: ImageTextRegion?
 
-        init(text: String, confidence: Float? = nil) {
+        init(text: String, confidence: Float? = nil, region: ImageTextRegion? = nil) {
             self.text = text
             self.confidence = confidence
+            self.region = region
+        }
+    }
+
+    struct ImageTextLayoutSection: Equatable {
+        var leftColumnLineCount: Int
+        var rightColumnLineCount: Int
+        var topLineCount: Int
+        var middleLineCount: Int
+        var bottomLineCount: Int
+
+        var summary: String? {
+            var parts: [String] = []
+            appendPart("左栏", count: leftColumnLineCount, to: &parts)
+            appendPart("右栏", count: rightColumnLineCount, to: &parts)
+            appendPart("顶部", count: topLineCount, to: &parts)
+            appendPart("中部", count: middleLineCount, to: &parts)
+            appendPart("底部", count: bottomLineCount, to: &parts)
+            return parts.isEmpty ? nil : parts.joined(separator: " · ")
+        }
+
+        private func appendPart(_ title: String, count: Int, to parts: inout [String]) {
+            guard count > 0 else { return }
+            parts.append("\(title)\(count)行")
         }
     }
 
@@ -153,6 +178,10 @@ enum ImageTextRecognizer {
             lines.append("置信度：\(confidenceSummary)")
         }
 
+        if let layoutSummary = layoutSections(for: cleanedLines).summary {
+            lines.append("版面分区：\(layoutSummary)")
+        }
+
         lines.append("")
         lines.append("识别文字：")
         lines.append(contentsOf: cleanedLines.map(\.text))
@@ -211,13 +240,15 @@ enum ImageTextRecognizer {
 
     private static func recognizedTextLines(from request: VNRecognizeTextRequest) -> [RecognizedLine] {
         (request.results ?? [])
-            .compactMap { observation in
-                observation.topCandidates(1).first
-            }
-            .map { candidate in
-                RecognizedLine(
+            .compactMap { observation -> RecognizedLine? in
+                guard let candidate = observation.topCandidates(1).first else {
+                    return nil
+                }
+
+                return RecognizedLine(
                     text: candidate.string.trimmingCharacters(in: .whitespacesAndNewlines),
-                    confidence: candidate.confidence
+                    confidence: candidate.confidence,
+                    region: imageRegion(fromVisionBoundingBox: observation.boundingBox)
                 )
             }
             .filter { !$0.text.isEmpty }
@@ -241,8 +272,49 @@ enum ImageTextRecognizer {
             guard !normalized.isEmpty, seen.insert(normalized).inserted else {
                 return nil
             }
-            return RecognizedLine(text: normalized, confidence: line.confidence)
+            return RecognizedLine(text: normalized, confidence: line.confidence, region: line.region)
         }
+    }
+
+    private static func layoutSections(for lines: [RecognizedLine]) -> ImageTextLayoutSection {
+        let regions = lines.compactMap(\.region)
+        var section = ImageTextLayoutSection(
+            leftColumnLineCount: 0,
+            rightColumnLineCount: 0,
+            topLineCount: 0,
+            middleLineCount: 0,
+            bottomLineCount: 0
+        )
+
+        for region in regions {
+            let centerX = region.x + region.width / 2
+            let centerY = region.y + region.height / 2
+
+            if centerX < 0.5 {
+                section.leftColumnLineCount += 1
+            } else {
+                section.rightColumnLineCount += 1
+            }
+
+            if centerY < 1.0 / 3.0 {
+                section.topLineCount += 1
+            } else if centerY > 2.0 / 3.0 {
+                section.bottomLineCount += 1
+            } else {
+                section.middleLineCount += 1
+            }
+        }
+
+        return section
+    }
+
+    private static func imageRegion(fromVisionBoundingBox boundingBox: CGRect) -> ImageTextRegion {
+        ImageTextRegion(
+            x: boundingBox.origin.x,
+            y: 1 - boundingBox.origin.y - boundingBox.height,
+            width: boundingBox.width,
+            height: boundingBox.height
+        )
     }
 
     private static func confidenceSummary(for lines: [RecognizedLine]) -> String? {

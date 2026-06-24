@@ -832,3 +832,10 @@
 - 开工前检索 SwiftUI Markdown heading / blockquote 小型渲染模块，未找到可直接复制的 MIT 模块；完整 Markdown 引擎仍留作后续大改候选。
 - `MarkdownMemoBlockParser` 新增 heading 和 quote block：标题只识别 `# ` 到 `###### ` 这种带空格 Markdown 语法，`#产品/输入` 仍保持普通正文/标签语义；连续 `>` 行会合并为一个引用块。
 - `MarkdownMemoTextView` 用不同字号渲染标题，用左侧色条和浅底色渲染引用块，列表和详情页继续共用。
+
+## 2026-06-24T15:35:00+08:00
+
+- 进入并完成阶段 92：OCR 版面分区摘要。阶段 91 最新提交已在 `origin/master`，阶段 90 远端 CI 已 success，阶段 91 两个 run 仍在运行；等待期间继续处理 README 与 findings 中明确的 OCR 版面分区缺口。
+- 开工前检索 Swift Vision OCR layout / boundingBox / document layout analysis 候选，未找到可直接复制进当前 SwiftUI 本地 memo/OCR/素材索引的轻量 MIT 模块；本轮复用 Apple Vision 行框信息。
+- 先写 `testImageTextRecognizerBuildsMemoTextWithLayoutSections` 和 `testImageTextRecognizerKeepsOldMemoFormatWithoutLayoutRegions`，锁定有行框位置时输出“版面分区：左栏/右栏/顶部/中部/底部”，无位置数据时继续保持旧 OCR memo 格式。
+- `ImageTextRecognizer.RecognizedLine` 新增可选 `region`，Vision OCR 结果从 `VNRecognizedTextObservation.boundingBox` 转成项目已有 `ImageTextRegion`；带置信度的 `memoText` 会在“识别文字”前保存轻量版面分区摘要，不污染后续 OCR fragment、待校对清单或 `has:ocr` 搜索解析。
