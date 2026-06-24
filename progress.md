@@ -867,3 +867,10 @@
 - 开工前检索 SwiftUI Markdown footnote renderer、MarkdownUI footnotes 和 swift-markdown footnote support 候选；完整 Markdown/GFM 引擎仍作为后续候选，本轮不引入大依赖。
 - 新增 `testMarkdownMemoBlockParserGroupsFootnotes` 和 `testMarkdownMemoBlockParserKeepsFootnotesInsideCodeBlocks`，覆盖连续脚注定义聚合、后续任务行号保持原始行号，以及代码块内脚注样式不被解析。
 - `MarkdownMemoBlockParser` 新增 footnotes block，`MarkdownMemoTextView` 用轻量脚注区展示脚注 id 和正文；README 同步到 Markdown 阅读渲染 v6。
+
+## 2026-06-24T17:45:00+08:00
+
+- 进入并完成阶段 97：OCR 表单字段候选摘要。阶段 96 最新提交已推送，阶段 95 远端 CI 已 success，阶段 96 仍在运行；等待期间继续处理 OCR 表单/字段级校对缺口。
+- 开工前检索 Swift Vision OCR key-value extraction、iOS Vision OCR form field extraction、VNRecognizedTextObservation table extraction 和 Swift receipt OCR parser 候选，GitHub Search 均返回 0 个可直接复制的小型 Swift/MIT 模块。
+- 新增 `testImageTextRecognizerBuildsFieldCandidatesForFormLikeLines`、`testImageTextRecognizerSkipsFieldCandidatesForSingleLabelLine` 和 `testImageTextRecognizerSkipsURLSchemeFieldCandidates`，覆盖两行以上 `字段：值` / `字段: 值` 才生成“字段候选”，单个提示行和 URL scheme 不误判。
+- `ImageTextRecognizer` 在带置信度 OCR memo 里新增字段候选摘要：短字段名去重、最多展示前四项，原始“识别文字”仍完整保留，复杂表格结构和自动字段纠错继续留作后续。

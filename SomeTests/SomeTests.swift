@@ -3993,6 +3993,105 @@ final class SomeTests: XCTestCase {
         )
     }
 
+    func testImageTextRecognizerBuildsFieldCandidatesForFormLikeLines() {
+        let attachment = SharedAttachment(
+            id: "form.png",
+            filename: "form.png",
+            relativePath: "form.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 256
+        )
+
+        let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: [
+                ImageTextRecognizer.RecognizedLine(text: "姓名：李雷", confidence: 0.96),
+                ImageTextRecognizer.RecognizedLine(text: "日期: 2026-06-24", confidence: 0.92),
+                ImageTextRecognizer.RecognizedLine(text: "合计：128 元", confidence: 0.88)
+            ]
+        )
+
+        XCTAssertEqual(
+            text,
+            """
+            图片文字：form.png
+            置信度：平均 92% · 最低 88%
+            字段候选：姓名=李雷 · 日期=2026-06-24 · 合计=128 元
+
+            识别文字：
+            姓名：李雷
+            日期: 2026-06-24
+            合计：128 元
+
+            [附件: form.png](some-attachment://form.png)
+            """
+        )
+    }
+
+    func testImageTextRecognizerSkipsFieldCandidatesForSingleLabelLine() {
+        let attachment = SharedAttachment(
+            id: "notice.png",
+            filename: "notice.png",
+            relativePath: "notice.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 128
+        )
+
+        let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: [
+                ImageTextRecognizer.RecognizedLine(text: "提示：请保留小票", confidence: 0.9),
+                ImageTextRecognizer.RecognizedLine(text: "谢谢惠顾", confidence: 0.8)
+            ]
+        )
+
+        XCTAssertEqual(
+            text,
+            """
+            图片文字：notice.png
+            置信度：平均 85% · 最低 80%
+
+            识别文字：
+            提示：请保留小票
+            谢谢惠顾
+
+            [附件: notice.png](some-attachment://notice.png)
+            """
+        )
+    }
+
+    func testImageTextRecognizerSkipsURLSchemeFieldCandidates() {
+        let attachment = SharedAttachment(
+            id: "links.png",
+            filename: "links.png",
+            relativePath: "links.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 128
+        )
+
+        let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: [
+                ImageTextRecognizer.RecognizedLine(text: "https://example.com/a", confidence: 0.9),
+                ImageTextRecognizer.RecognizedLine(text: "http://example.com/b", confidence: 0.8)
+            ]
+        )
+
+        XCTAssertEqual(
+            text,
+            """
+            图片文字：links.png
+            置信度：平均 85% · 最低 80%
+
+            识别文字：
+            https://example.com/a
+            http://example.com/b
+
+            [附件: links.png](some-attachment://links.png)
+            """
+        )
+    }
+
     func testImageTextRecognizerKeepsOldMemoFormatWithoutLayoutRegions() {
         let attachment = SharedAttachment(
             id: "receipt.png",

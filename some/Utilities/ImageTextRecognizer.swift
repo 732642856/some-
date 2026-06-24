@@ -182,6 +182,10 @@ enum ImageTextRecognizer {
             lines.append("版面分区：\(layoutSummary)")
         }
 
+        if let fieldSummary = fieldCandidatesSummary(for: cleanedLines) {
+            lines.append("字段候选：\(fieldSummary)")
+        }
+
         lines.append("")
         lines.append("识别文字：")
         lines.append(contentsOf: cleanedLines.map(\.text))
@@ -330,6 +334,63 @@ enum ImageTextRecognizer {
         }
 
         return section
+    }
+
+    private static func fieldCandidatesSummary(for lines: [RecognizedLine]) -> String? {
+        var seenKeys = Set<String>()
+        var fields: [String] = []
+
+        for line in lines {
+            guard let field = fieldCandidate(in: line.text),
+                  seenKeys.insert(field.key).inserted else {
+                continue
+            }
+
+            fields.append("\(field.key)=\(field.value)")
+        }
+
+        guard fields.count >= 2 else {
+            return nil
+        }
+
+        return fields.prefix(4).joined(separator: " · ")
+    }
+
+    private static func fieldCandidate(in line: String) -> (key: String, value: String)? {
+        let normalized = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let separatorIndex = normalized.firstIndex(where: { $0 == "：" || $0 == ":" }) else {
+            return nil
+        }
+
+        let key = String(normalized[..<separatorIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
+        let valueStart = normalized.index(after: separatorIndex)
+        let value = String(normalized[valueStart...]).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard isReasonableFieldKey(key), !value.isEmpty else {
+            return nil
+        }
+
+        return (key, value)
+    }
+
+    private static func isReasonableFieldKey(_ key: String) -> Bool {
+        guard !key.isEmpty, key.count <= 12 else {
+            return false
+        }
+
+        let lowercasedKey = key.lowercased()
+        if ["http", "https", "file", "some-attachment"].contains(lowercasedKey) {
+            return false
+        }
+
+        let rejectedCharacters = CharacterSet(charactersIn: "/\\[]{}()（）")
+        guard key.rangeOfCharacter(from: rejectedCharacters) == nil else {
+            return false
+        }
+
+        return key.unicodeScalars.contains { scalar in
+            CharacterSet.alphanumerics.contains(scalar)
+                || (0x4E00...0x9FFF).contains(scalar.value)
+        }
     }
 
     private static func imageRegion(fromVisionBoundingBox boundingBox: CGRect) -> ImageTextRegion {

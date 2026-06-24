@@ -204,7 +204,7 @@ P3 只参考：
 
 2026-06-22 本轮实现决策：图片/截图 OCR MVP 采用 Apple Vision `VNRecognizeTextRequest`，导入图片后异步识别文字，识别成功则保存为“图片文字” memo 并保留原附件引用；素材索引新增 `screenshot` 类型，搜索新增 `has:ocr` / `has:screenshot` / `has:图片文字`。没有复制 `OpenFind` 或 `SwiftOCRKit` 源码，也没有引入未验证的 SPM 依赖。
 
-2026-06-24 本轮实现决策：阶段 92 继续补 OCR 版面分区摘要前，检索 `Swift Vision OCR text blocks layout segmentation GitHub MIT`、`VNRecognizedTextObservation boundingBox reading order Swift MIT`、`iOS OCR layout analysis Swift Vision GitHub MIT` 和 `Swift OCR document layout analysis Vision license MIT`，未找到可直接复制进 some 当前本地 memo/OCR/素材索引架构的轻量 MIT 模块。Apple Vision 已在 `VNRecognizedTextObservation.boundingBox` 提供文字行框位置，本轮不引入第三方 OCR 引擎或文档分析依赖，只把行框转换为已有 `ImageTextRegion`，保存左/右栏与顶部/中部/底部行数摘要；复杂表格和表单字段级校正后续单独评估。
+2026-06-24 本轮实现决策：阶段 92 继续补 OCR 版面分区摘要前，检索 `Swift Vision OCR text blocks layout segmentation GitHub MIT`、`VNRecognizedTextObservation boundingBox reading order Swift MIT`、`iOS OCR layout analysis Swift Vision GitHub MIT` 和 `Swift OCR document layout analysis Vision license MIT`，未找到可直接复制进 some 当前本地 memo/OCR/素材索引架构的轻量 MIT 模块。Apple Vision 已在 `VNRecognizedTextObservation.boundingBox` 提供文字行框位置，本轮不引入第三方 OCR 引擎或文档分析依赖，只把行框转换为已有 `ImageTextRegion`，保存左/右栏与顶部/中部/底部行数摘要；复杂表格结构识别和自动字段纠错后续单独评估。
 
 2026-06-24 本轮实现决策：阶段 95 继续补 OCR 行级阅读顺序整理前，检索 `Swift Vision OCR reading order boundingBox GitHub MIT`、`VNRecognizedTextObservation reading order Swift MIT` 和 `iOS OCR document reading order Swift Vision`，未找到可直接复制进 some 当前本地 OCR 保存链路的轻量 Swift/MIT 模块。Apple Vision 已在 `VNRecognizedTextObservation.boundingBox` 提供行框位置，本轮继续复用 `ImageTextRegion`，只在全部去重行都有 region 时按中心点从上到下、同一行从左到右排序，不引入第三方 OCR/document layout 依赖。
 
@@ -213,6 +213,8 @@ P3 只参考：
 2026-06-24 本轮实现决策：阶段 94 继续补 Markdown 附件卡片预览前，检索 `SwiftUI attachment preview card open source MIT GitHub`、`SwiftUI file attachment card GitHub MIT`、`SwiftUI document attachment preview row MIT`、`MarkdownUI SwiftUI GitHub`、`swiftlang swift-markdown GitHub`、`Textual Swift Markdown renderer GitHub` 和 `MoeMemos iOS GitHub attachments`。`MarkdownUI`、`swift-markdown` 和 `Textual` 仍适合后续完整 Markdown/GFM 引擎，MoeMemos 附件处理受项目架构和许可证边界影响不适合直接复制；当前项目已有 `AttachmentPreviewList`、图片预览、视频缩略图、音频/文件图标和 `SharedAttachmentStore` 本地引用解析，本轮复用这些组件，让列表和详情页的独立附件引用行按原文位置渲染为附件卡片，并新增 memo 引用隐藏后的任务行号映射。
 
 2026-06-24 本轮实现决策：阶段 96 继续补 Markdown 脚注定义阅读渲染前，检索 `SwiftUI Markdown footnote renderer MIT GitHub`、`swift-markdown footnote support GitHub` 和 `MarkdownUI footnotes SwiftUI GitHub`，未找到可直接复制进 some 当前轻量阅读器的小型 MIT 脚注模块。`MarkdownUI` / `swift-markdown` 仍适合后续完整 GFM 引擎；本轮只补独立 `[^id]: text` 脚注定义块，继续复用 `MarkdownMemoBlockParser`，避免引入会影响任务勾选行号、附件引用和代码块隔离的大依赖。
+
+2026-06-24 本轮实现决策：阶段 97 继续补 OCR 表单字段候选摘要前，检索 `Swift Vision OCR key value extraction MIT`、`iOS OCR form field extraction Vision Swift`、`VNRecognizedTextObservation table extraction Swift MIT` 和 `Swift receipt OCR key value parser MIT`，GitHub Search 均返回 0 个可直接复制进 some 当前本地 OCR/memo/素材索引链路的小型 Swift/MIT 模块。完整表格结构识别和自动字段纠错更适合后续评估专门文档分析引擎；本轮只做确定性短字段解析：识别两行以上 `字段：值` 或 `字段: 值` 的 OCR 文本，在 memo 头部写入“字段候选”，原始识别文字仍完整保留。
 
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
