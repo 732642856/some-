@@ -321,11 +321,15 @@ enum ClipFragmentExtractor {
             line == "识别文字：" || line == "识别文字:" || line == "OCR：" || line == "OCR:"
         }.map { $0 + 1 } ?? 1
 
+        let hasRecognizedTextHeader = textStartIndex > 1
         let recognizedLines = extractedImageTextHighlights(from: text, limit: 12)
         let fallbackLines = lines
             .dropFirst(textStartIndex)
+            .prefix { line in
+                !line.isEmpty
+            }
             .filter { line in
-                !line.isEmpty && SharedAttachmentStore.attachments(in: line).isEmpty
+                hasRecognizedTextHeader || SharedAttachmentStore.attachments(in: line).isEmpty
             }
         let finalLines = recognizedLines.isEmpty ? fallbackLines : recognizedLines
         guard !finalLines.isEmpty else {
@@ -420,10 +424,6 @@ enum ClipFragmentExtractor {
                     break
                 }
                 continue
-            }
-
-            if trimmed.hasPrefix("[附件:") || trimmed.hasPrefix("some-attachment://") {
-                break
             }
 
             candidates.append(trimmed)

@@ -1160,3 +1160,9 @@
 - 进入并完成阶段 138：截图素材摘要保留 OCR 原文附件行。继续扫描素材索引时发现 `MemoAsset.imageTextBlock` 在生成 screenshot 摘要时无条件过滤 `[附件:]` / `some-attachment://` 行，导致截图原文里的附件 Markdown 从素材摘要和素材搜索上下文里消失。
 - 新增 `testImageTextAssetSummaryKeepsAttachmentMarkdownInsideRecognizedTextBody`，覆盖 OCR 正文内同形附件 Markdown 留在 screenshot summary，空行后的真实附件引用仍用于绑定 `some-attachment://scan.png`。
 - `imageTextBlock` 改为识别正文从 `识别文字：` 后开始、遇到空行停止，只过滤区域/扫描页 metadata，不再过滤正文段内的附件样式文字。
+
+## 2026-06-25T02:08:00+08:00
+
+- 进入并完成阶段 139：OCR 摘录片段保留附件样式原文。继续扫描 `ClipFragmentExtractor` 时发现 `extractedImageTextHighlights` 遇到 `[附件:]` / `some-attachment://` 会提前结束 OCR 正文，摘录片段会丢掉截图原文里的同形附件 Markdown。
+- 新增 `testClipFragmentExtractorKeepsAttachmentMarkdownInsideRecognizedTextBody`，覆盖 OCR fragments 同时包含普通识别行和附件样式原文，片段 URI 仍绑定到空行后的真实附件。
+- `extractedImageTextHighlights` 改为只在空行后结束 OCR 正文，不把附件样式文字当终止符；fallback 分支在存在 OCR header 时也保留正文段内附件样式文字。

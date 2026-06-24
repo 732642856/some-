@@ -3603,6 +3603,29 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(fragments.last?.uri, "some-attachment://receipt.png")
     }
 
+    func testClipFragmentExtractorKeepsAttachmentMarkdownInsideRecognizedTextBody() {
+        let text = """
+        图片文字：scan.png
+
+        识别文字：
+        截图展示附件说明
+        [附件: raw-card.png](some-attachment://raw-card.png)
+
+        [附件: scan.png](some-attachment://scan.png)
+        """
+
+        let fragments = ClipFragmentExtractor.fragments(in: text)
+
+        XCTAssertEqual(fragments.map(\.text), [
+            "截图展示附件说明",
+            "[附件: raw-card.png](some-attachment://raw-card.png)"
+        ])
+        XCTAssertEqual(fragments.map(\.uri), [
+            "some-attachment://scan.png",
+            "some-attachment://scan.png"
+        ])
+    }
+
     func testClipFragmentExtractorKeepsOCRBlocksAcrossBlankLines() {
         let text = """
         图片文字：receipt.png
