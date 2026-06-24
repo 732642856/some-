@@ -15,6 +15,7 @@ enum MemoContentFilter: String, CaseIterable, Hashable {
     case screenshot
     case ocrReview = "ocr-review"
     case ocrLayout = "ocr-layout"
+    case ocrKeyInfo = "ocr-key-info"
     case ocrField = "ocr-field"
     case ocrTable = "ocr-table"
     case receiptLines = "receipt-lines"
@@ -211,6 +212,8 @@ enum MemoSearchQueryParser {
             return .ocrReview
         case "ocr-layout", "ocrlayout", "layout-ocr", "ocr-layout-section", "ocr-layout-sections", "layout-section", "layout-sections", "版面分区", "ocr版面", "图片版面", "识别版面", "分区摘要":
             return .ocrLayout
+        case "ocr-key-info", "ocr-keyinfo", "ocrkeyinfo", "key-info-ocr", "ocr-key", "ocr-info", "key-info", "keyinfo", "key-information", "important-info", "关键信息", "关键信息候选", "关键候选", "信息候选", "关键摘录", "ocr关键信息", "图片关键信息", "识别关键信息":
+            return .ocrKeyInfo
         case "ocr-field", "ocrfield", "ocr-fields", "field-ocr", "ocr-field-candidate", "field-candidate", "field-candidates", "字段候选", "ocr字段", "图片字段", "识别字段", "表单字段":
             return .ocrField
         case "ocr-table", "ocrtable", "table-ocr", "ocr-table-candidate", "table-candidate", "table-candidates", "表格候选", "ocr表格", "图片表格", "识别表格":

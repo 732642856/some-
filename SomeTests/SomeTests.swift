@@ -814,6 +814,13 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(query.textTerms, [])
     }
 
+    func testSearchQueryParserExtractsOCRKeyInfoAliases() {
+        let query = MemoSearchQueryParser.parse("has:ocr-key-info has:关键信息候选")
+
+        XCTAssertEqual(query.requiredContentFilters, [.ocrKeyInfo])
+        XCTAssertEqual(query.textTerms, [])
+    }
+
     func testSearchQueryParserKeepsUnknownContentFiltersAsText() {
         let query = MemoSearchQueryParser.parse("has:unknown 资料")
 
@@ -1040,6 +1047,14 @@ final class SomeTests: XCTestCase {
         store.addMemo(text: ocrTableText)
         store.addMemo(text: receiptLinesText)
         store.addMemo(text: ocrFieldText)
+        let ocrKeyInfoText = """
+        图片文字：booking.png
+        关键信息候选：日期=2026-06-24 19:30 · 电话=13800138000
+
+        识别文字：
+        电话 13800138000
+        """
+        store.addMemo(text: ocrKeyInfoText)
         let ocrLayoutText = """
         图片文字：layout.png
         版面分区：左栏2行 · 右栏1行 · 顶部2行 · 底部1行
@@ -1066,6 +1081,12 @@ final class SomeTests: XCTestCase {
 
         store.searchText = "has:字段候选"
         XCTAssertEqual(store.filteredMemos.map(\.text), [ocrFieldText])
+
+        store.searchText = "has:ocr-key-info"
+        XCTAssertEqual(store.filteredMemos.map(\.text), [ocrKeyInfoText])
+
+        store.searchText = "has:关键信息候选"
+        XCTAssertEqual(store.filteredMemos.map(\.text), [ocrKeyInfoText])
 
         store.searchText = "has:ocr-layout"
         XCTAssertEqual(store.filteredMemos.map(\.text), [ocrLayoutText])
@@ -1300,6 +1321,13 @@ final class SomeTests: XCTestCase {
         识别文字：
         左栏事项
         """)
+        let keyInfoMemo = Memo(text: """
+        图片文字：booking.png
+        关键信息候选：日期=2026-06-24 19:30 · 电话=13800138000
+
+        识别文字：
+        电话 13800138000
+        """)
         let tableMemo = Memo(text: """
         图片文字：table.png
         表格候选：3 列 · 2 行数据 · 表头：项目 / 金额 / 备注
@@ -1309,7 +1337,7 @@ final class SomeTests: XCTestCase {
         票据行候选：拿铁 18.00 · 蛋糕 32.00
         """)
         let plainMemo = Memo(text: "普通会议记录")
-        let memos = [plainMemo, fieldMemo, layoutMemo, tableMemo, receiptMemo]
+        let memos = [plainMemo, fieldMemo, layoutMemo, keyInfoMemo, tableMemo, receiptMemo]
         let assets = memos.flatMap { MemoAsset.assets(in: $0) }
 
         let fieldCandidates = WorkLogSourceFilterEngine.candidates(
@@ -1323,6 +1351,13 @@ final class SomeTests: XCTestCase {
             from: memos,
             assets: assets,
             filter: WorkLogSourceFilter(kind: .ocrLayout),
+            now: now,
+            calendar: calendar
+        )
+        let keyInfoCandidates = WorkLogSourceFilterEngine.candidates(
+            from: memos,
+            assets: assets,
+            filter: WorkLogSourceFilter(kind: .ocrKeyInfo),
             now: now,
             calendar: calendar
         )
@@ -1343,6 +1378,7 @@ final class SomeTests: XCTestCase {
 
         XCTAssertEqual(fieldCandidates.map(\.id), [fieldMemo.id])
         XCTAssertEqual(layoutCandidates.map(\.id), [layoutMemo.id])
+        XCTAssertEqual(keyInfoCandidates.map(\.id), [keyInfoMemo.id])
         XCTAssertEqual(tableCandidates.map(\.id), [tableMemo.id])
         XCTAssertEqual(receiptCandidates.map(\.id), [receiptMemo.id])
     }
@@ -4727,6 +4763,7 @@ final class SomeTests: XCTestCase {
             图片文字：form.png
             置信度：平均 92% · 最低 88%
             字段候选：姓名=李雷 · 日期=2026-06-24 · 合计=128 元
+            关键信息候选：日期=2026-06-24 · 金额=128元
 
             识别文字：
             姓名：李雷
@@ -4736,6 +4773,51 @@ final class SomeTests: XCTestCase {
             [附件: form.png](some-attachment://form.png)
             """
         )
+    }
+
+    func testImageTextRecognizerBuildsKeyInfoCandidatesForOCRLines() {
+        let attachment = SharedAttachment(
+            id: "booking.png",
+            filename: "booking.png",
+            relativePath: "booking.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 256
+        )
+
+        let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: [
+                ImageTextRecognizer.RecognizedLine(text: "预约时间：2026-06-24 19:30", confidence: 0.96),
+                ImageTextRecognizer.RecognizedLine(text: "电话 13800138000", confidence: 0.92),
+                ImageTextRecognizer.RecognizedLine(text: "邮箱 hello@example.com", confidence: 0.9),
+                ImageTextRecognizer.RecognizedLine(text: "链接 https://example.com/menu", confidence: 0.88),
+                ImageTextRecognizer.RecognizedLine(text: "合计 128.50元", confidence: 0.86)
+            ]
+        )
+
+        XCTAssertTrue(text?.contains("关键信息候选：日期=2026-06-24 19:30 · 电话=13800138000 · 邮箱=hello@example.com · 链接=https://example.com/menu · 金额=128.50元") == true)
+        XCTAssertTrue(text?.contains("识别文字：\n预约时间：2026-06-24 19:30\n电话 13800138000\n邮箱 hello@example.com\n链接 https://example.com/menu\n合计 128.50元") == true)
+    }
+
+    func testImageTextRecognizerSkipsKeyInfoCandidatesForPlainNumberedNotes() {
+        let attachment = SharedAttachment(
+            id: "plain-key-info.png",
+            filename: "plain-key-info.png",
+            relativePath: "plain-key-info.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 128
+        )
+
+        let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: [
+                ImageTextRecognizer.RecognizedLine(text: "订单编号 20260624", confidence: 0.92),
+                ImageTextRecognizer.RecognizedLine(text: "会议室 302", confidence: 0.9),
+                ImageTextRecognizer.RecognizedLine(text: "客服电话 10086", confidence: 0.88)
+            ]
+        )
+
+        XCTAssertFalse(text?.contains("关键信息候选") == true)
     }
 
     func testImageTextRecognizerBuildsTableCandidateForDelimitedRows() {

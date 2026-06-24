@@ -958,7 +958,7 @@ private struct WorkLogView: View {
 
     private let scopes = ["今日", "本周", "项目", "复盘"]
     private let templates = ["日报", "周报", "项目汇报", "复盘"]
-    private let sourceKindOptions: [MemoContentFilter] = [.task, .openTask, .completedTask, .link, .webClip, .clipFragment, .attachment, .reference, .referenceNote, .audio, .video, .screenshot, .ocrReview, .ocrLayout, .ocrField, .ocrTable, .receiptLines, .imageEdit, .scrapbook, .wardrobe, .outfit, .wearLog, .laundryLog, .packingList]
+    private let sourceKindOptions: [MemoContentFilter] = [.task, .openTask, .completedTask, .link, .webClip, .clipFragment, .attachment, .reference, .referenceNote, .audio, .video, .screenshot, .ocrReview, .ocrLayout, .ocrKeyInfo, .ocrField, .ocrTable, .receiptLines, .imageEdit, .scrapbook, .wardrobe, .outfit, .wearLog, .laundryLog, .packingList]
     private static let defaultCustomReportTemplate = """
     {{标题}}
 
@@ -1765,6 +1765,7 @@ private struct WorkLogView: View {
         case .ocrReview: return "待校对"
         case .ocrLayout: return "版面"
         case .ocrField: return "字段"
+        case .ocrKeyInfo: return "关键"
         case .ocrTable: return "表格"
         case .receiptLines: return "票据"
         case .scrapbook: return "手帐"

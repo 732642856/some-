@@ -1026,3 +1026,11 @@
 - 开工前检索 `Swift Vision OCR layout sections search filter GitHub MIT`、`VNRecognizedTextObservation boundingBox layout section Swift GitHub MIT`、`open source notes OCR layout search filter GitHub` 和 `Joplin OCR search filters layout GitHub`；没有找到可直接复制进当前 SwiftUI memo 搜索/日志来源架构的小型模块，本轮继续复用项目内 `MemoSearchQueryParser`、`MemoStore.matchesContentFilter` 和 `WorkLogSourceFilterEngine`。
 - 红灯探针确认旧 `MemoContentFilter` 没有 `.ocrLayout`，`has:ocr-layout` / `has:版面分区` 不能被解析为内容筛选；另用旧 `WorkLogSourceFilterEngine` 验证新增枚举会触发 switch 不穷尽。
 - 新增 `testSearchQueryParserExtractsOCRLayoutAliases`，扩展内容类型搜索测试和工作日志来源候选测试；搜索语法新增 `has:ocr-layout` / `has:版面分区`，工作日志来源类型下拉新增“版面”，按“版面分区：”摘要行筛选多栏截图和扫描页。
+
+
+## 2026-06-24T23:59:59+08:00
+
+- 进入并完成阶段 119：OCR 关键信息候选与筛选闭环。继续扫描工作树碎片时发现 `SomeTests.swift` 和 `ImageTextRecognizer.swift` 已有未提交的“关键信息候选”半成品，优先收拢而不是丢弃。
+- 开工前检索 Swift Vision OCR key-value / form field / receipt parser 候选；未找到可直接复制进当前本地 OCR memo 摘要格式的小型 Swift/MIT 模块，本轮继续复用 `ImageTextRecognizer` 与项目内 `has:*` 规则。
+- 新增并收拢 `testImageTextRecognizerBuildsKeyInfoCandidatesForOCRLines`，覆盖 OCR 行里的日期、电话、邮箱、链接和金额会生成“关键信息候选”；新增负例避免普通编号、会议室号和客服电话短号误触发。
+- `MemoContentFilter` 新增 `ocrKeyInfo`，搜索支持 `has:ocr-key-info` / `has:关键信息候选`，工作日志来源下拉新增“关键信息”，筛选引擎按“关键信息候选：”摘要行匹配。

@@ -259,6 +259,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 118 继续把 OCR 版面分区纳入搜索和工作日志来源前，检索 `Swift Vision OCR layout sections search filter GitHub MIT`、`VNRecognizedTextObservation boundingBox layout section Swift GitHub MIT`、`open source notes OCR layout search filter GitHub` 和 `Joplin OCR search filters layout GitHub`。结果没有发现能直接复制进当前 `MemoContentFilter` / `MemoSearchQueryParser` / `WorkLogSourceFilterEngine` 的轻量 Swift 模块；Joplin、Memos 类项目仍只能参考可搜索笔记和过滤器产品方向。由于阶段 92 已把 `VNRecognizedTextObservation.boundingBox` 提炼为“版面分区：”摘要，本轮不引入新 OCR 或索引依赖，只复用已有摘要行，新增 `has:ocr-layout` / `has:版面分区` 和工作日志“版面”来源筛选。
 
+2026-06-24 本轮实现决策：阶段 119 收拢 OCR 关键信息候选碎片前，检索 `Swift Vision OCR key value extraction form fields GitHub MIT`、`iOS OCR form field parser Swift key value GitHub MIT` 和 `Swift receipt OCR key value parser GitHub MIT`。结果仍以完整 OCR SDK、LLM/Python/商业票据解析或通用示例为主，没有可直接复制进 some 当前 `ImageTextRecognizer` memo 摘要格式的小型 Swift/MIT 模块。本轮不新增依赖，复用 Foundation `NSDataDetector` 和轻量正则，从 OCR 原文中提炼日期、电话、邮箱、http(s) 链接和金额，生成“关键信息候选”，并接入 `has:ocr-key-info` 与工作日志来源筛选。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：
