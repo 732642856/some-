@@ -217,10 +217,7 @@ enum ImageTextRecognizer {
 
         for line in lines {
             let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-            if trimmed.hasPrefix("识别文字：")
-                || trimmed.hasPrefix("识别文字:")
-                || trimmed.hasPrefix("OCR：")
-                || trimmed.hasPrefix("OCR:") {
+            if isRecognizedTextHeader(trimmed) {
                 isInRecognizedText = true
                 continue
             }

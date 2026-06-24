@@ -3751,6 +3751,27 @@ final class SomeTests: XCTestCase {
         ])
     }
 
+    func testClipFragmentExtractorKeepsRecognizedTextHeaderPrefixInsideRecognizedTextBody() {
+        let text = """
+        图片文字：scan.png
+
+        识别文字：
+        识别文字：截图里原本就有这行
+        OCR: 原文标题
+        正文
+
+        [附件: scan.png](some-attachment://scan.png)
+        """
+
+        let fragments = ClipFragmentExtractor.fragments(in: text)
+
+        XCTAssertEqual(fragments.map(\.text), [
+            "识别文字：截图里原本就有这行",
+            "OCR: 原文标题",
+            "正文"
+        ])
+    }
+
     func testClipFragmentExtractorKeepsOCRBlocksAcrossBlankLines() {
         let text = """
         图片文字：receipt.png
@@ -5961,6 +5982,28 @@ final class SomeTests: XCTestCase {
             [
                 "截图展示附件说明",
                 "[附件: raw-card.png](some-attachment://raw-card.png)"
+            ]
+        )
+    }
+
+    func testImageTextRecognizerKeepsRecognizedTextHeaderPrefixInsideHighlights() {
+        let text = """
+        图片文字：scan.png
+
+        识别文字：
+        识别文字：截图里原本就有这行
+        OCR: 原文标题
+        正文
+
+        [附件: scan.png](some-attachment://scan.png)
+        """
+
+        XCTAssertEqual(
+            ImageTextRecognizer.extractedHighlights(from: text, limit: 4),
+            [
+                "识别文字：截图里原本就有这行",
+                "OCR: 原文标题",
+                "正文"
             ]
         )
     }

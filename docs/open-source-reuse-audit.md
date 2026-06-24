@@ -315,6 +315,8 @@ P3 只参考：
 
 2026-06-25 本轮实现决策：阶段 146 修复低置信度待校对跨图片文字块误触发前，复查 OCR confidence review queue / Vision OCR metadata 检索结论，仍没有可直接复制进 some 本地 memo block、`has:ocr-review` 和工作日志来源筛选的小型 Swift 模块。本轮继续复用 `ClipFragmentExtractor`，只把待校对判定从整条 memo 总开关收敛到单个图片文字块内。
 
+2026-06-25 本轮实现决策：阶段 147 修复 OCR 正文里 `识别文字：...` / `OCR: ...` 原文行被丢弃前，检索 Swift OCR text block parser / recognized text header parser。结果仍是 OCR 引擎或通用文本清洗，不覆盖 some 保存格式中 header 行与 OCR 原文同形前缀的区分。本轮继续复用现有提取器，只把 header 判断从前缀匹配收敛为整行匹配。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

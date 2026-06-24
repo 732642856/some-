@@ -1212,3 +1212,10 @@
 - 新增 `testSearchDoesNotUseLowConfidenceMetadataFromBlockWithoutOCRText`，覆盖低置信度 metadata 所在块没有识别正文、后续高置信度块有 OCR 行时，`has:ocr-review` 不命中。
 - 新增 `testWorkLogSourceFilterEngineRequiresLowConfidenceBlockToContainOCRText`，覆盖工作日志来源筛选同样不把 metadata-only 低置信度块纳入待校对来源。
 - `ClipFragmentExtractor.needsOCRReview` 改为逐块要求 `imageText(in:)` 可解析出 OCR 行后，再检查该块的置信度 metadata。
+
+## 2026-06-25T04:18:00+08:00
+
+- 进入并完成阶段 147：OCR 正文保留识别标题前缀原文。继续扫描 `ClipFragmentExtractor.extractedImageTextHighlights` 和 `ImageTextRecognizer.extractedHighlights` 时发现两处都用 `hasPrefix("识别文字：")` / `hasPrefix("OCR:")` 判断 header。
+- 新增 `testClipFragmentExtractorKeepsRecognizedTextHeaderPrefixInsideRecognizedTextBody`，覆盖 OCR 正文里的 `识别文字：截图里原本就有这行` 和 `OCR: 原文标题` 作为普通 OCR fragment 保留。
+- 新增 `testImageTextRecognizerKeepsRecognizedTextHeaderPrefixInsideHighlights`，覆盖详情页 OCR 高亮候选同样保留这些原文行。
+- 两处提取逻辑改为复用严格的 `isRecognizedTextHeader` 整行匹配，只把完整 header 行当作 some 生成的正文起点。
