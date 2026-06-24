@@ -574,6 +574,9 @@ private struct ImageTextRegionPickerView: View {
     let onRecognize: (ImageTextRegion) -> Void
 
     @State private var region = ImageTextRegion(x: 0.1, y: 0.16, width: 0.8, height: 0.48)
+    @State private var previewImage: UIImage?
+    @State private var requestedPreviewURL: URL?
+    @State private var isLoadingPreview = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -582,7 +585,7 @@ private struct ImageTextRegionPickerView: View {
                 .foregroundStyle(Color.secondaryText)
                 .lineLimit(1)
 
-            if let image = image {
+            if let image = previewImage {
                 ImageTextRegionSelectionCanvas(image: image, region: $region)
                     .frame(maxWidth: .infinity)
                     .aspectRatio(image.size.width / max(image.size.height, 1), contentMode: .fit)
@@ -599,6 +602,15 @@ private struct ImageTextRegionPickerView: View {
                     regionBadge("W", value: region.width)
                     regionBadge("H", value: region.height)
                 }
+            } else if isLoadingPreview {
+                VStack(spacing: 10) {
+                    ProgressView()
+                        .tint(Color.accentGreen)
+                    Text("正在读取图片...")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Color.secondaryText)
+                }
+                .frame(maxWidth: .infinity, minHeight: 240)
             } else {
                 EmptyStateView(title: "无法读取图片")
                     .frame(maxWidth: .infinity, minHeight: 240)
@@ -631,20 +643,48 @@ private struct ImageTextRegionPickerView: View {
                 .foregroundStyle(Color.white)
                 .background(Color.accentGreen)
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .disabled(self.image == nil)
+                .disabled(previewImage == nil)
             }
         }
         .padding(18)
         .background(Color.appBackground.ignoresSafeArea())
         .navigationTitle("框选图片文字")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            loadPreviewIfNeeded()
+        }
     }
 
-    private var image: UIImage? {
+    private func loadPreviewIfNeeded() {
         guard let url = SharedAttachmentStore.url(for: attachment) else {
-            return nil
+            previewImage = nil
+            requestedPreviewURL = nil
+            isLoadingPreview = false
+            return
         }
-        return UIImage(contentsOfFile: url.path)
+
+        guard requestedPreviewURL != url || (previewImage == nil && !isLoadingPreview) else {
+            return
+        }
+
+        requestedPreviewURL = url
+        previewImage = nil
+        isLoadingPreview = true
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let image = ImageThumbnailGenerator.image(
+                for: url,
+                maximumPixelSize: ImageThumbnailGenerator.imageTextRegionPreviewMaximumPixelSize
+            )
+
+            DispatchQueue.main.async {
+                guard requestedPreviewURL == url else {
+                    return
+                }
+                previewImage = image
+                isLoadingPreview = false
+            }
+        }
     }
 
     private func regionBadge(_ label: String, value: Double) -> some View {

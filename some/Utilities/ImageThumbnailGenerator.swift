@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 
 enum ImageThumbnailGenerator {
     static let imageEditorPreviewMaximumPixelSize: CGFloat = 1_600
+    static let imageTextRegionPreviewMaximumPixelSize: CGFloat = imageEditorPreviewMaximumPixelSize
 
     struct CacheMaintenanceResult: Equatable {
         var warmedCount: Int
@@ -101,15 +102,18 @@ enum ImageThumbnailGenerator {
 
     static func sourceURLs(
         in assets: [MemoAsset],
-        limit: Int = 120,
+        limit: Int? = 120,
         fileManager: FileManager = .default
     ) -> [URL] {
         var urls: [URL] = []
         var seenPaths = Set<String>()
 
         for asset in assets {
-            guard urls.count < limit,
-                  isImageAsset(asset),
+            if let limit = limit, urls.count >= limit {
+                break
+            }
+
+            guard isImageAsset(asset),
                   let attachment = AttachmentReferenceResolver.attachment(from: asset),
                   let url = SharedAttachmentStore.url(for: attachment, fileManager: fileManager) else {
                 continue

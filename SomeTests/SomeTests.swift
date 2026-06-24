@@ -3967,6 +3967,53 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(result.skippedCount, 1)
     }
 
+    func testImageThumbnailSourceURLsCanReturnAllReferencedImagesForPruning() {
+        let memoID = UUID()
+        let firstImage = SharedAttachment(
+            id: "first.png",
+            filename: "first.png",
+            relativePath: "first.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 10
+        )
+        let secondImage = SharedAttachment(
+            id: "second.png",
+            filename: "second.png",
+            relativePath: "second.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 20
+        )
+        let assets = [
+            MemoAsset(
+                memoID: memoID,
+                kind: .attachment,
+                title: firstImage.displayName,
+                uri: firstImage.referenceURI,
+                typeIdentifier: firstImage.typeIdentifier,
+                byteCount: firstImage.byteCount,
+                createdAt: Date(),
+                updatedAt: Date()
+            ),
+            MemoAsset(
+                memoID: memoID,
+                kind: .attachment,
+                title: secondImage.displayName,
+                uri: secondImage.referenceURI,
+                typeIdentifier: secondImage.typeIdentifier,
+                byteCount: secondImage.byteCount,
+                createdAt: Date(),
+                updatedAt: Date()
+            )
+        ]
+
+        let preheatURLs = ImageThumbnailGenerator.sourceURLs(in: assets, limit: 1)
+        let pruneURLs = ImageThumbnailGenerator.sourceURLs(in: assets, limit: nil)
+
+        XCTAssertEqual(preheatURLs.count, 1)
+        XCTAssertEqual(pruneURLs.count, 2)
+        XCTAssertEqual(pruneURLs.map(\.lastPathComponent), ["first.png", "second.png"])
+    }
+
     func testImageThumbnailPruneCacheKeepsExpectedFile() throws {
         let keptSourceURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("image-cache-keep-\(UUID().uuidString).jpg")
@@ -4038,6 +4085,13 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(ImageThumbnailGenerator.imageEditorPreviewMaximumPixelSize, 1_600)
         XCTAssertGreaterThan(ImageThumbnailGenerator.imageEditorPreviewMaximumPixelSize, 1_000)
         XCTAssertLessThan(ImageThumbnailGenerator.imageEditorPreviewMaximumPixelSize, 2_048)
+    }
+
+    func testImageThumbnailTextRegionPreviewMaximumPixelSizeMatchesEditorPreview() {
+        XCTAssertEqual(
+            ImageThumbnailGenerator.imageTextRegionPreviewMaximumPixelSize,
+            ImageThumbnailGenerator.imageEditorPreviewMaximumPixelSize
+        )
     }
 
     func testImageThumbnailEditorPreviewDownsamplesLargeSource() throws {

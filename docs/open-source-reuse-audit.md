@@ -237,6 +237,11 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 107 继续补图片编辑器打开大图时同步解码原图的问题前，检索 `Mantis Swift iOS image cropper`、`TOCropViewController iOS image cropper`、`ZLImageEditor iOS image editor` 和 `FMPhotoPicker Swift image editor`。这些候选适合接入完整裁剪/图片编辑 UI，但 some 当前图片编辑器已经围绕 `ImageEditRecipe`、素材附件、主体点选、清理贴片、工作流 memo 和导出复现格式建立数据流，直接复制或替换整套编辑器会带来大范围 UI/状态迁移。本轮只需要降低预览解码成本，因此复用现有 `ImageThumbnailGenerator` 与 Apple ImageIO：编辑器预览读 1600px 本地缩略图，保存仍由 `MemoStore.addImageEdit` 从原图附件重新渲染，不新增第三方依赖。
 
+2026-06-24 本轮实现决策：阶段 108 继续审计图片缩略图缓存清理长列表风险前，检索 `Swift image thumbnail cache prune referenced assets MIT`、`iOS local thumbnail cache cleanup keep referenced files Swift MIT`、`Nuke ImagePipeline cache trimming Swift GitHub` 和 `Kingfisher image cache clean expired disk cache Swift GitHub`。Kingfisher/Nuke 的缓存清理面向通用图片管线和过期/大小裁剪，不直接理解 some 的 `MemoAsset` / App Group 附件引用；当前根因是项目内预热上限被误用为清理保留集。本轮不复制第三方源码，只让 `ImageThumbnailGenerator.sourceURLs` 支持 `limit: nil`，素材库维护用限量集合预热、全量引用集合清理。
+
+2026-06-24 本轮实现决策：阶段 109 继续处理 OCR 框选图片文字页同步解码原图前，通过 GitHub API 复查 `guoyingtao/Mantis`（MIT、Swift、2026-06-09 推送）、`benedom/SwiftyCrop`（MIT、SwiftUI、2026-06-23 推送）、`TimOliver/TOCropViewController`（MIT、Objective-C、2026-04-07 推送）和 `DrcKarim/SwiftOCRKit`（MIT、Swift、2026-02-21 推送）。Mantis/SwiftyCrop/TOCropViewController 适合后续完整裁剪器接入评估，SwiftOCRKit 适合后续 OCR 封装评估；当前缺口只是本地图片附件的框选预览性能，some 已有归一化选区模型和原附件 OCR 识别链路，因此不复制第三方源码，不新增 SPM，复用 `ImageThumbnailGenerator` 和 Apple ImageIO 做 1600px 预览缩略图。
+
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

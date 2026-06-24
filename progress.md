@@ -944,3 +944,17 @@
 - 开工前检索 `Mantis`、`TOCropViewController`、`ZLImageEditor` 和 `FMPhotoPicker` 等开源图片编辑/裁剪项目；这些候选适合替换整套图片编辑器，但当前 some 已有图片编辑菜谱、素材附件、工作流日志和保存复现格式，直接引入会破坏现有数据流。本轮继续复用本项目 `ImageThumbnailGenerator` 和 Apple ImageIO。
 - 新增 `testImageThumbnailEditorPreviewDownsamplesLargeSource` 和 `testAddImageEditRendersFromFullResolutionSource`，分别覆盖编辑器预览使用 1600px 缩略图、大图保存仍从原图尺寸渲染。
 - `ImageEditorView` 打开时异步加载 `ImageThumbnailGenerator.imageEditorPreviewMaximumPixelSize` 缩略图作为编辑预览，避免在 SwiftUI body/onAppear 同步 `UIImage(contentsOfFile:)` 解码原图；`MemoStore.addImageEdit` 仍在保存时从附件 URL 读取原图渲染，保证导出清晰度。
+
+## 2026-06-24T22:45:00+08:00
+
+- 进入并完成阶段 108：图片缩略图清理保留全集。阶段 107 推送后继续复查媒体缓存生命周期，发现素材库维护把 `ImageThumbnailGenerator.sourceURLs` 的默认 120 个预热上限同时用于 `pruneCache(keeping:)`，真实长列表里第 121 张以后仍被引用的图片缩略图可能被误删。
+- 开工前检索 Swift 图片缩略图缓存清理、Kingfisher 和 Nuke 缓存裁剪候选；通用图片库仍不适合直接复制进 some 的 App Group 素材索引清理。本轮按根因修复本项目代码：预热仍限量，清理使用全量引用集。
+- 新增 `testImageThumbnailSourceURLsCanReturnAllReferencedImagesForPruning`，覆盖 `limit: 1` 只返回一个预热 URL，但 `limit: nil` 返回所有引用图片 URL。
+- `ImageThumbnailGenerator.sourceURLs` 的 `limit` 改为可选；素材库 `maintainMediaCaches` 继续用默认上限预热图片缩略图，同时用 `limit: nil` 的全量图片 URL 调用 `pruneCache`，避免误删仍被引用的小图。
+
+## 2026-06-24T23:10:00+08:00
+
+- 进入并完成阶段 109：OCR 框选预览缩略图。阶段 108 收口后继续扫同步原图读取点，确认详情页 `ImageTextRegionPickerView` 仍在 SwiftUI body 里直接 `UIImage(contentsOfFile:)` 读取原图用于框选预览。
+- 开工前复查 Mantis、SwiftyCrop、TOCropViewController 和 SwiftOCRKit。它们都是可继续评估的 MIT 候选，但本轮只是局部预览性能修补，直接引入完整裁剪器或 OCR wrapper 会比复用现有 ImageIO 缩略图更重。
+- 新增 `testImageThumbnailTextRegionPreviewMaximumPixelSizeMatchesEditorPreview`，锁定 OCR 框选预览与图片编辑器同用 1600px 大图交互预览上限。
+- `ImageTextRegionPickerView` 改为 `onAppear` 后台加载 `ImageThumbnailGenerator.imageTextRegionPreviewMaximumPixelSize` 缩略图，并显示加载态；“识别区域”仍把归一化区域交给外层 `recognizeText`，后者继续读取原始附件数据做 OCR。

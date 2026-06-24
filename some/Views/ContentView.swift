@@ -2938,11 +2938,12 @@ private struct AssetLibraryView: View {
         warmedMediaSignature = signature
         let attachments = MediaMetadataExtractor.sourceAttachments(in: store.assets)
         let imageURLs = ImageThumbnailGenerator.sourceURLs(in: store.assets)
+        let allImageURLs = ImageThumbnailGenerator.sourceURLs(in: store.assets, limit: nil)
         let urls = VideoThumbnailGenerator.sourceURLs(in: store.assets)
         DispatchQueue.global(qos: .utility).async {
             let metadataResult = MediaMetadataExtractor.preheatSummaries(for: attachments)
             _ = ImageThumbnailGenerator.preheatCache(for: imageURLs, maximumPixelSize: 162)
-            _ = ImageThumbnailGenerator.pruneCache(keeping: imageURLs)
+            _ = ImageThumbnailGenerator.pruneCache(keeping: allImageURLs)
             _ = VideoThumbnailGenerator.preheatCache(for: urls)
             _ = VideoThumbnailGenerator.pruneCache(keeping: urls)
 
