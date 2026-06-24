@@ -10,6 +10,42 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(tags, ["产品/输入", "写作-素材"])
     }
 
+    func testTagParserIgnoresTagsInsideRecognizedTextBody() {
+        let text = """
+        图片文字：poster.png
+        #真实标签
+
+        识别文字：
+        海报上有 #截图话题
+        还有 #活动/报名
+
+        [附件: poster.png](some-attachment://poster.png)
+        """
+
+        XCTAssertEqual(TagParser.extractTags(from: text), ["真实标签"])
+    }
+
+    func testAddMemoDoesNotIndexTagsInsideRecognizedTextBody() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let text = """
+        图片文字：poster.png
+        #真实标签
+
+        识别文字：
+        海报上有 #截图话题
+
+        [附件: poster.png](some-attachment://poster.png)
+        """
+
+        store.addMemo(text: text)
+
+        XCTAssertEqual(store.memos.first?.tags, ["真实标签"])
+        XCTAssertEqual(store.allTags, ["真实标签"])
+
+        store.selectedTag = "截图话题"
+        XCTAssertTrue(store.filteredMemos.isEmpty)
+    }
+
     func testArchiveIsExcludedFromTimeline() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "一条 #测试")

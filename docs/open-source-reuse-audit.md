@@ -285,6 +285,8 @@ P3 只参考：
 
 2026-06-25 本轮实现决策：阶段 131 修复任务清单与 OCR 原文混排边界前，检索 `Swift markdown task list parser notes MIT`、`Swift checklist parser OCR notes MIT` 和 `SwiftUI notes task list parser markdown MIT`，GitHub API 精确查询均返回 `total=0`。当前缺口不是通用 Markdown task list 语法，而是 some OCR 文本块里原始截图内容和真实可勾选任务共处同一 memo 后的边界判断；本轮继续复用 `MemoTaskParser`，只给 `taskItems(in:)` 补 OCR 正文行过滤。
 
+2026-06-25 本轮实现决策：阶段 132 修复标签解析与 OCR 原文混排边界前，检索 `Swift notes tag parser OCR MIT`、`Swift hashtag parser notes app MIT` 和 `Swift memo tag parser markdown MIT`，GitHub API 精确查询均返回 `total=0`。当前缺口不是通用 hashtag 语法，而是 some OCR 原文中的话题文字不应升级为 memo 组织标签；本轮继续复用 `TagParser`，只给 tag match 补 OCR 正文行过滤。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

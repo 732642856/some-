@@ -1115,3 +1115,10 @@
 - 开工前用 GitHub API 检索 Swift markdown task list parser、checklist OCR parser 和 SwiftUI notes task list parser 候选，精确查询均为 0；该问题来自 some 自有 OCR 文本块边界，不适合引入完整 Markdown 解析库。
 - 新增 `testMemoTaskParserIgnoresTasksInsideRecognizedTextBody`，覆盖 OCR 正文里的 checklist 被忽略，空行后的真实任务仍保留并保持原始行号。
 - `MemoTaskParser.taskItems(in:)` 新增识别文字正文行索引，跳过“识别文字：”/`OCR:` 正文里的任务行；单行 `taskItem(in:)` 和任务 toggle 仍保持原行为，详情页通过原始行号切换真实任务。
+
+## 2026-06-25T00:43:00+08:00
+
+- 进入并完成阶段 132：标签解析忽略 OCR 原文。阶段 131 推送后继续扫描全文解析入口，发现 `TagParser.extractTags(from:)` 会把 OCR 原文里的 `#话题` 提取成真实 memo 标签，污染标签侧栏、标签筛选、统计和 SQLite FTS tags 字段。
+- 开工前用 GitHub API 检索 Swift notes tag parser、hashtag parser notes app 和 memo tag parser markdown 候选，精确查询均为 0；该问题不是通用 hashtag 语法，而是 some OCR 块边界，本轮继续复用 `TagParser`。
+- 新增 `testTagParserIgnoresTagsInsideRecognizedTextBody` 和 `testAddMemoDoesNotIndexTagsInsideRecognizedTextBody`，覆盖 OCR 正文里的 hashtag 不进入 memo.tags、allTags 或 selectedTag 筛选。
+- `TagParser.extractTags(from:)` 新增识别文字正文行索引，跳过“识别文字：”/`OCR:` 正文里的 tag match；新增、编辑、导入、历史恢复、AI 记忆和统计继续共用这个入口。
