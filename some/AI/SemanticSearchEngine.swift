@@ -278,20 +278,18 @@ enum SemanticSearchEngine {
                     return nil
                 }
 
-                let sharedTerms = queryTerms.keys.filter { memoTerms[$0] != nil }
-                guard !sharedTerms.isEmpty else {
+                let matches = localSearchMatches(queryTerms: queryTerms, memoTerms: memoTerms)
+                guard !matches.isEmpty else {
                     return nil
                 }
 
-                let sharedWeight = sharedTerms.reduce(0) { partial, key in
-                    partial + min(queryTerms[key]?.weight ?? 0, memoTerms[key]?.weight ?? 0)
-                }
+                let sharedWeight = matches.reduce(0) { $0 + $1.weight }
                 let memoWeight = memoTerms.values.reduce(0) { $0 + $1.weight }
                 let coverage = sharedWeight / totalQueryWeight
                 let density = sharedWeight / memoWeight
                 let score = min(1, (coverage * 0.75) + (density * 0.25))
                 let matchedTerms = visibleMatchedTerms(
-                    from: sharedTerms.compactMap { queryTerms[$0] }
+                    from: matches.map(\.displayTerm)
                 )
                 return SemanticMemoResult(memo: memo, score: score, matchedTerms: matchedTerms)
             }
@@ -434,6 +432,49 @@ enum SemanticSearchEngine {
         terms[key] = LocalSearchTerm(display: display, weight: weight)
     }
 
+    private static func localSearchMatches(
+        queryTerms: [String: LocalSearchTerm],
+        memoTerms: [String: LocalSearchTerm]
+    ) -> [LocalSearchMatch] {
+        let exactMatches = queryTerms.compactMap { key, queryTerm -> LocalSearchMatch? in
+            guard let memoTerm = memoTerms[key] else {
+                return nil
+            }
+            return LocalSearchMatch(
+                weight: min(queryTerm.weight, memoTerm.weight),
+                displayTerm: queryTerm
+            )
+        }
+        guard exactMatches.isEmpty else {
+            return exactMatches
+        }
+
+        var bestMatchesByQueryKey: [String: LocalSearchMatch] = [:]
+        queryTerms.forEach { queryKey, queryTerm in
+            guard allowsTypoMatching(queryKey) else {
+                return
+            }
+
+            memoTerms.forEach { memoKey, memoTerm in
+                guard allowsTypoMatching(memoKey),
+                      editDistanceIsAtMostOne(queryKey, memoKey) else {
+                    return
+                }
+
+                let match = LocalSearchMatch(
+                    weight: min(queryTerm.weight, memoTerm.weight, 0.55),
+                    displayTerm: LocalSearchTerm(display: memoTerm.display, weight: 0.55)
+                )
+                if let existing = bestMatchesByQueryKey[queryKey], existing.weight >= match.weight {
+                    return
+                }
+                bestMatchesByQueryKey[queryKey] = match
+            }
+        }
+
+        return Array(bestMatchesByQueryKey.values)
+    }
+
     private static func visibleMatchedTerms(from terms: [LocalSearchTerm]) -> [String] {
         var seenDisplays = Set<String>()
         var tagDisplays = Set<String>()
@@ -462,7 +503,66 @@ enum SemanticSearchEngine {
                 }
 
                 return normalizedDisplay
+        }
+    }
+
+    private static func allowsTypoMatching(_ term: String) -> Bool {
+        guard term.count >= 4, term.count <= 32 else {
+            return false
+        }
+
+        var hasLetter = false
+        return term.unicodeScalars.allSatisfy { scalar in
+            switch scalar.value {
+            case 48...57:
+                return true
+            case 65...90, 97...122:
+                hasLetter = true
+                return true
+            default:
+                return false
             }
+        } && hasLetter
+    }
+
+    private static func editDistanceIsAtMostOne(_ lhs: String, _ rhs: String) -> Bool {
+        guard lhs != rhs else {
+            return false
+        }
+        let lhsCharacters = Array(lhs)
+        let rhsCharacters = Array(rhs)
+        let lengthDelta = lhsCharacters.count - rhsCharacters.count
+        guard abs(lengthDelta) <= 1 else {
+            return false
+        }
+
+        if lengthDelta == 0 {
+            let mismatchCount = zip(lhsCharacters, rhsCharacters).reduce(0) { count, pair in
+                count + (pair.0 == pair.1 ? 0 : 1)
+            }
+            return mismatchCount <= 1
+        }
+
+        let longer = lengthDelta > 0 ? lhsCharacters : rhsCharacters
+        let shorter = lengthDelta > 0 ? rhsCharacters : lhsCharacters
+        var longerIndex = 0
+        var shorterIndex = 0
+        var skippedCharacter = false
+
+        while longerIndex < longer.count, shorterIndex < shorter.count {
+            if longer[longerIndex] == shorter[shorterIndex] {
+                longerIndex += 1
+                shorterIndex += 1
+                continue
+            }
+            guard !skippedCharacter else {
+                return false
+            }
+            skippedCharacter = true
+            longerIndex += 1
+        }
+
+        return true
     }
 
     private static func containsCompactScript(in term: String) -> Bool {
@@ -486,6 +586,11 @@ enum SemanticSearchEngine {
             }
             return lhs.weight > rhs.weight
         }
+    }
+
+    private struct LocalSearchMatch {
+        let weight: Double
+        let displayTerm: LocalSearchTerm
     }
 
     private static func cachedSearchEmbeddings(

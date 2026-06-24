@@ -923,3 +923,10 @@
 - 开工前复检 SwiftUI 本地图片缓存、ImageIO 缩略图、Kingfisher 和 Nuke 候选；当前不需要远程图片加载库，继续复用 `ImageThumbnailGenerator` 与 `ScrapbookImageFilterRenderer`。
 - `ImageThumbnailGenerator.previewMaximumPixelSize` 新增 `layerScale`，并增加 `testImageThumbnailPreviewPixelSizeIncludesLayerScale`，让编辑器预览按画布缩放和图层缩放计算小图尺寸。
 - 新增 `AsyncScrapbookImageLayerPreview`，编辑器图片图层异步读取缩略图缓存并后台套照片滤镜，仍按原有取景位置/放大倍率显示；PNG/PDF 导出 renderer 保留原图路径，避免降低导出清晰度。
+
+## 2026-06-24T21:20:00+08:00
+
+- 进入并完成阶段 105：本地 AI 搜索单字符 typo 容错。阶段 104 文档收口后继续处理 findings 中 AI 本地搜索模糊匹配缺口。
+- 开工前检索 Swift fuzzy search / Levenshtein 候选，确认可用库偏完整 fuzzy finder 或多年未维护；当前只需防漏英文/数字关键词单字符 typo，因此不引入依赖。
+- 新增 `testLocalSemanticSearchMatchesSingleTypoEnglishTerm`，覆盖 `roadmapp` 能命中正文里的 `roadmap` 且命中词展示为原 memo 词。
+- `SemanticSearchEngine.localSearch` 在没有精确共享词时才启用 ASCII 英文/数字编辑距离 1 匹配，并以低权重计分，避免覆盖标签、中文片段和已有精确词排序。

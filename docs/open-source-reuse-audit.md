@@ -231,6 +231,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 104 继续处理手帐编辑器图片图层同步解码原图前，检索 `SwiftUI local image cache ImageIO thumbnail GitHub MIT`、`SwiftUI async local file image view thumbnail GitHub MIT`、`Kingfisher Swift GitHub MIT` 和 `Nuke Swift image loading GitHub MIT`。成熟库仍偏远程图片加载与通用缓存；当前编辑器只需要对已有 App Group 图片附件做预览级缩略图并保留导出原图质量，因此继续复用 `ImageThumbnailGenerator` 和 `ScrapbookImageFilterRenderer`，不新增第三方依赖。
 
+2026-06-24 本轮实现决策：阶段 105 继续补本地 AI 搜索英文 typo 容错前，检索 `Swift fuzzy search Levenshtein MIT`、`Swift edit distance fuzzy search MIT GitHub`、`Fuzzywuzzy_swift`、`StringMetric.swift`、`SwiftyLevenshtein` 和 `FuzzyMatch`。MIT 候选多已多年未维护，`FuzzyMatch` 更适合完整 fuzzy finder；some 当前只缺单个英文/数字关键词多打一字、少打一字或错一字时的本地搜索兜底，因此不复制第三方源码，只在现有 `SemanticSearchEngine.localSearch` 中加入编辑距离 1 的低权重匹配，并保留精确共享词优先。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

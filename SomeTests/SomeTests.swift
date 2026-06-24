@@ -2591,6 +2591,26 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(results.map(\.memo.id), [product.id])
     }
 
+    func testLocalSemanticSearchMatchesSingleTypoEnglishTerm() {
+        let roadmap = Memo(
+            text: "product roadmap feedback",
+            createdAt: Date(timeIntervalSince1970: 1_700_000_000)
+        )
+        let unrelated = Memo(
+            text: "photo collage templates",
+            createdAt: Date(timeIntervalSince1970: 1_700_000_100)
+        )
+
+        let results = SemanticSearchEngine.localSearch(
+            query: "roadmapp",
+            memos: [unrelated, roadmap]
+        )
+
+        XCTAssertEqual(results.map(\.memo.id), [roadmap.id])
+        XCTAssertEqual(results.first?.matchedTerms, ["roadmap"])
+        XCTAssertGreaterThan(results.first?.score ?? 0, 0)
+    }
+
     func testLocalSemanticSearchWeightsTagsAndReportsMatchedTerms() {
         let generic = Memo(
             text: "产品灵感碎片",
