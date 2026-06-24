@@ -29,10 +29,38 @@ enum KeyInfoExtractor {
     }
 
     private static func detectedDateCandidates(in text: String) -> [Candidate] {
-        matches(in: text, pattern: #"\b\d{4}[./-]\d{1,2}[./-]\d{1,2}(?:\s+\d{1,2}:\d{2})?\b"#)
+        let numericDates = matches(in: text, pattern: #"\b\d{4}[./-]\d{1,2}[./-]\d{1,2}(?:\s+\d{1,2}:\d{2})?\b"#)
             .map { normalized in
                 Candidate(label: "日期", value: normalized.replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: ".", with: "-"))
             }
+        let chineseDates = chineseDateMatches(in: text).map { Candidate(label: "日期", value: $0) }
+        return numericDates + chineseDates
+    }
+
+    private static func chineseDateMatches(in text: String) -> [String] {
+        guard let regex = try? NSRegularExpression(
+            pattern: #"\b(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日(?:\s*(\d{1,2}):(\d{2}))?"#,
+            options: []
+        ) else {
+            return []
+        }
+
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        return regex.matches(in: text, options: [], range: range).compactMap { match in
+            guard match.numberOfRanges >= 4,
+                  let year = capture(in: text, match: match, at: 1),
+                  let month = capture(in: text, match: match, at: 2),
+                  let day = capture(in: text, match: match, at: 3) else {
+                return nil
+            }
+
+            var normalized = "\(year)-\(month.leftPadded(to: 2, with: "0"))-\(day.leftPadded(to: 2, with: "0"))"
+            if let hour = capture(in: text, match: match, at: 4),
+               let minute = capture(in: text, match: match, at: 5) {
+                normalized += " \(hour.leftPadded(to: 2, with: "0")):\(minute)"
+            }
+            return normalized
+        }
     }
 
     private static func detectedPhoneCandidates(in text: String) -> [Candidate] {
@@ -134,5 +162,25 @@ enum KeyInfoExtractor {
 
             return Candidate(label: candidate.label, value: value)
         }
+    }
+
+    private static func capture(in text: String, match: NSTextCheckingResult, at index: Int) -> String? {
+        guard index < match.numberOfRanges,
+              match.range(at: index).location != NSNotFound,
+              let range = Range(match.range(at: index), in: text) else {
+            return nil
+        }
+
+        return String(text[range])
+    }
+}
+
+private extension String {
+    func leftPadded(to length: Int, with character: Character) -> String {
+        guard count < length else {
+            return self
+        }
+
+        return String(repeating: String(character), count: length - count) + self
     }
 }

@@ -263,6 +263,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 120 收拢网页摘录关键信息候选碎片前，检索 `Swift webpage key information extraction dates phone email amount GitHub MIT`、`Swift HTML key facts extraction NSDataDetector GitHub MIT` 和 `open source web clipper key information extraction notes app GitHub MIT`。开源结果主要是 `NSDataDetector` wrapper、示例、浏览器扩展或完整网页/OCR 工具，没有可直接复制进 some 当前 `LinkExtractor.webClipText`、memo 摘要格式、`MemoContentFilter` 和工作日志来源筛选的小型 Swift/MIT 模块。由于阶段 119 已用系统 `NSDataDetector` 与本地正则验证了日期、电话、邮箱、链接、金额提取，本轮把未跟踪的公共 `KeyInfoExtractor` 收编到 app 与 Share Extension target，让 OCR 和网页摘录共用同一套规则，不新增第三方依赖。
 
+2026-06-24 本轮实现决策：阶段 121 扩展关键信息候选中文日期前，检索 `Swift Chinese date extraction NSDataDetector GitHub MIT`、`Swift regex Chinese date parser GitHub MIT NSDataDetector`、`iOS OCR Chinese date phone email extraction Swift GitHub MIT` 和 Apple `NSDataDetector` 文档方向。结果仍以通用示例、自然语言日期库或完整 OCR/网页工具为主，没有适合直接复制进 some 当前 `KeyInfoExtractor` 的小型 Swift/MIT 模块。该缺口只需要确定性识别 `YYYY年M月D日 HH:mm` 并规范成已有摘要格式，本轮不新增依赖，继续复用 Foundation `NSRegularExpression`。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

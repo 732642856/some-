@@ -1042,3 +1042,10 @@
 - `ImageTextRecognizer` 改为复用 `KeyInfoExtractor.summary(in:)`，避免 OCR 和网页摘录分别维护日期、电话、邮箱、链接、金额提取规则；`KeyInfoExtractor.swift` 加入 app 与 Share Extension sources。
 - `LinkExtractor.webClipText` 在网页摘要/重点中检测到两类以上关键信息时写入“网页关键信息候选：”；搜索新增 `has:web-key-info` / `has:网页关键信息候选`，工作日志来源下拉新增“网页关键”，筛选引擎按摘要行匹配。
 - 新增/收拢 `testLinkExtractorBuildsWebClipTextWithKeyInfoCandidates`、`testSearchQueryParserExtractsWebKeyInfoAliases`，并扩展内容类型搜索和工作日志来源筛选测试，覆盖网页关键信息候选的保存、搜索和日志汇总入口。
+
+## 2026-06-24T21:05:42+08:00
+
+- 进入并完成阶段 121：关键信息候选支持中文日期。Stage 120 推送后继续找真实输入缺口，确认 `KeyInfoExtractor` 只识别 `2026-06-24` 这类数字日期，不识别 `2026年6月24日 19:30`。
+- 开工前检索 Swift 中文日期提取、`NSDataDetector` 和网页关键信息提取候选；没有找到可直接复制进当前共享提取器的小型 Swift/MIT 模块，本轮继续复用 Foundation 正则和现有候选去重。
+- 新增 `testLinkExtractorBuildsKeyInfoCandidatesFromChineseDateText` 和 `testImageTextRecognizerBuildsKeyInfoCandidatesFromChineseDateText`，先用临时探针确认中文日期不会生成“网页关键信息候选”，再让 `KeyInfoExtractor` 识别中文年月日和可选时间并规范为 `yyyy-MM-dd HH:mm`。
+- 因为 OCR 和网页摘录共用 `KeyInfoExtractor.summary(in:)`，这次中文日期增强会同时覆盖网页摘录候选和 OCR 关键信息候选。

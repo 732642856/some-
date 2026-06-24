@@ -3254,6 +3254,21 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(text.contains("网页关键信息候选：日期=2026-06-24 19:30 · 电话=13800138000 · 邮箱=hello@example.com · 链接=https://example.com/menu · 金额=128.50元"))
     }
 
+    func testLinkExtractorBuildsKeyInfoCandidatesFromChineseDateText() {
+        let url = URL(string: "https://example.com/booking")!
+        let text = LinkExtractor.webClipText(
+            title: "预约页",
+            url: url,
+            summary: "预约时间 2026年6月24日 19:30",
+            highlights: [
+                "电话 13800138000",
+                "合计 128元"
+            ]
+        )
+
+        XCTAssertTrue(text.contains("网页关键信息候选：日期=2026-06-24 19:30 · 电话=13800138000 · 金额=128元"))
+    }
+
     func testWebClipExtractorCleansArticleParagraphs() {
         let html = """
         <html>
@@ -4849,6 +4864,27 @@ final class SomeTests: XCTestCase {
 
         XCTAssertTrue(text?.contains("关键信息候选：日期=2026-06-24 19:30 · 电话=13800138000 · 邮箱=hello@example.com · 链接=https://example.com/menu · 金额=128.50元") == true)
         XCTAssertTrue(text?.contains("识别文字：\n预约时间：2026-06-24 19:30\n电话 13800138000\n邮箱 hello@example.com\n链接 https://example.com/menu\n合计 128.50元") == true)
+    }
+
+    func testImageTextRecognizerBuildsKeyInfoCandidatesFromChineseDateText() {
+        let attachment = SharedAttachment(
+            id: "booking-chinese-date.png",
+            filename: "booking-chinese-date.png",
+            relativePath: "booking-chinese-date.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 256
+        )
+
+        let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: [
+                ImageTextRecognizer.RecognizedLine(text: "预约时间：2026年6月24日 19:30", confidence: 0.96),
+                ImageTextRecognizer.RecognizedLine(text: "电话 13800138000", confidence: 0.92),
+                ImageTextRecognizer.RecognizedLine(text: "合计 128元", confidence: 0.9)
+            ]
+        )
+
+        XCTAssertTrue(text?.contains("关键信息候选：日期=2026-06-24 19:30 · 电话=13800138000 · 金额=128元") == true)
     }
 
     func testImageTextRecognizerSkipsKeyInfoCandidatesForPlainNumberedNotes() {
