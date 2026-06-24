@@ -842,7 +842,7 @@
 
 ## 2026-06-24T16:05:00+08:00
 
-- 进入并完成阶段 93：Markdown 表格与分隔线阅读渲染。阶段 92 已在 `origin/master`，GitHub API 匿名限流，远端 CI 暂时只能等待限流恢复后复查。
+- 进入并完成阶段 93：Markdown 表格与分隔线阅读渲染。阶段 92 已提交推送，本轮继续补 README 中 Markdown 表格缺口。
 - 开工前检索 MarkdownUI / swift-markdown / SwiftUI Markdown table renderer / 附件卡片候选；完整引擎仍保留为后续候选，但本轮为了不影响任务勾选行号、引用折叠和附件解析，继续扩展项目内轻量块级解析器。
 - 新增 `testMarkdownMemoBlockParserGroupsTables`、`testMarkdownMemoBlockParserKeepsPipeTextWithoutTableSeparatorAsLines` 和 `testMarkdownMemoBlockParserExtractsDividers`，覆盖 GFM 风格表头/分隔/数据行、普通管道文本不误判，以及 `---` 分隔线。
 - `MarkdownMemoBlockParser` 新增 table/divider block，代码块内表格符号仍保持代码；`MarkdownMemoTextView` 用横向滚动、稳定单元格宽度、表头底色和边框渲染表格，用现有边框色渲染分隔线。
