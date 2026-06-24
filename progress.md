@@ -1136,3 +1136,9 @@
 - 开工前检索 SwiftUI markdown task render OCR notes 和 Swift Markdown block parser task list notes 候选，精确查询均为 0；本轮继续复用项目内 Markdown block parser，只补 OCR 正文行过滤。
 - 新增 `testMarkdownMemoBlockParserIgnoresTasksInsideRecognizedTextBody`，覆盖 OCR 正文里的 checklist 不带 task，空行后的真实任务仍保持可点击任务行和原始行号。
 - `MarkdownMemoBlockParser.blocks(in:)` 新增识别文字正文行索引，非 OCR 正文行仍用 `MemoTaskParser.taskItem(in:lineIndex:)` 生成任务渲染。
+
+## 2026-06-25T01:16:00+08:00
+
+- 进入并完成阶段 135：附件/引用可见文本保留 OCR 原文。继续扫描显示文本链路时发现 `displayTextWithoutAttachmentReferences` 和 `displayTextWithoutReferences` 会逐行调用解析器，丢失 OCR 块上下文，可能把 OCR 原文里的 `[附件:]` / `[引用:]` 从详情正文里隐藏掉。
+- 新增 `testAttachmentStoreKeepsReferencesInsideRecognizedTextBodyVisible` 和 `testMemoReferenceParserKeepsReferencesInsideRecognizedTextBodyVisible`，覆盖 OCR 正文里的同形附件/引用 Markdown 仍作为普通文字显示，正文外的真实附件/引用仍折叠。
+- `SharedAttachmentStore.visibleTextModel` 和 `MemoReferenceParser.visibleTextModelWithoutReferences` 先按整段文本计算识别文字正文行索引，再决定是否隐藏附件/引用行。

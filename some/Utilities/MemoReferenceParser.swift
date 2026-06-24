@@ -100,15 +100,21 @@ enum MemoReferenceParser {
 
     private static func visibleTextModelWithoutReferences(for text: String) -> VisibleReferenceTextModel {
         let lines = text.components(separatedBy: .newlines)
+        let recognizedTextBodyIndexes = recognizedTextBodyLineIndexes(in: lines)
         var indexesToRemove: Set<Int> = []
 
-        for index in lines.indices where isReferenceOnlyLine(lines[index]) {
+        for index in lines.indices
+            where !recognizedTextBodyIndexes.contains(index) && isReferenceOnlyLine(lines[index]) {
             indexesToRemove.insert(index)
             guard index > lines.startIndex else {
                 continue
             }
             var previousIndex = lines.index(before: index)
             while lines.indices.contains(previousIndex) {
+                if recognizedTextBodyIndexes.contains(previousIndex) {
+                    break
+                }
+
                 let previousLine = lines[previousIndex].trimmingCharacters(in: .whitespacesAndNewlines)
                 if previousLine.isEmpty {
                     if previousIndex == lines.startIndex { break }

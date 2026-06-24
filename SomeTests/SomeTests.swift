@@ -2310,6 +2310,22 @@ final class SomeTests: XCTestCase {
         )
     }
 
+    func testMemoReferenceParserKeepsReferencesInsideRecognizedTextBodyVisible() {
+        let id = UUID()
+        let text = """
+        图片文字：raw-note.png
+
+        识别文字：
+        引用批注：截图里的批注
+        [引用: 目标记录](some-memo://\(id.uuidString))
+
+        [附件: raw-note.png](some-attachment://raw-note.png)
+        """
+
+        XCTAssertTrue(MemoReferenceParser.displayTextWithoutReferences(text).contains("引用批注：截图里的批注"))
+        XCTAssertTrue(MemoReferenceParser.displayTextWithoutReferences(text).contains("[引用: 目标记录](some-memo://\(id.uuidString))"))
+    }
+
     func testMemoReferenceParserKeepsDuplicateReferenceNotesInOrder() {
         let id = UUID()
         let text = """
@@ -3803,6 +3819,23 @@ final class SomeTests: XCTestCase {
             SharedAttachmentStore.attachments(in: text).map(\.relativePath),
             ["scan.png"]
         )
+    }
+
+    func testAttachmentStoreKeepsReferencesInsideRecognizedTextBodyVisible() {
+        let text = """
+        图片文字：scan.png
+
+        识别文字：
+        截图里展示了旧笔记引用
+        [附件: raw-note.png](some-attachment://raw-note.png)
+
+        [附件: scan.png](some-attachment://scan.png)
+        """
+
+        let visible = SharedAttachmentStore.displayTextWithoutAttachmentReferences(text)
+
+        XCTAssertTrue(visible.contains("[附件: raw-note.png](some-attachment://raw-note.png)"))
+        XCTAssertFalse(visible.contains("[附件: scan.png](some-attachment://scan.png)"))
     }
 
     func testAttachmentStoreDoesNotRemapReferencesInsideRecognizedTextBody() {

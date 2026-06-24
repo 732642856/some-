@@ -389,8 +389,14 @@ enum SharedAttachmentStore {
     }
 
     private static func visibleTextModel(for text: String) -> VisibleTextModel {
-        var rows = text.components(separatedBy: "\n").enumerated().compactMap { index, line -> (Int, String)? in
-            attachments(in: line).isEmpty ? (index, line) : nil
+        let lines = text.components(separatedBy: "\n")
+        let recognizedTextBodyIndexes = recognizedTextBodyLineIndexes(in: lines)
+        var rows = lines.enumerated().compactMap { index, line -> (Int, String)? in
+            if recognizedTextBodyIndexes.contains(index) {
+                return (index, line)
+            }
+
+            return attachments(in: line).isEmpty ? (index, line) : nil
         }
 
         while let first = rows.first,
