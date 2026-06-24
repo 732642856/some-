@@ -301,6 +301,8 @@ P3 只参考：
 
 2026-06-25 本轮实现决策：阶段 139 修复 OCR 摘录片段丢失附件样式原文前，检索 `Swift OCR clip fragment extractor notes attachment markdown GitHub MIT`、`Swift notes OCR highlights extractor attachment markdown GitHub MIT` 和 `Swift OCR proofreading checklist notes app GitHub MIT`。检索结果仍偏 OCR 引擎、完整笔记应用或通用文本摘要，不理解 some 的 OCR block 与真实附件引用分隔方式。本轮不复制第三方源码，继续复用 `ClipFragmentExtractor` 的 OCR block 提取，只把正文终止条件从附件行改为空行。
 
+2026-06-25 本轮实现决策：阶段 140 修复 OCR 高亮候选丢失附件样式原文前，复查阶段 139 的 OCR highlights / OCR proofreading / attachment markdown 检索结果，仍没有能直接复制进当前 `ImageTextRecognizer.extractedHighlights` 的小型 Swift/MIT 模块。该逻辑只是读取 some 已保存 memo 文本，不是替换 OCR 引擎；本轮不新增依赖，只把高亮候选的正文终止条件与 `ClipFragmentExtractor` 对齐为空行。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

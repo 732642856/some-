@@ -5743,6 +5743,26 @@ final class SomeTests: XCTestCase {
         )
     }
 
+    func testImageTextRecognizerKeepsAttachmentMarkdownInsideRecognizedHighlights() {
+        let text = """
+        图片文字：scan.png
+
+        识别文字：
+        截图展示附件说明
+        [附件: raw-card.png](some-attachment://raw-card.png)
+
+        [附件: scan.png](some-attachment://scan.png)
+        """
+
+        XCTAssertEqual(
+            ImageTextRecognizer.extractedHighlights(from: text, limit: 3),
+            [
+                "截图展示附件说明",
+                "[附件: raw-card.png](some-attachment://raw-card.png)"
+            ]
+        )
+    }
+
     func testImageTextMemoCreatesScreenshotAsset() throws {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         let attachment = try SharedAttachmentStore.save(

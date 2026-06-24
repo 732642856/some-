@@ -236,10 +236,6 @@ enum ImageTextRecognizer {
                 continue
             }
 
-            if trimmed.hasPrefix("[附件:") || trimmed.hasPrefix("some-attachment://") {
-                break
-            }
-
             candidates.append(trimmed)
         }
 

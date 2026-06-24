@@ -1166,3 +1166,9 @@
 - 进入并完成阶段 139：OCR 摘录片段保留附件样式原文。继续扫描 `ClipFragmentExtractor` 时发现 `extractedImageTextHighlights` 遇到 `[附件:]` / `some-attachment://` 会提前结束 OCR 正文，摘录片段会丢掉截图原文里的同形附件 Markdown。
 - 新增 `testClipFragmentExtractorKeepsAttachmentMarkdownInsideRecognizedTextBody`，覆盖 OCR fragments 同时包含普通识别行和附件样式原文，片段 URI 仍绑定到空行后的真实附件。
 - `extractedImageTextHighlights` 改为只在空行后结束 OCR 正文，不把附件样式文字当终止符；fallback 分支在存在 OCR header 时也保留正文段内附件样式文字。
+
+## 2026-06-25T02:17:00+08:00
+
+- 进入并完成阶段 140：OCR 高亮候选保留附件样式原文。继续扫描 `ImageTextRecognizer.extractedHighlights` 时发现详情页/摘要高亮候选同样遇到 `[附件:]` / `some-attachment://` 会提前结束 OCR 正文。
+- 新增 `testImageTextRecognizerKeepsAttachmentMarkdownInsideRecognizedHighlights`，覆盖高亮候选同时返回普通识别行和附件样式原文，空行后的真实附件引用不会进入候选。
+- `ImageTextRecognizer.extractedHighlights` 删除附件样式行的提前终止逻辑，继续用空行作为 OCR 正文段结束。
