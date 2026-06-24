@@ -40,6 +40,7 @@ struct ImageEditorView: View {
     @State private var editMode: ImageEditorMode = .crop
     @State private var sourceImage: UIImage?
     @State private var previewImage: UIImage?
+    @State private var requestedSourcePreviewURL: URL?
     @State private var statusText: String?
 
     init(attachment: SharedAttachment) {
@@ -72,10 +73,7 @@ struct ImageEditorView: View {
                 .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
-        .onAppear {
-            sourceImage = loadSourceImage()
-            refreshPreview()
-        }
+        .onAppear { loadSourcePreviewIfNeeded() }
         .onChange(of: layoutPreset) { preset in applyLayoutPreset(preset) }
         .onChange(of: filter) { _ in refreshPreview() }
         .onChange(of: cropPreset) { _ in refreshPreview() }
@@ -617,7 +615,7 @@ struct ImageEditorView: View {
     }
 
     private func refreshPreview() {
-        guard let sourceImage = sourceImage ?? loadSourceImage(),
+        guard let sourceImage = sourceImage,
               let cgImage = ImageEditRenderer.renderedImage(sourceImage: sourceImage, recipe: recipe) else {
             previewImage = nil
             return
@@ -641,11 +639,33 @@ struct ImageEditorView: View {
         dismiss()
     }
 
-    private func loadSourceImage() -> UIImage? {
+    private func loadSourcePreviewIfNeeded() {
         guard let url = SharedAttachmentStore.url(for: attachment) else {
-            return nil
+            sourceImage = nil
+            previewImage = nil
+            requestedSourcePreviewURL = nil
+            return
         }
-        return UIImage(contentsOfFile: url.path)
+        guard requestedSourcePreviewURL != url else {
+            return
+        }
+
+        requestedSourcePreviewURL = url
+        sourceImage = nil
+        previewImage = nil
+        DispatchQueue.global(qos: .userInitiated).async {
+            let image = ImageThumbnailGenerator.image(
+                for: url,
+                maximumPixelSize: ImageThumbnailGenerator.imageEditorPreviewMaximumPixelSize
+            )
+            DispatchQueue.main.async {
+                guard requestedSourcePreviewURL == url else {
+                    return
+                }
+                sourceImage = image
+                refreshPreview()
+            }
+        }
     }
 
     private func color(hex: String) -> Color? {

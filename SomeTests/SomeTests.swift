@@ -4034,6 +4034,35 @@ final class SomeTests: XCTestCase {
         )
     }
 
+    func testImageThumbnailEditorPreviewMaximumPixelSizeIsBounded() {
+        XCTAssertEqual(ImageThumbnailGenerator.imageEditorPreviewMaximumPixelSize, 1_600)
+        XCTAssertGreaterThan(ImageThumbnailGenerator.imageEditorPreviewMaximumPixelSize, 1_000)
+        XCTAssertLessThan(ImageThumbnailGenerator.imageEditorPreviewMaximumPixelSize, 2_048)
+    }
+
+    func testImageThumbnailEditorPreviewDownsamplesLargeSource() throws {
+        let sourceURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("editor-preview-\(UUID().uuidString).png")
+        let image = testImage(size: CGSize(width: 2_200, height: 1_200))
+        try XCTUnwrap(image.pngData()).write(to: sourceURL)
+        defer {
+            ImageThumbnailGenerator.removeCachedImage(
+                for: sourceURL,
+                maximumPixelSize: ImageThumbnailGenerator.imageEditorPreviewMaximumPixelSize
+            )
+            try? FileManager.default.removeItem(at: sourceURL)
+        }
+
+        let preview = try XCTUnwrap(ImageThumbnailGenerator.image(
+            for: sourceURL,
+            maximumPixelSize: ImageThumbnailGenerator.imageEditorPreviewMaximumPixelSize
+        ))
+
+        XCTAssertLessThanOrEqual(preview.cgImage?.width ?? 0, Int(ImageThumbnailGenerator.imageEditorPreviewMaximumPixelSize))
+        XCTAssertLessThanOrEqual(preview.cgImage?.height ?? 0, Int(ImageThumbnailGenerator.imageEditorPreviewMaximumPixelSize))
+        XCTAssertLessThan(preview.cgImage?.width ?? Int.max, 2_200)
+    }
+
     func testImageThumbnailPreviewPixelSizeIncludesLayerScale() {
         XCTAssertEqual(
             ImageThumbnailGenerator.previewMaximumPixelSize(width: 120, height: 80, scale: 0.5, layerScale: 1.5),
@@ -6299,6 +6328,39 @@ final class SomeTests: XCTestCase {
         XCTAssertTrue(memo.text.contains("授权清理：1处"))
         XCTAssertTrue(memo.text.contains("对象清理：1处"))
         XCTAssertEqual(ImageEditRecipe.recipe(in: memo.text)?.cleanupPatches.first?.style, .object)
+    }
+
+    func testAddImageEditRendersFromFullResolutionSource() throws {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let sourceSize = CGSize(width: 2_200, height: 1_200)
+        let sourceData = try XCTUnwrap(testImage(size: sourceSize).pngData())
+        let sourceAttachment = try SharedAttachmentStore.save(
+            data: sourceData,
+            suggestedFilename: "full-resolution-\(UUID().uuidString).png",
+            typeIdentifier: UTType.png.identifier
+        )
+        defer { SharedAttachmentStore.delete(sourceAttachment) }
+
+        let recipe = ImageEditRecipe(
+            sourceAttachmentPath: sourceAttachment.relativePath,
+            filter: .original,
+            cropPreset: .original
+        )
+
+        let memo = try XCTUnwrap(store.addImageEdit(
+            title: "原图尺寸保存",
+            sourceAttachment: sourceAttachment,
+            recipe: recipe
+        ))
+        let attachments = SharedAttachmentStore.attachments(in: memo.text)
+        defer { attachments.forEach { SharedAttachmentStore.delete($0) } }
+
+        let outputAttachment = try XCTUnwrap(attachments.first)
+        let outputURL = try XCTUnwrap(SharedAttachmentStore.url(for: outputAttachment))
+        let outputImage = try XCTUnwrap(UIImage(contentsOfFile: outputURL.path))
+        XCTAssertEqual(outputImage.cgImage?.width, Int(sourceSize.width))
+        XCTAssertEqual(outputImage.cgImage?.height, Int(sourceSize.height))
+        XCTAssertGreaterThan(outputImage.cgImage?.width ?? 0, Int(ImageThumbnailGenerator.imageEditorPreviewMaximumPixelSize))
     }
 
     func testAddWebClipCreatesMemoAndWebClipAsset() {

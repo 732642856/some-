@@ -3,6 +3,8 @@ import UIKit
 import UniformTypeIdentifiers
 
 enum ImageThumbnailGenerator {
+    static let imageEditorPreviewMaximumPixelSize: CGFloat = 1_600
+
     struct CacheMaintenanceResult: Equatable {
         var warmedCount: Int
         var removedCount: Int = 0

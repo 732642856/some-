@@ -235,6 +235,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 106 继续补图片缩略图缓存清理前，检索 `Swift image thumbnail cache prune MIT` 和 `iOS local thumbnail cache cleanup Swift MIT`，GitHub Search 均返回 0 个可直接复制的小型 Swift/MIT 清理模块。Kingfisher/Nuke 等成熟库仍面向远程图片请求和自身缓存生命周期；some 当前需要的是 App Group 本地附件缩略图和素材索引联动清理，因此复用本项目 `VideoThumbnailGenerator.pruneCache` 的维护思路，在 `ImageThumbnailGenerator` 内实现源图版本前缀清理，不新增依赖。
 
+2026-06-24 本轮实现决策：阶段 107 继续补图片编辑器打开大图时同步解码原图的问题前，检索 `Mantis Swift iOS image cropper`、`TOCropViewController iOS image cropper`、`ZLImageEditor iOS image editor` 和 `FMPhotoPicker Swift image editor`。这些候选适合接入完整裁剪/图片编辑 UI，但 some 当前图片编辑器已经围绕 `ImageEditRecipe`、素材附件、主体点选、清理贴片、工作流 memo 和导出复现格式建立数据流，直接复制或替换整套编辑器会带来大范围 UI/状态迁移。本轮只需要降低预览解码成本，因此复用现有 `ImageThumbnailGenerator` 与 Apple ImageIO：编辑器预览读 1600px 本地缩略图，保存仍由 `MemoStore.addImageEdit` 从原图附件重新渲染，不新增第三方依赖。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

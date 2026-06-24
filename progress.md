@@ -937,3 +937,10 @@
 - 开工前检索 Swift 图片缩略图缓存清理候选，未找到可直接复制的小型 Swift/MIT 模块；本轮复用项目内视频缓存维护模式。
 - 新增 `testImageThumbnailPruneCacheKeepsExpectedFile`，覆盖删除不再引用的图片缩略图缓存，同时保留当前源图的多个尺寸缓存。
 - `ImageThumbnailGenerator` 新增 `pruneCache`，缓存文件名改为源图版本前缀 + 目标尺寸；素材库维护周期在预热图片缩略图后清理 `ImageThumbnailCache` 孤儿 `.jpg`。
+
+## 2026-06-24T22:20:00+08:00
+
+- 进入并完成阶段 107：图片编辑器预览缩略图。继续处理媒体预览性能缺口，复查工作树碎片时发现图片编辑器已有半成品改动，优先收拢而不是丢弃。
+- 开工前检索 `Mantis`、`TOCropViewController`、`ZLImageEditor` 和 `FMPhotoPicker` 等开源图片编辑/裁剪项目；这些候选适合替换整套图片编辑器，但当前 some 已有图片编辑菜谱、素材附件、工作流日志和保存复现格式，直接引入会破坏现有数据流。本轮继续复用本项目 `ImageThumbnailGenerator` 和 Apple ImageIO。
+- 新增 `testImageThumbnailEditorPreviewDownsamplesLargeSource` 和 `testAddImageEditRendersFromFullResolutionSource`，分别覆盖编辑器预览使用 1600px 缩略图、大图保存仍从原图尺寸渲染。
+- `ImageEditorView` 打开时异步加载 `ImageThumbnailGenerator.imageEditorPreviewMaximumPixelSize` 缩略图作为编辑预览，避免在 SwiftUI body/onAppear 同步 `UIImage(contentsOfFile:)` 解码原图；`MemoStore.addImageEdit` 仍在保存时从附件 URL 读取原图渲染，保证导出清晰度。
