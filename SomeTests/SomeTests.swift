@@ -4629,6 +4629,100 @@ final class SomeTests: XCTestCase {
         )
     }
 
+    func testImageTextRecognizerBuildsTableCandidateFromAlignedRegions() {
+        let attachment = SharedAttachment(
+            id: "region-table.png",
+            filename: "region-table.png",
+            relativePath: "region-table.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 256
+        )
+
+        let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: [
+                ImageTextRecognizer.RecognizedLine(text: "商品", confidence: 0.96, region: ImageTextRegion(x: 0.08, y: 0.08, width: 0.16, height: 0.04)),
+                ImageTextRecognizer.RecognizedLine(text: "数量", confidence: 0.95, region: ImageTextRegion(x: 0.4, y: 0.08, width: 0.12, height: 0.04)),
+                ImageTextRecognizer.RecognizedLine(text: "金额", confidence: 0.94, region: ImageTextRegion(x: 0.7, y: 0.08, width: 0.12, height: 0.04)),
+                ImageTextRecognizer.RecognizedLine(text: "咖啡", confidence: 0.91, region: ImageTextRegion(x: 0.08, y: 0.18, width: 0.16, height: 0.04)),
+                ImageTextRecognizer.RecognizedLine(text: "2", confidence: 0.89, region: ImageTextRegion(x: 0.4, y: 0.18, width: 0.12, height: 0.04)),
+                ImageTextRecognizer.RecognizedLine(text: "36", confidence: 0.87, region: ImageTextRegion(x: 0.7, y: 0.18, width: 0.12, height: 0.04)),
+                ImageTextRecognizer.RecognizedLine(text: "蛋糕", confidence: 0.86, region: ImageTextRegion(x: 0.08, y: 0.28, width: 0.16, height: 0.04)),
+                ImageTextRecognizer.RecognizedLine(text: "1", confidence: 0.84, region: ImageTextRegion(x: 0.4, y: 0.28, width: 0.12, height: 0.04)),
+                ImageTextRecognizer.RecognizedLine(text: "28", confidence: 0.82, region: ImageTextRegion(x: 0.7, y: 0.28, width: 0.12, height: 0.04))
+            ]
+        )
+
+        XCTAssertTrue(text?.contains("表格候选：3列 · 2行 · 商品/数量/金额") == true)
+        XCTAssertTrue(text?.contains("商品\n数量\n金额\n咖啡\n2\n36\n蛋糕\n1\n28") == true)
+    }
+
+    func testImageTextRecognizerBuildsReceiptLineCandidatesWithoutDelimiters() {
+        let attachment = SharedAttachment(
+            id: "receipt-lines.png",
+            filename: "receipt-lines.png",
+            relativePath: "receipt-lines.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 256
+        )
+
+        let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: [
+                ImageTextRecognizer.RecognizedLine(text: "some cafe", confidence: 0.96),
+                ImageTextRecognizer.RecognizedLine(text: "拿铁 18.00", confidence: 0.94),
+                ImageTextRecognizer.RecognizedLine(text: "可颂 x2 36.00", confidence: 0.9),
+                ImageTextRecognizer.RecognizedLine(text: "茶包 12元", confidence: 0.86),
+                ImageTextRecognizer.RecognizedLine(text: "合计 66.00", confidence: 0.92)
+            ]
+        )
+
+        XCTAssertTrue(text?.contains("票据行候选：3行 · 拿铁 18.00；可颂 x2 36.00；茶包 12元") == true)
+        XCTAssertTrue(text?.contains("票据行候选") == true)
+        XCTAssertTrue(text?.contains("识别文字：\nsome cafe\n拿铁 18.00\n可颂 x2 36.00\n茶包 12元\n合计 66.00") == true)
+    }
+
+    func testImageTextRecognizerSkipsReceiptLineCandidatesForSingleAmountLine() {
+        let attachment = SharedAttachment(
+            id: "single-receipt-line.png",
+            filename: "single-receipt-line.png",
+            relativePath: "single-receipt-line.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 128
+        )
+
+        let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: [
+                ImageTextRecognizer.RecognizedLine(text: "拿铁 18.00", confidence: 0.92),
+                ImageTextRecognizer.RecognizedLine(text: "合计 18.00", confidence: 0.9)
+            ]
+        )
+
+        XCTAssertFalse(text?.contains("票据行候选") == true)
+    }
+
+    func testImageTextRecognizerSkipsReceiptLineCandidatesForPlainNumberedNotes() {
+        let attachment = SharedAttachment(
+            id: "plain-numbered-notes.png",
+            filename: "plain-numbered-notes.png",
+            relativePath: "plain-numbered-notes.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 128
+        )
+
+        let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: [
+                ImageTextRecognizer.RecognizedLine(text: "订单编号 20260624", confidence: 0.92),
+                ImageTextRecognizer.RecognizedLine(text: "会议室 302", confidence: 0.9),
+                ImageTextRecognizer.RecognizedLine(text: "客服电话 10086", confidence: 0.88)
+            ]
+        )
+
+        XCTAssertFalse(text?.contains("票据行候选") == true)
+    }
+
     func testImageTextRecognizerSkipsTableCandidateWithoutDataRows() {
         let attachment = SharedAttachment(
             id: "single-row.png",

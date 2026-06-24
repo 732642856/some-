@@ -249,6 +249,8 @@ P3 只参考：
 
 2026-06-24 本轮实现决策：阶段 113 继续补衣橱穿搭完整度前，检索 `open source wardrobe outfit planner accessories bags shoes recommendation GitHub MIT Swift`、`Swift wardrobe outfit planner accessories bags GitHub MIT`、`capsule wardrobe outfit recommendation accessories bags open source GitHub MIT` 和 `iOS closet app outfit planner open source GitHub MIT`。检索结果多为 Web/后端完整衣橱项目、AGPL/copyleft 项目或与 some 当前 SwiftUI 本地 memo/素材索引模型不匹配的示例；MixnMatch/OOTD 类仓库可参考按类型/颜色组成 outfit 的产品思路，但不适合直接复制进当前代码。本轮继续复用 `WardrobeInsightEngine`，新增本地 outfit 专用类别平衡选择器，让普通搭配建议也补齐鞋履、包包和饰品。
 
+2026-06-24 本轮实现决策：阶段 114 继续补 OCR 区域表格与票据行候选前，检索 `Swift Vision OCR receipt parser line items MIT`、`Swift OCR receipt parser MIT iOS`、`VNRecognizedTextObservation table extraction Swift GitHub MIT`、`Swift Vision OCR table MIT` 和 Apple Vision `VNRecognizedTextObservation` / 表格识别文档。GitHub 精确查询未返回可直接复制进当前 iOS 本地 OCR memo 链路的小型 Swift/MIT 模块；网页结果里 receipt scanner 多依赖 LLM、Veryfi/云服务、Python/服务端或完整示例 App，Apple 新 Vision 表格方向也会改变当前 `VNRecognizeTextRequest` 兼容链路。本轮不复制第三方代码，继续复用 Apple Vision 行框和项目内 `ImageTextRegion`：先识别分隔符表格，再用行框横纵对齐生成简单“表格候选”，并为无分隔符小票/餐饮截图生成末尾金额“票据行候选”。复杂合并单元格、跨页表格和自动字段纠错后续单独评估专门文档分析能力。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

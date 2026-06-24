@@ -186,6 +186,10 @@ enum ImageTextRecognizer {
             lines.append("表格候选：\(tableSummary)")
         }
 
+        if let receiptLineSummary = receiptLineCandidateSummary(for: cleanedLines) {
+            lines.append("票据行候选：\(receiptLineSummary)")
+        }
+
         if let fieldSummary = fieldCandidatesSummary(for: cleanedLines) {
             lines.append("字段候选：\(fieldSummary)")
         }
@@ -361,6 +365,10 @@ enum ImageTextRecognizer {
     }
 
     private static func tableCandidateSummary(for lines: [RecognizedLine]) -> String? {
+        delimitedTableCandidateSummary(for: lines) ?? regionTableCandidateSummary(for: lines)
+    }
+
+    private static func delimitedTableCandidateSummary(for lines: [RecognizedLine]) -> String? {
         let rows = lines.compactMap { tableCells(in: $0.text) }
         guard let header = rows.first,
               header.count >= 2 else {
@@ -374,6 +382,97 @@ enum ImageTextRecognizer {
 
         let headerSummary = header.prefix(4).joined(separator: "/")
         return "\(header.count)列 · \(dataRows.count)行 · \(headerSummary)"
+    }
+
+    private static func regionTableCandidateSummary(for lines: [RecognizedLine]) -> String? {
+        let cells = lines.compactMap { line -> RegionTableCell? in
+            guard let region = line.region,
+                  containsReadableContent(line.text) else {
+                return nil
+            }
+
+            return RegionTableCell(text: line.text, region: region)
+        }
+
+        guard cells.count == lines.count,
+              cells.count >= 4 else {
+            return nil
+        }
+
+        let rows = regionTableRows(from: cells)
+            .filter { $0.count >= 2 }
+        guard let header = rows.first,
+              header.count >= 2 else {
+            return nil
+        }
+
+        let dataRows = rows.dropFirst().filter { row in
+            row.count == header.count && regionTableRow(row, alignsWith: header)
+        }
+        guard !dataRows.isEmpty else {
+            return nil
+        }
+
+        let headerSummary = header.prefix(4).map(\.text).joined(separator: "/")
+        return "\(header.count)列 · \(dataRows.count)行 · \(headerSummary)"
+    }
+
+    private struct RegionTableCell {
+        let text: String
+        let region: ImageTextRegion
+
+        var centerX: Double {
+            region.x + region.width / 2
+        }
+
+        var centerY: Double {
+            region.y + region.height / 2
+        }
+    }
+
+    private static func regionTableRows(from cells: [RegionTableCell]) -> [[RegionTableCell]] {
+        let sortedCells = cells.sorted { first, second in
+            if abs(first.centerY - second.centerY) > 0.02 {
+                return first.centerY < second.centerY
+            }
+
+            return first.centerX < second.centerX
+        }
+
+        var rows: [[RegionTableCell]] = []
+        for cell in sortedCells {
+            guard let lastRow = rows.last,
+                  let referenceCell = lastRow.first,
+                  abs(cell.centerY - referenceCell.centerY) <= rowGroupingTolerance(for: lastRow + [cell]) else {
+                rows.append([cell])
+                continue
+            }
+
+            rows[rows.count - 1].append(cell)
+        }
+
+        return rows.map { row in
+            row.sorted { $0.centerX < $1.centerX }
+        }
+    }
+
+    private static func rowGroupingTolerance(for cells: [RegionTableCell]) -> Double {
+        let tallestCell = cells.map { $0.region.height }.max() ?? 0
+        return max(0.025, min(0.08, tallestCell * 0.9))
+    }
+
+    private static func regionTableRow(_ row: [RegionTableCell], alignsWith header: [RegionTableCell]) -> Bool {
+        guard row.count == header.count else {
+            return false
+        }
+
+        return zip(row, header).allSatisfy { cell, headerCell in
+            abs(cell.centerX - headerCell.centerX) <= columnAlignmentTolerance(headerCell: headerCell, cell: cell)
+        }
+    }
+
+    private static func columnAlignmentTolerance(headerCell: RegionTableCell, cell: RegionTableCell) -> Double {
+        max(0.06, min(0.14, max(headerCell.region.width, cell.region.width) * 0.75))
     }
 
     private static func tableCells(in line: String) -> [String]? {
@@ -396,6 +495,76 @@ enum ImageTextRecognizer {
         }
 
         return cells
+    }
+
+    private struct ReceiptLineCandidate {
+        let title: String
+        let amount: String
+
+        var summary: String {
+            "\(title) \(amount)"
+        }
+    }
+
+    private static func receiptLineCandidateSummary(for lines: [RecognizedLine]) -> String? {
+        let candidates = lines.compactMap { receiptLineCandidate(in: $0.text) }
+        guard candidates.count >= 2 else {
+            return nil
+        }
+
+        let examples = candidates.prefix(3).map(\.summary).joined(separator: "；")
+        return "\(candidates.count)行 · \(examples)"
+    }
+
+    private static func receiptLineCandidate(in line: String) -> ReceiptLineCandidate? {
+        let normalized = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty,
+              normalized.rangeOfCharacter(from: CharacterSet(charactersIn: "|｜\t:：")) == nil,
+              let amountRange = normalized.range(
+                of: #"[¥￥]?\s*\d+(?:[\.,]\d{1,2})?\s*元?$"#,
+                options: .regularExpression
+              ) else {
+            return nil
+        }
+
+        let amountEnd = normalized[amountRange.upperBound...]
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard amountEnd.isEmpty else {
+            return nil
+        }
+
+        let title = String(normalized[..<amountRange.lowerBound])
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let amount = String(normalized[amountRange])
+            .replacingOccurrences(of: " ", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard title.count >= 2,
+              containsReadableContent(title),
+              isReceiptAmount(amount),
+              !isReceiptSummaryLine(title) else {
+            return nil
+        }
+
+        return ReceiptLineCandidate(title: title, amount: amount)
+    }
+
+    private static func isReceiptAmount(_ amount: String) -> Bool {
+        amount.contains(".")
+            || amount.contains(",")
+            || amount.contains("元")
+            || amount.contains("¥")
+            || amount.contains("￥")
+    }
+
+    private static func isReceiptSummaryLine(_ title: String) -> Bool {
+        let lowercasedTitle = title.lowercased()
+        let summaryKeywords = [
+            "合计", "小计", "总计", "应付", "实付", "找零", "支付", "优惠", "税",
+            "total", "subtotal", "change", "cash", "card", "tax"
+        ]
+
+        return summaryKeywords.contains { lowercasedTitle.contains($0) }
     }
 
     private static func containsReadableContent(_ text: String) -> Bool {

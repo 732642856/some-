@@ -986,3 +986,10 @@
 - 开工前检索 Swift/iOS/open source wardrobe outfit planner、accessories/bags/shoes recommendation 候选；完整衣橱项目多为 Web/AGPL/后端栈或与当前本地 SwiftUI 模型不匹配，本轮不复制第三方代码。
 - 新增 `testWardrobeSceneSuggestionsIncludeShoesBagsAndAccessories`，覆盖通勤场景搭配草稿应同时带出上装、下装、鞋履、包包和饰品。
 - `WardrobeInsightEngine` 新增 `outfitBalancedItems`，普通天气、场景、季节和低频单品建议改用 outfit 专用选择器；打包清单仍保留按天数和天气扩展数量的独立选择逻辑。
+
+## 2026-06-24T23:59:30+08:00
+
+- 进入并完成阶段 114：OCR 区域表格与票据行候选。阶段 113 推送后继续复查网页摘录/OCR 缺口，确认阶段 99 只覆盖分隔符表格，尚不能扫读 Vision 拆成独立文本块的简单表格，也不能把餐饮小票的无分隔符金额行提前摘出。
+- 开工前检索 `Swift Vision OCR receipt parser line items MIT`、`VNRecognizedTextObservation table extraction Swift GitHub MIT`、`Swift Vision OCR table MIT` 和 Apple Vision 表格/识别文档；GitHub 精确查询未返回可直接复制进当前本地 SwiftUI/OCR memo 链路的小型 Swift/MIT 模块，网页结果多为 LLM/服务端/完整示例项目，本轮继续复用 Apple Vision 行框与项目内轻量规则。
+- 收拢并补齐 `testImageTextRecognizerBuildsTableCandidateFromAlignedRegions`，覆盖 Vision 行框按三列三行对齐时生成“表格候选”；新增 `testImageTextRecognizerBuildsReceiptLineCandidatesWithoutDelimiters` 和 `testImageTextRecognizerSkipsReceiptLineCandidatesForSingleAmountLine`，覆盖无分隔符小票行必须至少两条项目金额才生成“票据行候选”。
+- `ImageTextRecognizer` 的“表格候选”先识别 `|` / `｜` / tab 分隔符，再退到行框横纵对齐的简单表格；另新增末尾金额行解析，跳过合计/小计/支付/税等汇总行，原始“识别文字”仍完整保留。
