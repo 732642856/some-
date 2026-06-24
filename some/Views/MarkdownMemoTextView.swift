@@ -36,6 +36,10 @@ struct MarkdownMemoTextView: View {
             }
         case .code(let code):
             codeBlock(code)
+        case .heading(let heading):
+            headingBlock(heading)
+        case .quote(let quote):
+            quoteBlock(quote)
         }
     }
 
@@ -109,6 +113,45 @@ struct MarkdownMemoTextView: View {
                 .stroke(Color.border, lineWidth: 1)
         )
     }
+
+    private func headingBlock(_ heading: MarkdownMemoHeadingBlock) -> some View {
+        renderedText(heading.text)
+            .font(.system(size: headingFontSize(for: heading.level), weight: .semibold))
+            .foregroundStyle(Color.primaryText)
+            .lineSpacing(3)
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, heading.level <= 2 ? 4 : 2)
+    }
+
+    private func quoteBlock(_ quote: MarkdownMemoQuoteBlock) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            RoundedRectangle(cornerRadius: 1, style: .continuous)
+                .fill(Color.accentGreen)
+                .frame(width: 3)
+
+            renderedText(quote.text)
+                .font(.system(size: 15, weight: .regular))
+                .foregroundStyle(Color.secondaryText)
+                .lineSpacing(4)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.greenTint)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private func headingFontSize(for level: Int) -> CGFloat {
+        switch level {
+        case 1: return 22
+        case 2: return 20
+        case 3: return 18
+        default: return 16
+        }
+    }
 }
 
 enum MarkdownMemoBlockParser {
@@ -148,6 +191,27 @@ enum MarkdownMemoBlockParser {
                         )
                     )
                 )
+            } else if let heading = headingBlock(in: line, lineIndex: index) {
+                blocks.append(.heading(heading))
+                index += 1
+            } else if isQuoteLine(line) {
+                let startLineIndex = index
+                var quoteLines: [String] = []
+
+                while index < lines.count, isQuoteLine(lines[index]) {
+                    quoteLines.append(quoteText(in: lines[index]))
+                    index += 1
+                }
+
+                blocks.append(
+                    .quote(
+                        MarkdownMemoQuoteBlock(
+                            startLineIndex: startLineIndex,
+                            endLineIndex: index - 1,
+                            text: quoteLines.joined(separator: "\n")
+                        )
+                    )
+                )
             } else {
                 blocks.append(
                     .line(
@@ -179,11 +243,42 @@ enum MarkdownMemoBlockParser {
     private static func isFenceLine(_ line: String) -> Bool {
         line.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("```")
     }
+
+    private static func headingBlock(in line: String, lineIndex: Int) -> MarkdownMemoHeadingBlock? {
+        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        let markerCount = trimmed.prefix { $0 == "#" }.count
+        guard (1...6).contains(markerCount),
+              trimmed.dropFirst(markerCount).first == " "
+        else {
+            return nil
+        }
+
+        let text = String(trimmed.dropFirst(markerCount + 1))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else {
+            return nil
+        }
+
+        return MarkdownMemoHeadingBlock(lineIndex: lineIndex, level: markerCount, text: text)
+    }
+
+    private static func isQuoteLine(_ line: String) -> Bool {
+        line.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix(">")
+    }
+
+    private static func quoteText(in line: String) -> String {
+        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        let withoutMarker = trimmed.dropFirst()
+        return String(withoutMarker)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 }
 
 enum MarkdownMemoBlock: Identifiable, Equatable {
     case line(MarkdownMemoRenderLine)
     case code(MarkdownMemoCodeBlock)
+    case heading(MarkdownMemoHeadingBlock)
+    case quote(MarkdownMemoQuoteBlock)
 
     var id: String {
         switch self {
@@ -191,6 +286,10 @@ enum MarkdownMemoBlock: Identifiable, Equatable {
             return "line-\(line.lineIndex)"
         case .code(let code):
             return "code-\(code.startLineIndex)-\(code.endLineIndex)"
+        case .heading(let heading):
+            return "heading-\(heading.lineIndex)"
+        case .quote(let quote):
+            return "quote-\(quote.startLineIndex)-\(quote.endLineIndex)"
         }
     }
 }
@@ -200,6 +299,18 @@ struct MarkdownMemoCodeBlock: Equatable {
     let endLineIndex: Int
     let language: String?
     let code: String
+}
+
+struct MarkdownMemoHeadingBlock: Equatable {
+    let lineIndex: Int
+    let level: Int
+    let text: String
+}
+
+struct MarkdownMemoQuoteBlock: Equatable {
+    let startLineIndex: Int
+    let endLineIndex: Int
+    let text: String
 }
 
 struct MarkdownMemoRenderLine: Identifiable, Equatable {

@@ -2077,6 +2077,62 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(codeBlock.code, "plain code")
     }
 
+    func testMarkdownMemoBlockParserExtractsHeadingsAndKeepsTagsAsLines() {
+        let text = """
+        ## 二级标题
+        #产品/输入
+        ###### 六级标题
+        """
+
+        let blocks = MarkdownMemoBlockParser.blocks(in: text)
+
+        XCTAssertEqual(blocks.count, 3)
+
+        guard case .heading(let firstHeading) = blocks[0] else {
+            return XCTFail("Expected heading block")
+        }
+        XCTAssertEqual(firstHeading.lineIndex, 0)
+        XCTAssertEqual(firstHeading.level, 2)
+        XCTAssertEqual(firstHeading.text, "二级标题")
+
+        guard case .line(let tagLine) = blocks[1] else {
+            return XCTFail("Expected tag line")
+        }
+        XCTAssertEqual(tagLine.text, "#产品/输入")
+
+        guard case .heading(let lastHeading) = blocks[2] else {
+            return XCTFail("Expected heading block")
+        }
+        XCTAssertEqual(lastHeading.lineIndex, 2)
+        XCTAssertEqual(lastHeading.level, 6)
+        XCTAssertEqual(lastHeading.text, "六级标题")
+    }
+
+    func testMarkdownMemoBlockParserGroupsBlockquotes() {
+        let text = """
+        > 第一行引用
+        > 第二行引用
+        正文
+        """
+
+        let blocks = MarkdownMemoBlockParser.blocks(in: text)
+
+        XCTAssertEqual(blocks.count, 2)
+
+        guard case .quote(let quote) = blocks[0] else {
+            return XCTFail("Expected quote block")
+        }
+        XCTAssertEqual(quote.startLineIndex, 0)
+        XCTAssertEqual(quote.endLineIndex, 1)
+        XCTAssertEqual(quote.text, "第一行引用\n第二行引用")
+
+        guard case .line(let bodyLine) = blocks[1] else {
+            return XCTFail("Expected body line")
+        }
+        XCTAssertEqual(bodyLine.lineIndex, 2)
+        XCTAssertEqual(bodyLine.text, "正文")
+    }
+
     func testStoreToggleTaskUpdatesMemoTextAndTags() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "- [ ] 跟进 #产品\n普通行")

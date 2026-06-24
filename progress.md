@@ -825,3 +825,10 @@
 - 开工前检索 MarkdownUI / swift-markdown / SwiftUI code block renderer 候选；完整 Markdown 引擎适合后续大改，本轮只补本地轻量块级解析，不引入依赖。
 - `MarkdownMemoBlockParser` 会把成对或未闭合的 fenced code block 聚合为代码块，支持可选语言标签；代码块内任务文本不会产生可勾选任务，代码块后的任务继续保留原始行号。
 - `MarkdownMemoTextView` 用等宽字体、横向滚动和边框渲染代码块，列表与详情页自动复用。
+
+## 2026-06-24T15:02:00+08:00
+
+- 进入并完成阶段 91：Markdown 标题与引用块阅读渲染。阶段 90 已建立轻量块级解析器，本轮继续补最常见的标题和引用结构。
+- 开工前检索 SwiftUI Markdown heading / blockquote 小型渲染模块，未找到可直接复制的 MIT 模块；完整 Markdown 引擎仍留作后续大改候选。
+- `MarkdownMemoBlockParser` 新增 heading 和 quote block：标题只识别 `# ` 到 `###### ` 这种带空格 Markdown 语法，`#产品/输入` 仍保持普通正文/标签语义；连续 `>` 行会合并为一个引用块。
+- `MarkdownMemoTextView` 用不同字号渲染标题，用左侧色条和浅底色渲染引用块，列表和详情页继续共用。

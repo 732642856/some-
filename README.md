@@ -71,7 +71,7 @@
 - Share Extension 附件：支持从其他 App 分享图片或文件到 some
 - 共享 App Group 存储：主 App 与 Share Extension 共用 SQLite 数据库
 - 快速输入增强：打开自动聚焦、保存并继续、首次记录模板、标签建议、链接预览
-- Markdown 阅读渲染 v2：列表和详情页支持加粗、链接等系统 Markdown 样式，fenced code block 会以等宽代码块显示并保留代码内任务文本
+- Markdown 阅读渲染 v3：列表和详情页支持加粗、链接、标题、引用块等系统 Markdown 样式，fenced code block 会以等宽代码块显示并保留代码内任务文本
 - Markdown 任务项：识别 `- [ ]` / `- [x]`，详情页可直接勾选并写回
 - App Intents / Shortcuts：支持通过快捷指令保存新随记，并可直接打开专注、工作日志、衣橱和 AI 整理页
 - 卡片引用：详情页可添加 `some-memo://` 内部引用，并显示正向引用与反向引用
@@ -138,7 +138,7 @@
 
 AI 功能是可选能力：本地 AI 记忆档案、本地 AI 搜索和本地相关记录不需要 API Key，也不会离开设备；只有在设置里保存 OpenAI API Key，并主动点击 AI 洞察、AI 搜索/相关记录或工作日志 AI 润色时，应用才会把本次操作需要的文本、搜索问题、提示词或工作汇报草稿直接发送到 OpenAI API。API Key 保存在本机 Keychain，不写入完整备份。
 
-Markdown 阅读渲染当前使用 iOS 系统 `AttributedString(markdown:)` 处理行内样式，项目内轻量块级解析器处理 fenced code block，任务项勾选、引用/反链和引用批注也继续使用项目内解析器。后续若要做表格、脚注、完整标题层级和附件卡片，优先接入 `Textual`、`MarkdownUI` 或 `swift-markdown` 这类 MIT / Apache Swift Package。
+Markdown 阅读渲染当前使用 iOS 系统 `AttributedString(markdown:)` 处理行内样式，项目内轻量块级解析器处理标题、引用块和 fenced code block，任务项勾选、引用/反链和引用批注也继续使用项目内解析器。后续若要做表格、脚注、完整主题样式和附件卡片，优先接入 `Textual`、`MarkdownUI` 或 `swift-markdown` 这类 MIT / Apache Swift Package。
 
 快捷指令能力通过 App Intents 实现，默认提供“存到 some / 新建随记”入口，也提供打开专注、工作日志、衣橱和 AI 整理页的常用入口；内容仍保存在本机 SQLite，不需要账号或云同步。
 
