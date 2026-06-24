@@ -2494,6 +2494,24 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(items[1].text, "检查截图")
     }
 
+    func testMemoTaskParserIgnoresTasksInsideRecognizedTextBody() {
+        let text = """
+        图片文字：todo.png
+
+        识别文字：
+        - [ ] 截图里的待办
+        - [x] 截图里的已完成
+
+        [附件: todo.png](some-attachment://todo.png)
+        - [ ] 真实待办
+        """
+
+        let items = MemoTaskParser.taskItems(in: text)
+
+        XCTAssertEqual(items.map(\.text), ["真实待办"])
+        XCTAssertEqual(items.map(\.lineIndex), [7])
+    }
+
     func testMemoTaskParserTogglesTaskState() {
         let text = "第一行\n- [ ] 写发布说明\n- [x] 已完成"
 

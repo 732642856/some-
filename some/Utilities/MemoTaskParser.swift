@@ -14,7 +14,13 @@ enum MemoTaskParser {
     }()
 
     static func taskItems(in text: String) -> [MemoTaskItem] {
-        text.components(separatedBy: "\n").enumerated().compactMap { lineIndex, line in
+        let lines = text.components(separatedBy: "\n")
+        let recognizedTextBodyIndexes = recognizedTextBodyLineIndexes(in: lines)
+        return lines.enumerated().compactMap { lineIndex, line in
+            guard !recognizedTextBodyIndexes.contains(lineIndex) else {
+                return nil
+            }
+
             taskItem(in: line, lineIndex: lineIndex)
         }
     }
@@ -66,5 +72,41 @@ enum MemoTaskParser {
 
         let range = NSRange(line.startIndex..<line.endIndex, in: line)
         return taskExpression.firstMatch(in: line, range: range)
+    }
+
+    private static func recognizedTextBodyLineIndexes(in lines: [String]) -> Set<Int> {
+        var indexes = Set<Int>()
+        var isInRecognizedText = false
+        var hasRecognizedContent = false
+
+        for index in lines.indices {
+            let trimmed = lines[index].trimmingCharacters(in: .whitespacesAndNewlines)
+            if isRecognizedTextHeader(trimmed) {
+                isInRecognizedText = true
+                hasRecognizedContent = false
+                continue
+            }
+
+            guard isInRecognizedText else {
+                continue
+            }
+
+            if trimmed.isEmpty {
+                if hasRecognizedContent {
+                    isInRecognizedText = false
+                    hasRecognizedContent = false
+                }
+                continue
+            }
+
+            indexes.insert(index)
+            hasRecognizedContent = true
+        }
+
+        return indexes
+    }
+
+    private static func isRecognizedTextHeader(_ line: String) -> Bool {
+        line == "识别文字：" || line == "识别文字:" || line == "OCR：" || line == "OCR:"
     }
 }

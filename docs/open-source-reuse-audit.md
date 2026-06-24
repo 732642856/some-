@@ -283,6 +283,8 @@ P3 只参考：
 
 2026-06-25 本轮实现决策：阶段 130 修复附件引用与 OCR 原文混排边界前，检索 `Swift notes attachment parser markdown MIT`、`Swift markdown attachment reference parser notes MIT` 和 `Swift some-attachment OCR parser`，GitHub API 精确查询均返回 `total=0`。当前问题来自 some 自定义 `[附件: 文件名](some-attachment://path)` 本地引用格式，与通用 Markdown 图片/附件库不兼容；本轮继续复用 `SharedAttachmentStore`，只给附件引用扫描补 OCR 正文边界过滤。
 
+2026-06-25 本轮实现决策：阶段 131 修复任务清单与 OCR 原文混排边界前，检索 `Swift markdown task list parser notes MIT`、`Swift checklist parser OCR notes MIT` 和 `SwiftUI notes task list parser markdown MIT`，GitHub API 精确查询均返回 `total=0`。当前缺口不是通用 Markdown task list 语法，而是 some OCR 文本块里原始截图内容和真实可勾选任务共处同一 memo 后的边界判断；本轮继续复用 `MemoTaskParser`，只给 `taskItems(in:)` 补 OCR 正文行过滤。
+
 2026-06-22 产品目标修订后，下一轮不应继续只补 memo 表层小功能。应先补能支撑手帐、工作日志、网页摘录、图片编辑和电子衣橱的底层模型与入口，因为继续扩展单一 memo 正文会增加返工。
 
 推荐路线：

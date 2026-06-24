@@ -106,7 +106,7 @@
 - `has:laundry-log` / `has:洗护` / `has:护理`：只看洗护记录
 - `has:packing-list` / `has:打包清单` / `has:旅行打包`：只看旅行打包清单
 - `has:attachment`：只看包含本地附件引用的记录；OCR 原始识别文字里的 `some-attachment://` 附件文本不会被当成真实附件
-- `has:task` / `has:open-task` / `has:completed-task`：只看包含任务、未完成任务或已完成任务的记录
+- `has:task` / `has:open-task` / `has:completed-task`：只看包含任务、未完成任务或已完成任务的记录；OCR 原始识别文字里的 Markdown checklist 不会被当成可勾选任务
 - `has:reference` / `has:backlink`：只看引用了其他记录或被其他记录引用的记录；OCR 原始识别文字里的 `some-memo://` 引用文本不会被当成真实关系
 - `created:2026` / `created:2026-06` / `created:2026-06-22`：按创建年、月或日过滤
 - `updated:>=2026-06-22` / `created:<2026-06`：按更新时间或创建时间做边界过滤，支持 `>`、`>=`、`<`、`<=`

@@ -1108,3 +1108,10 @@
 - 开工前用 GitHub API 检索 Swift notes attachment parser、markdown attachment reference parser 和 some-attachment OCR parser 候选，精确查询均为 0；该格式是 some 自定义本地附件引用，不适合引入完整 Markdown 或附件库。
 - 新增 `testAttachmentStoreIgnoresReferencesInsideRecognizedTextBody`，覆盖 OCR 正文里的附件 Markdown 被忽略，空行后的 some 生成真实附件引用仍会解析。
 - `SharedAttachmentStore.attachments(in:)` 新增识别文字正文行索引，跳过“识别文字：”/`OCR:` 正文里的附件引用；display 隐藏、素材索引、`has:attachment` 和孤儿附件清理继续共用同一个解析入口。
+
+## 2026-06-25T00:29:00+08:00
+
+- 进入并完成阶段 131：任务清单忽略 OCR 原文。阶段 130 推送后继续扫描同类解析器，发现 `MemoTaskParser.taskItems(in:)` 会把 OCR 原文里的 `- [ ]` / `- [x]` 识别成真实任务，进而影响 `has:task`、素材索引、工作日志进展/下一步推断和 AI 记忆任务统计。
+- 开工前用 GitHub API 检索 Swift markdown task list parser、checklist OCR parser 和 SwiftUI notes task list parser 候选，精确查询均为 0；该问题来自 some 自有 OCR 文本块边界，不适合引入完整 Markdown 解析库。
+- 新增 `testMemoTaskParserIgnoresTasksInsideRecognizedTextBody`，覆盖 OCR 正文里的 checklist 被忽略，空行后的真实任务仍保留并保持原始行号。
+- `MemoTaskParser.taskItems(in:)` 新增识别文字正文行索引，跳过“识别文字：”/`OCR:` 正文里的任务行；单行 `taskItem(in:)` 和任务 toggle 仍保持原行为，详情页通过原始行号切换真实任务。
