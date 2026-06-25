@@ -92,6 +92,24 @@ enum MemoHomeMode: String, CaseIterable, Identifiable {
     }
 }
 
+enum MemoHomeDashboardLayout {
+    static let gridSpacing: CGFloat = 8
+
+    static func minimumCardWidth(forDynamicTypeScale scale: CGFloat) -> CGFloat {
+        if scale >= 1.6 {
+            return 224
+        }
+        if scale >= 1.2 {
+            return 196
+        }
+        return 156
+    }
+
+    static func subtitleLineLimit(forDynamicTypeScale scale: CGFloat) -> Int {
+        scale >= 1.6 ? 3 : 2
+    }
+}
+
 enum AppShortcutRouteStore {
     private static let destinationKey = "some.shortcut.destination"
 

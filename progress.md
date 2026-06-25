@@ -1300,3 +1300,11 @@
 - TDD：新增 `testHomeModesHaveDashboardCopyAndGroups`，锁定“记录入口 / 创作整理 / 回看管理”三组、所有首页模式必须出现一次，并要求每个模式都提供首页说明和短标签。
 - 实现：`MemoHomeMode` 新增首页工作台分组、说明和短标签；`HeaderView` 显示当前模式用途说明与清新色块；`HomeModePicker` 改为双列模式卡片，保留切换到回顾时自动抽取旧记录的行为。
 - 本地验证：`git diff --check` 通过；`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Stores/MemoStore.swift some/Views/ContentView.swift SomeTests/SomeTests.swift` 通过。旧本机 SDK 对包含 UIKit 的完整 typecheck 仍不可用，完整 XCTest 继续交给推送后的 GitHub Actions。
+
+## 2026-06-25T17:29:44+08:00
+
+- 进入并完成阶段 158：首页工作台动态字体自适应。阶段 157 已完成三组工作台卡片，但继续检查小屏/动态字体后发现固定双列最小宽度仍可能让标题、短标签和说明在无障碍大字下过挤。
+- 开工前检索 `GitHub SwiftUI adaptive LazyVGrid dynamic type dashboard layout MIT`、`GitHub SwiftUI DynamicTypeSize adaptive grid card layout MIT`、`GitHub SwiftUI accessibility DynamicTypeSize LazyVGrid` 和 `GitHub SwiftUI AdaptiveGrid MIT license`；结果包括通用 AdaptiveGrid、Exyte/Grid、WaterfallGrid 和 accessibility 示例，但当前只需要一个首页卡片宽度策略，引入依赖不划算。
+- TDD：新增 `testHomeDashboardLayoutAdaptsForSmallScreensAndLargeText`，锁定普通字号最小卡片宽度、无障碍大字号最小宽度、说明行数，以及 326pt 内容宽度下普通字号可双列、大字号会退成单列。
+- 实现：新增 `MemoHomeDashboardLayout` 纯布局策略；`HomeModePicker` 读取 `dynamicTypeSize`，用 SwiftUI 原生 `LazyVGrid(.adaptive)` 按字号切换卡片最小宽度；`HomeModeCard` 在大字号下允许说明显示 3 行。
+- 本地验证：`git diff --check` 通过；`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Stores/MemoStore.swift some/Views/ContentView.swift SomeTests/SomeTests.swift` 通过。当前本机没有 iOS simulator SDK，完整 XCTest 和真实动态字体渲染继续以 GitHub Actions/Xcode 16 为准。

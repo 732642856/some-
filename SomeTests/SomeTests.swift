@@ -793,6 +793,23 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(MemoHomeMode.workLog.dashboardAccentLabel, "汇总")
     }
 
+    func testHomeDashboardLayoutAdaptsForSmallScreensAndLargeText() {
+        XCTAssertEqual(MemoHomeDashboardLayout.minimumCardWidth(forDynamicTypeScale: 1.0), 156)
+        XCTAssertEqual(MemoHomeDashboardLayout.minimumCardWidth(forDynamicTypeScale: 1.3), 196)
+        XCTAssertEqual(MemoHomeDashboardLayout.minimumCardWidth(forDynamicTypeScale: 1.7), 224)
+
+        XCTAssertEqual(MemoHomeDashboardLayout.subtitleLineLimit(forDynamicTypeScale: 1.0), 2)
+        XCTAssertEqual(MemoHomeDashboardLayout.subtitleLineLimit(forDynamicTypeScale: 1.7), 3)
+
+        let normalTwoColumnWidth = MemoHomeDashboardLayout.minimumCardWidth(forDynamicTypeScale: 1.0) * 2
+            + MemoHomeDashboardLayout.gridSpacing
+        let largeTextTwoColumnWidth = MemoHomeDashboardLayout.minimumCardWidth(forDynamicTypeScale: 1.7) * 2
+            + MemoHomeDashboardLayout.gridSpacing
+
+        XCTAssertLessThanOrEqual(normalTwoColumnWidth, 326)
+        XCTAssertGreaterThan(largeTextTwoColumnWidth, 326)
+    }
+
     func testURLSchemeOpenSelectsExistingMemoWithoutCreatingMemo() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         let memo = store.addMemo(text: "需要打开的记录 #deeplink")!

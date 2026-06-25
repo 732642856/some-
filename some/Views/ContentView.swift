@@ -2933,6 +2933,7 @@ private struct StatBadge: View {
 
 private struct HomeModePicker: View {
     @EnvironmentObject private var store: MemoStore
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -2949,7 +2950,8 @@ private struct HomeModePicker: View {
                             } label: {
                                 HomeModeCard(
                                     mode: mode,
-                                    isSelected: store.homeMode == mode
+                                    isSelected: store.homeMode == mode,
+                                    subtitleLineLimit: subtitleLineLimit
                                 )
                             }
                             .buttonStyle(.plain)
@@ -2971,9 +2973,30 @@ private struct HomeModePicker: View {
 
     private var columns: [GridItem] {
         [
-            GridItem(.flexible(minimum: 112), spacing: 8),
-            GridItem(.flexible(minimum: 112), spacing: 8)
+            GridItem(
+                .adaptive(minimum: minimumCardWidth),
+                spacing: MemoHomeDashboardLayout.gridSpacing
+            )
         ]
+    }
+
+    private var dynamicTypeScale: CGFloat {
+        switch dynamicTypeSize {
+        case .xSmall, .small, .medium, .large:
+            return 1.0
+        case .xLarge, .xxLarge, .xxxLarge:
+            return 1.3
+        default:
+            return 1.7
+        }
+    }
+
+    private var minimumCardWidth: CGFloat {
+        MemoHomeDashboardLayout.minimumCardWidth(forDynamicTypeScale: dynamicTypeScale)
+    }
+
+    private var subtitleLineLimit: Int {
+        MemoHomeDashboardLayout.subtitleLineLimit(forDynamicTypeScale: dynamicTypeScale)
     }
 
     private func select(_ mode: MemoHomeMode) {
@@ -2987,6 +3010,7 @@ private struct HomeModePicker: View {
 private struct HomeModeCard: View {
     let mode: MemoHomeMode
     let isSelected: Bool
+    let subtitleLineLimit: Int
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -3016,7 +3040,7 @@ private struct HomeModeCard: View {
                 Text(mode.dashboardSubtitle)
                     .font(.caption.weight(.medium))
                     .foregroundStyle(isSelected ? Color.white.opacity(0.88) : Color.secondaryText)
-                    .lineLimit(2)
+                    .lineLimit(subtitleLineLimit)
                     .minimumScaleFactor(0.9)
                     .fixedSize(horizontal: false, vertical: true)
             }
