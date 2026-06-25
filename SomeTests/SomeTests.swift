@@ -860,6 +860,29 @@ final class SomeTests: XCTestCase {
         )
     }
 
+    func testQuickCaptureActionGridLayoutWrapsToolbarActions() {
+        XCTAssertEqual(QuickCaptureActionGridLayout.minimumItemWidth(forDynamicTypeScale: 1.0), 42)
+        XCTAssertEqual(QuickCaptureActionGridLayout.minimumItemWidth(forDynamicTypeScale: 1.3), 48)
+        XCTAssertEqual(QuickCaptureActionGridLayout.minimumItemWidth(forDynamicTypeScale: 1.7), 56)
+
+        XCTAssertEqual(
+            QuickCaptureActionGridLayout.columnCount(forContentWidth: 294, dynamicTypeScale: 1.0),
+            6
+        )
+        XCTAssertEqual(
+            QuickCaptureActionGridLayout.columnCount(forContentWidth: 294, dynamicTypeScale: 1.7),
+            4
+        )
+
+        XCTAssertTrue(
+            QuickCaptureActionGridLayout.usesWrappedGrid(
+                actionCount: 8,
+                contentWidth: 294,
+                dynamicTypeScale: 1.0
+            )
+        )
+    }
+
     func testWardrobeEntryModesExposeCompactFormTabs() {
         XCTAssertEqual(WardrobeEntryMode.allCases.map(\.title), ["单品", "穿搭", "穿着", "洗护", "打包"])
         XCTAssertEqual(

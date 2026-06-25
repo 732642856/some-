@@ -1340,3 +1340,11 @@
 - TDD：新增 `testWardrobeEntryModesExposeCompactFormTabs`，并用类型探针确认旧代码缺少 `WardrobeEntryMode`。
 - 实现：新增 `WardrobeEntryMode`，`WardrobeView` 用 SwiftUI 原生分段 picker 切换单品、穿搭、穿着、洗护和打包表单；原保存方法、草稿状态和洞察列表保持不变。
 - 本地验证：`git diff --check` 通过；`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Stores/MemoStore.swift some/Views/ContentView.swift SomeTests/SomeTests.swift` 通过。完整 SwiftUI 编译、XCTest 和真实分段控件渲染仍交给 GitHub Actions/Xcode 16。
+
+## 2026-06-25T22:47:51+08:00
+
+- 进入并完成阶段 163：快速输入快捷操作自适应。继续检查首页最高频入口后发现底部 8 个快捷操作按钮固定单行排列，小屏或大字号下会挤压或溢出。
+- 开工前检索 SwiftUI quick action toolbar、quick capture action grid、FlowLayout、LazyVGrid、Exyte/Grid 和 WrappingHStack 等开源候选；结果偏通用布局库或完整 notes app，不适合为了一个按钮区换行引入依赖。
+- TDD：新增 `testQuickCaptureActionGridLayoutWrapsToolbarActions`，并用类型探针确认旧代码缺少 `QuickCaptureActionGridLayout`。
+- 实现：新增 `QuickCaptureActionGridLayout`；`QuickCaptureView` 底部操作区从固定 `HStack` 改为 `LazyVGrid(.adaptive)`，保留清空、相册、拍照、视频、扫描、录音、文件和网页摘录原有行为；顺手把既有 `if let pendingWebClip` 改为显式绑定，让本机 parser 能覆盖该文件。
+- 本地验证：`git diff --check` 通过；`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Stores/MemoStore.swift some/Views/QuickCaptureView.swift SomeTests/SomeTests.swift` 通过；`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Stores/MemoStore.swift some/Views/ContentView.swift SomeTests/SomeTests.swift` 通过。完整 XCTest 和真实设备渲染仍交给 GitHub Actions/Xcode 16。

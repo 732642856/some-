@@ -43,6 +43,7 @@ struct QuickCaptureStarterSuggestion: Identifiable, Equatable {
 
 struct QuickCaptureView: View {
     @EnvironmentObject private var store: MemoStore
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage("some.quickDraft") private var text = ""
     @State private var statusText: String?
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
@@ -150,7 +151,7 @@ struct QuickCaptureView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
 
-            if let pendingWebClip {
+            if let pendingWebClip = pendingWebClip {
                 webClipSelectionView(pendingWebClip)
             }
 
@@ -161,22 +162,19 @@ struct QuickCaptureView: View {
             }
 
             VStack(spacing: 10) {
-                HStack(spacing: 10) {
-                    Button {
+                LazyVGrid(columns: actionColumns, alignment: .leading, spacing: QuickCaptureActionGridLayout.gridSpacing) {
+                    quickActionButton(
+                        systemImage: "xmark",
+                        foregroundColor: Color.secondaryText,
+                        backgroundColor: Color.subtleSurface,
+                        disabled: text.isEmpty,
+                        opacity: text.isEmpty ? 0.35 : 1,
+                        accessibilityLabel: "清空"
+                    ) {
                         text = ""
                         statusText = nil
                         isFocused = true
-                    } label: {
-                        Image(systemName: "xmark")
-                            .frame(width: 34, height: 34)
                     }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Color.secondaryText)
-                    .background(Color.subtleSurface)
-                    .clipShape(Circle())
-                    .disabled(text.isEmpty)
-                    .opacity(text.isEmpty ? 0.35 : 1)
-                    .accessibilityLabel("清空")
 
                     PhotosPicker(
                         selection: $selectedPhotoItems,
@@ -192,116 +190,99 @@ struct QuickCaptureView: View {
                     .clipShape(Circle())
                     .disabled(isImportingMedia || audioRecorder.isRecording)
                     .accessibilityLabel("导入照片或视频")
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                    Button {
+                    quickActionButton(
+                        systemImage: "camera",
+                        foregroundColor: Color.secondaryText,
+                        backgroundColor: Color.subtleSurface,
+                        disabled: isImportingMedia || audioRecorder.isRecording || !canUseCamera,
+                        opacity: canUseCamera ? 1 : 0.35,
+                        accessibilityLabel: "拍照导入"
+                    ) {
                         guard canUseCamera else {
                             statusText = "当前设备不可用相机。"
                             return
                         }
                         cameraCaptureMode = .photo
                         isShowingCamera = true
-                    } label: {
-                        Image(systemName: "camera")
-                            .frame(width: 34, height: 34)
                     }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Color.secondaryText)
-                    .background(Color.subtleSurface)
-                    .clipShape(Circle())
-                    .disabled(isImportingMedia || audioRecorder.isRecording || !canUseCamera)
-                    .opacity(canUseCamera ? 1 : 0.35)
-                    .accessibilityLabel("拍照导入")
 
-                    Button {
+                    quickActionButton(
+                        systemImage: "video",
+                        foregroundColor: Color.secondaryText,
+                        backgroundColor: Color.subtleSurface,
+                        disabled: isImportingMedia || audioRecorder.isRecording || !canRecordVideo,
+                        opacity: canRecordVideo ? 1 : 0.35,
+                        accessibilityLabel: "拍视频导入"
+                    ) {
                         guard canRecordVideo else {
                             statusText = "当前设备不可用视频拍摄。"
                             return
                         }
                         cameraCaptureMode = .video
                         isShowingCamera = true
-                    } label: {
-                        Image(systemName: "video")
-                            .frame(width: 34, height: 34)
                     }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Color.secondaryText)
-                    .background(Color.subtleSurface)
-                    .clipShape(Circle())
-                    .disabled(isImportingMedia || audioRecorder.isRecording || !canRecordVideo)
-                    .opacity(canRecordVideo ? 1 : 0.35)
-                    .accessibilityLabel("拍视频导入")
 
-                    Button {
+                    quickActionButton(
+                        systemImage: "doc.viewfinder",
+                        foregroundColor: Color.secondaryText,
+                        backgroundColor: Color.subtleSurface,
+                        disabled: isImportingMedia || audioRecorder.isRecording || !canScanDocuments,
+                        opacity: canScanDocuments ? 1 : 0.35,
+                        accessibilityLabel: "连续扫描"
+                    ) {
                         guard canScanDocuments else {
                             statusText = "当前设备不可用连续扫描。"
                             return
                         }
                         isShowingDocumentScanner = true
-                    } label: {
-                        Image(systemName: "doc.viewfinder")
-                            .frame(width: 34, height: 34)
                     }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Color.secondaryText)
-                    .background(Color.subtleSurface)
-                    .clipShape(Circle())
-                    .disabled(isImportingMedia || audioRecorder.isRecording || !canScanDocuments)
-                    .opacity(canScanDocuments ? 1 : 0.35)
-                    .accessibilityLabel("连续扫描")
 
-                    Button {
+                    quickActionButton(
+                        systemImage: audioRecorder.isRecording ? "stop.fill" : "mic",
+                        foregroundColor: audioRecorder.isRecording ? Color.white : Color.secondaryText,
+                        backgroundColor: audioRecorder.isRecording ? Color.accentGold : Color.subtleSurface,
+                        disabled: isImportingMedia || isClippingWebPage,
+                        accessibilityLabel: audioRecorder.isRecording ? "停止录音" : "开始录音"
+                    ) {
                         toggleRecording()
-                    } label: {
-                        Image(systemName: audioRecorder.isRecording ? "stop.fill" : "mic")
-                            .frame(width: 34, height: 34)
                     }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(audioRecorder.isRecording ? Color.white : Color.secondaryText)
-                    .background(audioRecorder.isRecording ? Color.accentGold : Color.subtleSurface)
-                    .clipShape(Circle())
-                    .disabled(isImportingMedia || isClippingWebPage)
-                    .accessibilityLabel(audioRecorder.isRecording ? "停止录音" : "开始录音")
 
-                    Button {
+                    quickActionButton(
+                        systemImage: "folder",
+                        foregroundColor: Color.secondaryText,
+                        backgroundColor: Color.subtleSurface,
+                        disabled: isImportingMedia || audioRecorder.isRecording,
+                        accessibilityLabel: "导入文件"
+                    ) {
                         isShowingFileImporter = true
-                    } label: {
-                        Image(systemName: "folder")
-                            .frame(width: 34, height: 34)
                     }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Color.secondaryText)
-                    .background(Color.subtleSurface)
-                    .clipShape(Circle())
-                    .disabled(isImportingMedia || audioRecorder.isRecording)
-                    .accessibilityLabel("导入文件")
 
-                    Button {
+                    quickActionButton(
+                        systemImage: detectedURLs.count > 1 ? "square.stack.3d.up" : "doc.text.magnifyingglass",
+                        foregroundColor: Color.secondaryText,
+                        backgroundColor: Color.subtleSurface,
+                        disabled: isClippingWebPage || detectedURLs.isEmpty || audioRecorder.isRecording,
+                        opacity: detectedURLs.isEmpty ? 0.35 : 1,
+                        accessibilityLabel: detectedURLs.count > 1 ? "批量摘录网页" : "摘录网页"
+                    ) {
                         clipURLs()
-                    } label: {
-                        Image(systemName: detectedURLs.count > 1 ? "square.stack.3d.up" : "doc.text.magnifyingglass")
-                            .frame(width: 34, height: 34)
                     }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Color.secondaryText)
-                    .background(Color.subtleSurface)
-                    .clipShape(Circle())
-                    .disabled(isClippingWebPage || detectedURLs.isEmpty || audioRecorder.isRecording)
-                    .opacity(detectedURLs.isEmpty ? 0.35 : 1)
-                    .accessibilityLabel(detectedURLs.count > 1 ? "批量摘录网页" : "摘录网页")
 
                     if isImportingMedia {
                         ProgressView()
                             .tint(Color.accentGreen)
-                            .frame(width: 28, height: 34)
+                            .frame(width: 34, height: 34)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
 
                     if isClippingWebPage {
                         ProgressView()
                             .tint(Color.accentGreen)
-                            .frame(width: 28, height: 34)
+                            .frame(width: 34, height: 34)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
-
-                    Spacer(minLength: 0)
                 }
 
                 if audioRecorder.isRecording {
@@ -427,6 +408,30 @@ struct QuickCaptureView: View {
             && !audioRecorder.isRecording
     }
 
+    private var actionColumns: [GridItem] {
+        [
+            GridItem(
+                .adaptive(minimum: minimumActionItemWidth),
+                spacing: QuickCaptureActionGridLayout.gridSpacing
+            )
+        ]
+    }
+
+    private var dynamicTypeScale: CGFloat {
+        switch dynamicTypeSize {
+        case .xSmall, .small, .medium, .large:
+            return 1.0
+        case .xLarge, .xxLarge, .xxxLarge:
+            return 1.3
+        default:
+            return 1.7
+        }
+    }
+
+    private var minimumActionItemWidth: CGFloat {
+        QuickCaptureActionGridLayout.minimumItemWidth(forDynamicTypeScale: dynamicTypeScale)
+    }
+
     private var canUseCamera: Bool {
         UIImagePickerController.isSourceTypeAvailable(.camera)
     }
@@ -466,6 +471,29 @@ struct QuickCaptureView: View {
         text = suggestion.text
         statusText = nil
         isFocused = true
+    }
+
+    private func quickActionButton(
+        systemImage: String,
+        foregroundColor: Color,
+        backgroundColor: Color,
+        disabled: Bool,
+        opacity: Double = 1,
+        accessibilityLabel: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .frame(width: 34, height: 34)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(foregroundColor)
+        .background(backgroundColor)
+        .clipShape(Circle())
+        .disabled(disabled)
+        .opacity(opacity)
+        .accessibilityLabel(accessibilityLabel)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func importPhotoItems(_ items: [PhotosPickerItem]) {
