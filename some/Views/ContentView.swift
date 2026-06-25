@@ -952,6 +952,7 @@ private struct WorkLogView: View {
     @State private var sourceDateScope: WorkLogSourceFilter.DateScope = .all
     @State private var sourceSearchText = ""
     @State private var excludedCandidateTokenIDs = Set<String>()
+    @State private var editedCandidateValues: [String: String] = [:]
     @State private var exportedWorkLog: ExportedDocument?
     @State private var statusText: String?
     @State private var isPolishingWorkLog = false
@@ -1209,37 +1210,38 @@ private struct WorkLogView: View {
                         .foregroundStyle(Color.tertiaryText)
                 }
 
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 148), spacing: 8)], alignment: .leading, spacing: 8) {
+                VStack(spacing: 8) {
                     ForEach(tokens) { token in
                         let isIncluded = !excludedCandidateTokenIDs.contains(token.id)
-                        Button {
-                            toggleCandidateToken(token)
-                        } label: {
-                            HStack(spacing: 6) {
+                        HStack(spacing: 8) {
+                            Button {
+                                toggleCandidateToken(token)
+                            } label: {
                                 Image(systemName: isIncluded ? "checkmark.circle.fill" : "circle")
+                                    .font(.body.weight(.semibold))
                                     .foregroundStyle(isIncluded ? Color.accentGreen : Color.tertiaryText)
-                                    .frame(width: 18, height: 18)
-
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(token.title)
-                                        .font(.caption2.weight(.semibold))
-                                        .foregroundStyle(Color.tertiaryText)
-                                        .lineLimit(1)
-
-                                    Text(token.value)
-                                        .font(.caption)
-                                        .foregroundStyle(Color.primaryText)
-                                        .lineLimit(2)
-                                }
-
-                                Spacer(minLength: 0)
+                                    .frame(width: 30, height: 34)
                             }
-                            .padding(8)
-                            .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-                            .background(isIncluded ? Color.greenTint : Color.subtleSurface)
-                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(isIncluded ? "取消候选信息" : "保留候选信息")
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(token.title)
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(Color.tertiaryText)
+                                    .lineLimit(1)
+
+                                TextField("编辑候选信息", text: candidateBinding(for: token))
+                                    .textFieldStyle(.plain)
+                                    .font(.caption)
+                                    .foregroundStyle(isIncluded ? Color.primaryText : Color.tertiaryText)
+                                    .disabled(!isIncluded)
+                            }
                         }
-                        .buttonStyle(.plain)
+                        .padding(8)
+                        .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
+                        .background(isIncluded ? Color.greenTint : Color.subtleSurface)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     }
                 }
             }
@@ -1557,19 +1559,26 @@ private struct WorkLogView: View {
         }
     }
 
+    private func candidateBinding(for token: WorkLogCandidateToken) -> Binding<String> {
+        Binding(
+            get: { editedCandidateValues[token.id] ?? token.value },
+            set: { editedCandidateValues[token.id] = $0 }
+        )
+    }
+
     private func includedCandidateValues(for kind: WorkLogCandidateToken.Kind) -> [String]? {
-        let tokens = workLogCandidateTokens.filter { $0.kind == kind }
-        guard !tokens.isEmpty else {
-            return nil
-        }
-        return tokens
-            .filter { !excludedCandidateTokenIDs.contains($0.id) }
-            .map(\.value)
+        WorkLogCandidateToken.includedValues(
+            for: kind,
+            in: workLogCandidateTokens,
+            excluding: excludedCandidateTokenIDs,
+            editedValues: editedCandidateValues
+        )
     }
 
     private func pruneExcludedCandidateTokens() {
         let currentTokenIDs = Set(workLogCandidateTokens.map(\.id))
         excludedCandidateTokenIDs = Set(excludedCandidateTokenIDs.filter { currentTokenIDs.contains($0) })
+        editedCandidateValues = editedCandidateValues.filter { currentTokenIDs.contains($0.key) }
     }
 
     private func autofillFromSelection() {
@@ -1693,6 +1702,7 @@ private struct WorkLogView: View {
         note = ""
         selectedMemoIDs = []
         excludedCandidateTokenIDs = []
+        editedCandidateValues = [:]
         statusText = "已保存工作日志"
     }
 

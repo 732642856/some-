@@ -1539,6 +1539,44 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(MemoReferenceParser.references(in: log.text).count, 1)
     }
 
+    func testWorkLogCandidateTokensApplyEditedValuesBeforeSaving() {
+        let phone = WorkLogCandidateToken(kind: .field, value: "电话=13800138000")
+        let amount = WorkLogCandidateToken(kind: .field, value: "金额=128元")
+        let link = WorkLogCandidateToken(kind: .keyInfo, value: "链接=https://example.com/menu")
+        let editedValues = [
+            phone.id: " 电话=13900139000 ",
+            amount.id: "金额=128元",
+            link.id: " "
+        ]
+
+        XCTAssertEqual(
+            WorkLogCandidateToken.includedValues(
+                for: .field,
+                in: [phone, amount, link],
+                excluding: [amount.id],
+                editedValues: editedValues
+            ),
+            ["电话=13900139000"]
+        )
+        XCTAssertEqual(
+            WorkLogCandidateToken.includedValues(
+                for: .keyInfo,
+                in: [phone, amount, link],
+                excluding: [],
+                editedValues: editedValues
+            ),
+            []
+        )
+        XCTAssertNil(
+            WorkLogCandidateToken.includedValues(
+                for: .keyInfo,
+                in: [phone, amount],
+                excluding: [],
+                editedValues: editedValues
+            )
+        )
+    }
+
     func testWorkLogSourceFilterEngineFiltersByTagKindDateAndSearch() {
         let calendar = Calendar(identifier: .gregorian)
         let now = DateFormatters.wardrobeDay.date(from: "2026-06-23")!

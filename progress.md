@@ -1277,3 +1277,10 @@
 - 实现：`MemoStore` 新增 `WorkLogCandidateToken` 和 `workLogCandidateTokens(from:)`，并给 `addWorkLog` 增加可选 `includedFieldCandidates` / `includedKeyInfoCandidates` 覆盖参数；默认调用仍保持自动汇总，UI 显式传入数组时按用户选择写入。
 - UI：`WorkLogView` 在备注与保存按钮之间显示“候选信息”面板，已选来源中存在 OCR 字段或网页/OCR 关键信息时展示可勾选 token，保存前可逐项取消；切换来源时会清掉已不存在 token 的排除状态，保存成功后清空选择。
 - 本地验证：`git diff --check` 通过。当前机器 `/Applications/Xcode.app` 为 Xcode 13.2.1，项目部署目标 iOS 16，且 ZIPFoundation 0.9.20 使用旧 Swift 标准库没有的 `UnsafeRawBufferPointer.loadUnaligned`，因此本机 `xcodebuild test` 因无 iOS 16 模拟器/旧 SDK无法运行，`xcodebuild build` 的唯一具体 Swift error 落在 ZIPFoundation，而非本轮改动文件；需依赖 GitHub Actions 的新版 Xcode CI 作完整验证。
+
+## 2026-06-25T14:08:00+08:00
+
+- 进入并完成阶段 155：工作日志候选信息保存前编辑。阶段 154 已能勾选/取消候选，但真实 OCR 或网页提取常见问题是值本身有一两个字符错误，用户仍需要能在保存日志前直接修正。
+- 开工前检索 `GitHub SwiftUI editable chips token field MIT`、`GitHub SwiftUI tag editor editable chips MIT`、`GitHub SwiftUI editable token text field chips open source MIT` 和 `SwiftUI editable chips textfield token list GitHub`，结果偏通用 tag/token 输入，不理解 some 的候选来源排序、清空跳过、取消写入和工作日志覆盖语义，本轮不新增依赖。
+- TDD 红灯：新增 `testWorkLogCandidateTokensApplyEditedValuesBeforeSaving`，覆盖候选被取消、被编辑、被清空时最终传给 `addWorkLog` 的数组规则。
+- 实现：`WorkLogCandidateToken.includedValues` 统一处理 kind 过滤、排除 token、编辑值 trim、空值跳过和无该类 token 返回 nil；`WorkLogView` 增加 `editedCandidateValues`，候选面板从紧凑 chip 改为可编辑纵向行，保存时使用编辑后的候选值，切换来源和保存成功会清理编辑状态。

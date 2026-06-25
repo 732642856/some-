@@ -106,6 +106,27 @@ struct WorkLogCandidateToken: Identifiable, Equatable, Hashable {
         case .keyInfo: return "关键信息"
         }
     }
+
+    static func includedValues(
+        for kind: Kind,
+        in tokens: [WorkLogCandidateToken],
+        excluding excludedIDs: Set<String>,
+        editedValues: [String: String]
+    ) -> [String]? {
+        let matchingTokens = tokens.filter { $0.kind == kind }
+        guard !matchingTokens.isEmpty else {
+            return nil
+        }
+
+        return matchingTokens.compactMap { token in
+            guard !excludedIDs.contains(token.id) else {
+                return nil
+            }
+            let value = editedValues[token.id] ?? token.value
+            let cleaned = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            return cleaned.isEmpty ? nil : cleaned
+        }
+    }
 }
 
 @MainActor
