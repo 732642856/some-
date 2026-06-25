@@ -1997,6 +1997,47 @@ final class SomeTests: XCTestCase {
         XCTAssertFalse(draft.contains("普通记录"))
     }
 
+    func testWorkLogExporterGroupsCandidateInfoInReportDraft() {
+        let date = DateFormatters.wardrobeDay.date(from: "2026-06-25")!
+        let log = Memo(
+            text: """
+            工作日志：候选信息整理
+            项目：some
+            日期：2026-06-25
+            进展：整理截图和网页候选字段
+            字段候选：姓名=李雷 · 电话=13800138000
+            关键信息候选：日期=2026-06-24 19:30 · 邮箱=hello@example.com
+            网页关键信息候选：链接=https://example.com/menu · 金额=128元
+            """,
+            createdAt: date,
+            updatedAt: date
+        )
+
+        let draft = WorkLogExporter.reportDraft(memos: [log])
+
+        XCTAssertEqual(
+            draft,
+            """
+            工作汇报
+
+            项目：some
+            日期：2026-06-25
+
+            进展：
+            1. 整理截图和网页候选字段
+
+            候选信息：
+            1. 日期：2026-06-24 19:30
+            2. 联系人：李雷
+            3. 电话：13800138000
+            4. 邮箱：hello@example.com
+            5. 金额：128元
+            6. 链接：https://example.com/menu
+
+            """
+        )
+    }
+
     func testWorkLogExporterBuildsStandupReportDraft() {
         let date = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
         let log = Memo(
@@ -2457,6 +2498,48 @@ final class SomeTests: XCTestCase {
             日期=2026-06-25
             邮箱=hello@example.com
             链接=https://example.com/menu
+            金额=128元
+
+            """
+        )
+    }
+
+    func testWorkLogExporterCustomTemplateIncludesGroupedCandidateInfoPlaceholders() {
+        let date = DateFormatters.wardrobeDay.date(from: "2026-06-25")!
+        let log = Memo(
+            text: """
+            工作日志：候选字段
+            项目：some
+            字段候选：姓名=李雷 · 电话=13800138000
+            网页关键信息候选：金额=128元
+            """,
+            createdAt: date,
+            updatedAt: date
+        )
+
+        let draft = WorkLogExporter.customReportDraft(
+            memos: [log],
+            template: """
+            {{标题}}
+            候选:
+            {{候选信息列表}}
+            联系人:
+            {{联系人候选列表}}
+            金额={{金额候选}}
+            """,
+            title: "候选字段"
+        )
+
+        XCTAssertEqual(
+            draft,
+            """
+            候选字段
+            候选:
+            1. 联系人：李雷
+            2. 电话：13800138000
+            3. 金额：128元
+            联系人:
+            1. 李雷
             金额=128元
 
             """

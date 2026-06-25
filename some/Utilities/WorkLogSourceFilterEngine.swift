@@ -407,6 +407,7 @@ enum WorkLogExporter {
         appendDraftList("进展", from: fieldValues, to: &lines)
         appendDraftList("风险/问题", keys: ["问题", "风险"], from: fieldValues, to: &lines)
         appendDraftList("下一步", from: fieldValues, to: &lines)
+        appendCandidateInfoSection(from: fieldValues, to: &lines)
         return lines.joined(separator: "\n") + "\n"
     }
 
@@ -421,6 +422,7 @@ enum WorkLogExporter {
         sections.forEach { section in
             appendDraftList(section.title, keys: section.keys, from: fieldValues, to: &lines)
         }
+        appendCandidateInfoSection(from: fieldValues, to: &lines)
         return lines.joined(separator: "\n") + "\n"
     }
 
@@ -485,10 +487,20 @@ enum WorkLogExporter {
         }
 
         let riskValues = values(for: ["风险", "问题"], from: fieldValues)
+        let candidateGroups = candidateInfoGroups(from: fieldValues)
+        let candidateLines = candidateInfoLines(from: candidateGroups)
         placeholders["风险列表"] = numberedList(riskValues)
         placeholders["问题列表"] = numberedList(riskValues)
         placeholders["风险/问题列表"] = numberedList(riskValues)
         placeholders["风险/问题"] = riskValues.joined(separator: "；")
+        placeholders["候选信息"] = candidateLines.joined(separator: "；")
+        placeholders["候选信息列表"] = numberedList(candidateLines)
+        placeholders["候选信息数"] = "\(candidateLines.count)"
+        candidateGroups.forEach { group in
+            placeholders["\(group.title)候选"] = group.values.joined(separator: "；")
+            placeholders["\(group.title)候选列表"] = numberedList(group.values)
+            placeholders["\(group.title)候选数"] = "\(group.values.count)"
+        }
 
         let sourceTitles = uniqueValues(records.map { headingTitle($0.asset.title) })
         let createdTimes = uniqueValues(records.map { DateFormatters.export.string(from: $0.memo.createdAt) })
@@ -662,6 +674,93 @@ enum WorkLogExporter {
         lines.append(contentsOf: values.enumerated().map { index, value in
             "\(index + 1). \(value)"
         })
+    }
+
+    private static func appendDraftList(
+        _ title: String,
+        values: [String],
+        to lines: inout [String]
+    ) {
+        guard !values.isEmpty else { return }
+        if let lastLine = lines.last, !lastLine.isEmpty {
+            lines.append("")
+        }
+        lines.append("\(title)：")
+        lines.append(contentsOf: values.enumerated().map { index, value in
+            "\(index + 1). \(value)"
+        })
+    }
+
+    private static func appendCandidateInfoSection(
+        from fieldValues: [[String: String]],
+        to lines: inout [String]
+    ) {
+        appendDraftList(
+            "候选信息",
+            values: candidateInfoLines(from: candidateInfoGroups(from: fieldValues)),
+            to: &lines
+        )
+    }
+
+    private static func candidateInfoLines(
+        from groups: [(title: String, values: [String])]
+    ) -> [String] {
+        groups.map { group in
+            "\(group.title)：\(group.values.joined(separator: "、"))"
+        }
+    }
+
+    private static func candidateInfoGroups(
+        from fieldValues: [[String: String]]
+    ) -> [(title: String, values: [String])] {
+        var groupedValues: [String: [String]] = [:]
+
+        fieldValues.forEach { fields in
+            ["字段候选", "关键信息候选", "网页关键信息候选"].forEach { key in
+                guard let value = fields[key] else { return }
+                fieldCandidates(in: value).forEach { candidateKey, candidateValue in
+                    let entry = candidateInfoEntry(key: candidateKey, value: candidateValue)
+                    groupedValues[entry.title, default: []].append(entry.value)
+                }
+            }
+        }
+
+        return ["日期", "联系人", "电话", "邮箱", "金额", "链接", "地址", "其他"]
+            .compactMap { title -> (title: String, values: [String])? in
+                let values = uniqueValues(groupedValues[title, default: []])
+                guard !values.isEmpty else { return nil }
+                return (title, values)
+            }
+    }
+
+    private static func candidateInfoEntry(
+        key: String,
+        value: String
+    ) -> (title: String, value: String) {
+        let normalizedKey = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        switch normalizedKey.lowercased() {
+        case "日期", "时间", "发生时间":
+            return ("日期", normalizedValue)
+        case "姓名", "联系人", "人员", "负责人", "客户", "收件人", "付款人", "经办人":
+            return ("联系人", normalizedValue)
+        case "电话", "手机号", "手机", "联系方式":
+            return ("电话", normalizedValue)
+        case "邮箱", "电子邮箱", "邮件", "email", "e-mail":
+            return ("邮箱", normalizedValue)
+        case "金额", "合计", "总计", "费用", "价格", "单价", "小计", "付款", "支付金额":
+            return ("金额", normalizedValue)
+        case "链接", "网址", "url":
+            return ("链接", normalizedValue)
+        case "地址", "地点", "位置":
+            return ("地址", normalizedValue)
+        default:
+            guard !normalizedKey.isEmpty else {
+                return ("其他", normalizedValue)
+            }
+            return ("其他", "\(normalizedKey)=\(normalizedValue)")
+        }
     }
 
     private static func appendMetadata(

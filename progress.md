@@ -1284,3 +1284,11 @@
 - 开工前检索 `GitHub SwiftUI editable chips token field MIT`、`GitHub SwiftUI tag editor editable chips MIT`、`GitHub SwiftUI editable token text field chips open source MIT` 和 `SwiftUI editable chips textfield token list GitHub`，结果偏通用 tag/token 输入，不理解 some 的候选来源排序、清空跳过、取消写入和工作日志覆盖语义，本轮不新增依赖。
 - TDD 红灯：新增 `testWorkLogCandidateTokensApplyEditedValuesBeforeSaving`，覆盖候选被取消、被编辑、被清空时最终传给 `addWorkLog` 的数组规则。
 - 实现：`WorkLogCandidateToken.includedValues` 统一处理 kind 过滤、排除 token、编辑值 trim、空值跳过和无该类 token 返回 nil；`WorkLogView` 增加 `editedCandidateValues`，候选面板从紧凑 chip 改为可编辑纵向行，保存时使用编辑后的候选值，切换来源和保存成功会清理编辑状态。
+
+## 2026-06-25T16:08:03+08:00
+
+- 进入并完成阶段 156：工作日志导出候选信息分组。阶段 155 已让保存前候选可编辑，但导出汇报稿时 OCR/网页候选仍分散在 `字段候选`、`关键信息候选`、`网页关键信息候选` 里，不利于直接复核日期、联系人、电话、邮箱、金额和链接。
+- 开工前检索 `GitHub Swift work report grouped key information placeholders MIT`、`GitHub Swift key value candidates report generator grouping MIT`、`GitHub Swift work log report field extraction dates phone email amount links MIT` 和 `GitHub Swift notes app custom report template placeholders MIT`，没有发现能直接复制进当前中文候选摘要和 `WorkLogExporter` 的小型 Swift/MIT 模块。
+- TDD：新增 `testWorkLogExporterGroupsCandidateInfoInReportDraft` 和 `testWorkLogExporterCustomTemplateIncludesGroupedCandidateInfoPlaceholders`，锁定标准汇报稿“候选信息”分组和自定义模板 `{{候选信息列表}}` / `{{联系人候选列表}}` / `{{金额候选}}` 输出。
+- 实现：`WorkLogExporter` 新增候选分组 helper，只从已保存的三类候选摘要解析 `key=value`，按日期、联系人、电话、邮箱、金额、链接、地址、其他输出；标准稿和所有专题稿自动追加“候选信息”，自定义模板新增候选信息总览、分组列表、分组计数和分组串联占位符。
+- 本地验证：`git diff --check` 通过；`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Utilities/WorkLogSourceFilterEngine.swift SomeTests/SomeTests.swift` 通过。
