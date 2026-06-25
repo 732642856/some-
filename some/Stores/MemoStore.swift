@@ -156,6 +156,39 @@ enum MemoHomeDashboardLayout {
     }
 }
 
+enum WorkspaceMetricGridLayout {
+    static let gridSpacing: CGFloat = 8
+
+    static func minimumItemWidth(forDynamicTypeScale scale: CGFloat) -> CGFloat {
+        if scale >= 1.6 {
+            return 132
+        }
+        if scale >= 1.2 {
+            return 116
+        }
+        return 100
+    }
+
+    static func columnCount(forContentWidth width: CGFloat, dynamicTypeScale scale: CGFloat) -> Int {
+        let minimumWidth = minimumItemWidth(forDynamicTypeScale: scale)
+        guard width > 0, minimumWidth > 0 else {
+            return 1
+        }
+
+        let availableWidth = width + gridSpacing
+        let columnWidth = minimumWidth + gridSpacing
+        return max(Int(availableWidth / columnWidth), 1)
+    }
+
+    static func usesWrappedGrid(
+        metricCount: Int,
+        contentWidth width: CGFloat,
+        dynamicTypeScale scale: CGFloat
+    ) -> Bool {
+        metricCount > columnCount(forContentWidth: width, dynamicTypeScale: scale)
+    }
+}
+
 enum AppShortcutRouteStore {
     private static let destinationKey = "some.shortcut.destination"
 

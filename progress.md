@@ -1324,3 +1324,11 @@
 - TDD：新增 `testPrimaryWorkspaceModesHaveContentHeaders`，锁定素材、手帐、工作日志和电子衣橱四个模式的工作区标题、副标题与显示范围；时间线和 AI 不显示该标题条。
 - 实现：`MemoHomeMode` 新增 `showsWorkspaceHeader`、`workspaceHeaderTitle` 和 `workspaceHeaderSubtitle`；`ContentView` 在搜索快捷操作后加入无卡片化 `WorkspaceModeHeader`，只在四个高频工作区显示图标、工作区名称、内容范围和短标签。
 - 本地验证：`git diff --check` 通过；`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Stores/MemoStore.swift some/Views/ContentView.swift SomeTests/SomeTests.swift` 通过。当前本机仍只能做解析级检查，完整 SwiftUI 编译和 XCTest 继续交给 GitHub Actions/Xcode 16。
+
+## 2026-06-25T21:14:34+08:00
+
+- 进入并完成阶段 161：高频工作区统计网格自适应。继续检查素材、手帐、工作日志和衣橱首屏后发现，素材/手帐固定 `HStack` 容易在大字号下挤压，工作日志/衣橱横向统计条需要扫动；衣橱 8 个指标尤其不适合首屏快速判断。
+- 开工前检索 `SwiftUI adaptive metric grid stats chips open source MIT`、`SwiftUI dashboard stats chips adaptive grid DynamicTypeSize GitHub MIT`、`SwiftUI LazyVGrid stats badges dashboard open source MIT` 和 `SwiftUI wardrobe app dashboard stats grid open source MIT`。结果可参考 `Exyte/Grid`、AdaptiveGrid 等通用 MIT 网格方向，但当前只是统计徽章换行，用 SwiftUI 原生 `LazyVGrid(.adaptive)` 更稳，不新增依赖。
+- TDD：新增 `testWorkspaceMetricGridLayoutWrapsDenseMobileStats`，锁定统计项在普通/大字号下的最小宽度、326pt 内容宽度列数，以及 8 个指标会触发换行、3 个指标不需要强制换行。
+- 实现：新增 `WorkspaceMetricGridLayout` 纯策略；`ContentView` 新增 `WorkspaceMetric` 与 `WorkspaceMetricGrid`，把素材、手帐、工作日志和衣橱首屏统计统一切到动态字体感知的自适应网格，保留原有指标。
+- 本地验证：`git diff --check` 通过；`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Stores/MemoStore.swift some/Views/ContentView.swift SomeTests/SomeTests.swift` 通过。完整 SwiftUI 编译、XCTest 和真实设备渲染仍交给 GitHub Actions/Xcode 16。

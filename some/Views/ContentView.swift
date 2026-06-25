@@ -555,10 +555,7 @@ private struct ScrapbookView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 10) {
-                StatBadge(title: "手帐", value: "\(scrapbookAssets.count)", systemImage: "rectangle.stack")
-                StatBadge(title: "图片", value: "\(imageAttachmentAssets.count)", systemImage: "photo")
-            }
+            WorkspaceMetricGrid(metrics: scrapbookMetrics)
 
             pageForm
             scrapbookList
@@ -572,6 +569,13 @@ private struct ScrapbookView: View {
                 }
             }
         }
+    }
+
+    private var scrapbookMetrics: [WorkspaceMetric] {
+        [
+            WorkspaceMetric(title: "手帐", value: "\(scrapbookAssets.count)", systemImage: "rectangle.stack"),
+            WorkspaceMetric(title: "图片", value: "\(imageAttachmentAssets.count)", systemImage: "photo")
+        ]
     }
 
     private var pageForm: some View {
@@ -1118,14 +1122,7 @@ private struct WorkLogView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    StatBadge(title: "日志", value: "\(workLogAssets.count)", systemImage: "doc.text")
-                    StatBadge(title: "项目", value: "\(projectFilterOptions.count)", systemImage: "folder")
-                    StatBadge(title: "模板", value: "\(templateFilterOptions.count)", systemImage: "doc.on.doc")
-                    StatBadge(title: "已选", value: "\(selectedMemoIDs.count)", systemImage: "checklist")
-                }
-            }
+            WorkspaceMetricGrid(metrics: workLogMetrics)
 
             logForm
             sourcePicker
@@ -1134,6 +1131,15 @@ private struct WorkLogView: View {
         .sheet(item: $exportedWorkLog) { item in
             ShareSheet(items: [item.url])
         }
+    }
+
+    private var workLogMetrics: [WorkspaceMetric] {
+        [
+            WorkspaceMetric(title: "日志", value: "\(workLogAssets.count)", systemImage: "doc.text"),
+            WorkspaceMetric(title: "项目", value: "\(projectFilterOptions.count)", systemImage: "folder"),
+            WorkspaceMetric(title: "模板", value: "\(templateFilterOptions.count)", systemImage: "doc.on.doc"),
+            WorkspaceMetric(title: "已选", value: "\(selectedMemoIDs.count)", systemImage: "checklist")
+        ]
     }
 
     private var logForm: some View {
@@ -2144,18 +2150,7 @@ private struct WardrobeView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    StatBadge(title: "单品", value: "\(insights.items.count)", systemImage: "tshirt")
-                    StatBadge(title: "穿搭", value: "\(insights.outfits.count)", systemImage: "sparkles")
-                    StatBadge(title: "穿着", value: "\(insights.wearLogs.count)", systemImage: "calendar.badge.clock")
-                    StatBadge(title: "洗护", value: "\(laundryLogAssets.count)", systemImage: "washer")
-                    StatBadge(title: "打包", value: "\(packingListAssets.count)", systemImage: "suitcase")
-                    StatBadge(title: "提醒", value: "\(insights.careReminders.count)", systemImage: "bell.badge")
-                    StatBadge(title: "未搭配", value: "\(insights.unusedItems.count)", systemImage: "arrow.triangle.2.circlepath")
-                    StatBadge(title: "场景", value: "\(insights.sceneStats.count)", systemImage: "scope")
-                }
-            }
+            WorkspaceMetricGrid(metrics: wardrobeMetrics)
 
             wardrobeInsightPanel
             wardrobeItemForm
@@ -2165,6 +2160,19 @@ private struct WardrobeView: View {
             packingListForm
             wardrobeList
         }
+    }
+
+    private var wardrobeMetrics: [WorkspaceMetric] {
+        [
+            WorkspaceMetric(title: "单品", value: "\(insights.items.count)", systemImage: "tshirt"),
+            WorkspaceMetric(title: "穿搭", value: "\(insights.outfits.count)", systemImage: "sparkles"),
+            WorkspaceMetric(title: "穿着", value: "\(insights.wearLogs.count)", systemImage: "calendar.badge.clock"),
+            WorkspaceMetric(title: "洗护", value: "\(laundryLogAssets.count)", systemImage: "washer"),
+            WorkspaceMetric(title: "打包", value: "\(packingListAssets.count)", systemImage: "suitcase"),
+            WorkspaceMetric(title: "提醒", value: "\(insights.careReminders.count)", systemImage: "bell.badge"),
+            WorkspaceMetric(title: "未搭配", value: "\(insights.unusedItems.count)", systemImage: "arrow.triangle.2.circlepath"),
+            WorkspaceMetric(title: "场景", value: "\(insights.sceneStats.count)", systemImage: "scope")
+        ]
     }
 
     private var wardrobeInsightPanel: some View {
@@ -2973,6 +2981,58 @@ private struct StatBadge: View {
     }
 }
 
+private struct WorkspaceMetric: Identifiable {
+    let title: String
+    let value: String
+    let systemImage: String
+
+    var id: String {
+        "\(title)-\(systemImage)"
+    }
+}
+
+private struct WorkspaceMetricGrid: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    let metrics: [WorkspaceMetric]
+
+    var body: some View {
+        LazyVGrid(columns: columns, alignment: .leading, spacing: WorkspaceMetricGridLayout.gridSpacing) {
+            ForEach(metrics) { metric in
+                StatBadge(
+                    title: metric.title,
+                    value: metric.value,
+                    systemImage: metric.systemImage
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    private var columns: [GridItem] {
+        [
+            GridItem(
+                .adaptive(minimum: minimumItemWidth),
+                spacing: WorkspaceMetricGridLayout.gridSpacing
+            )
+        ]
+    }
+
+    private var dynamicTypeScale: CGFloat {
+        switch dynamicTypeSize {
+        case .xSmall, .small, .medium, .large:
+            return 1.0
+        case .xLarge, .xxLarge, .xxxLarge:
+            return 1.3
+        default:
+            return 1.7
+        }
+    }
+
+    private var minimumItemWidth: CGFloat {
+        WorkspaceMetricGridLayout.minimumItemWidth(forDynamicTypeScale: dynamicTypeScale)
+    }
+}
+
 private struct HomeModePicker: View {
     @EnvironmentObject private var store: MemoStore
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -3158,11 +3218,15 @@ private struct AssetLibraryView: View {
     }
 
     private var assetSummary: some View {
-        HStack(spacing: 10) {
-            StatBadge(title: "素材", value: "\(store.assets.count)", systemImage: "square.grid.2x2")
-            StatBadge(title: "附件", value: "\(assetCount(.attachment))", systemImage: "paperclip")
-            StatBadge(title: "链接", value: "\(assetCount(.link))", systemImage: "link")
-        }
+        WorkspaceMetricGrid(metrics: assetMetrics)
+    }
+
+    private var assetMetrics: [WorkspaceMetric] {
+        [
+            WorkspaceMetric(title: "素材", value: "\(store.assets.count)", systemImage: "square.grid.2x2"),
+            WorkspaceMetric(title: "附件", value: "\(assetCount(.attachment))", systemImage: "paperclip"),
+            WorkspaceMetric(title: "链接", value: "\(assetCount(.link))", systemImage: "link")
+        ]
     }
 
     private var assetFilter: some View {

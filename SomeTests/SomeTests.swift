@@ -830,6 +830,36 @@ final class SomeTests: XCTestCase {
         XCTAssertGreaterThan(largeTextTwoColumnWidth, 326)
     }
 
+    func testWorkspaceMetricGridLayoutWrapsDenseMobileStats() {
+        XCTAssertEqual(WorkspaceMetricGridLayout.minimumItemWidth(forDynamicTypeScale: 1.0), 100)
+        XCTAssertEqual(WorkspaceMetricGridLayout.minimumItemWidth(forDynamicTypeScale: 1.3), 116)
+        XCTAssertEqual(WorkspaceMetricGridLayout.minimumItemWidth(forDynamicTypeScale: 1.7), 132)
+
+        XCTAssertEqual(
+            WorkspaceMetricGridLayout.columnCount(forContentWidth: 326, dynamicTypeScale: 1.0),
+            3
+        )
+        XCTAssertEqual(
+            WorkspaceMetricGridLayout.columnCount(forContentWidth: 326, dynamicTypeScale: 1.7),
+            2
+        )
+
+        XCTAssertTrue(
+            WorkspaceMetricGridLayout.usesWrappedGrid(
+                metricCount: 8,
+                contentWidth: 326,
+                dynamicTypeScale: 1.0
+            )
+        )
+        XCTAssertFalse(
+            WorkspaceMetricGridLayout.usesWrappedGrid(
+                metricCount: 3,
+                contentWidth: 326,
+                dynamicTypeScale: 1.0
+            )
+        )
+    }
+
     func testURLSchemeOpenSelectsExistingMemoWithoutCreatingMemo() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         let memo = store.addMemo(text: "需要打开的记录 #deeplink")!
