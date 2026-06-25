@@ -673,6 +673,7 @@ final class MemoStore: ObservableObject {
         appendField("问题", values: blockers, to: &lines)
         appendField("下一步", values: nextSteps, to: &lines)
         appendField("字段候选", value: workLogFieldCandidateSummary(from: sourceMemos), to: &lines)
+        appendField("关键信息候选", value: workLogKeyInfoCandidateSummary(from: sourceMemos), to: &lines)
         appendField("备注", value: note, to: &lines)
 
         let references = sourceMemos
@@ -1932,17 +1933,25 @@ final class MemoStore: ObservableObject {
     }
 
     private func workLogFieldCandidateSummary(from sourceMemos: [Memo]) -> String? {
+        candidateSummary(from: sourceMemos, prefixes: ["字段候选："])
+    }
+
+    private func workLogKeyInfoCandidateSummary(from sourceMemos: [Memo]) -> String? {
+        candidateSummary(from: sourceMemos, prefixes: ["网页关键信息候选：", "关键信息候选："])
+    }
+
+    private func candidateSummary(from sourceMemos: [Memo], prefixes: [String]) -> String? {
         let candidates = sourceMemos
             .filter { !$0.isArchived }
             .sorted { $0.createdAt > $1.createdAt }
-            .flatMap { generatedOCRFieldCandidateValues(in: $0.text) }
-            .flatMap(fieldCandidateParts)
+            .flatMap { generatedCandidateValues(in: $0.text, prefixes: prefixes) }
+            .flatMap(candidateParts)
         let uniqueCandidates = uniqueValues(candidates)
         guard !uniqueCandidates.isEmpty else { return nil }
         return uniqueCandidates.joined(separator: " · ")
     }
 
-    private func generatedOCRFieldCandidateValues(in text: String) -> [String] {
+    private func generatedCandidateValues(in text: String, prefixes: [String]) -> [String] {
         var values: [String] = []
         var isInRecognizedText = false
         var hasRecognizedContent = false
@@ -1968,8 +1977,10 @@ final class MemoStore: ObservableObject {
                 continue
             }
 
-            guard trimmedLine.hasPrefix("字段候选：") else { continue }
-            let value = String(trimmedLine.dropFirst("字段候选：".count))
+            guard let prefix = prefixes.first(where: { trimmedLine.hasPrefix($0) }) else {
+                continue
+            }
+            let value = String(trimmedLine.dropFirst(prefix.count))
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             if !value.isEmpty {
                 values.append(value)
@@ -1979,7 +1990,7 @@ final class MemoStore: ObservableObject {
         return values
     }
 
-    private func fieldCandidateParts(in value: String) -> [String] {
+    private func candidateParts(in value: String) -> [String] {
         value
             .components(separatedBy: " · ")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }

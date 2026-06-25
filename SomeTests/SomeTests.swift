@@ -1413,6 +1413,54 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(MemoReferenceParser.references(in: log.text).count, 3)
     }
 
+    func testAddWorkLogCarriesKeyInfoCandidatesFromSelectedSources() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let olderDate = DateFormatters.wardrobeDay.date(from: "2026-06-24")!
+        let newerDate = DateFormatters.wardrobeDay.date(from: "2026-06-25")!
+        let ocrMemo = Memo(
+            text: """
+            图片文字：receipt.png
+            关键信息候选：电话=13800138000 · 金额=128元
+
+            识别文字：
+            关键信息候选：这是截图原文
+            邮箱：raw@example.com
+            """,
+            createdAt: olderDate,
+            updatedAt: olderDate
+        )
+        let archivedMemo = Memo(
+            text: "网页关键信息候选：日期=1999-01-01",
+            createdAt: newerDate.addingTimeInterval(3600),
+            updatedAt: newerDate.addingTimeInterval(3600),
+            isArchived: true
+        )
+        let webMemo = Memo(
+            text: """
+            网页摘录：菜单
+            网页关键信息候选：邮箱=hello@example.com · 链接=https://example.com/menu · 金额=128元
+            """,
+            createdAt: newerDate,
+            updatedAt: newerDate
+        )
+
+        guard let log = store.addWorkLog(
+            title: "关键信息整理",
+            scope: "今日",
+            project: "some",
+            progress: ["整理网页和截图关键信息"],
+            sourceMemos: [ocrMemo, archivedMemo, webMemo]
+        ) else {
+            return XCTFail("Expected work log")
+        }
+
+        XCTAssertTrue(log.text.contains("关键信息候选：邮箱=hello@example.com · 链接=https://example.com/menu · 金额=128元 · 电话=13800138000"))
+        XCTAssertFalse(log.text.contains("raw@example.com"))
+        XCTAssertFalse(log.text.contains("1999-01-01"))
+        XCTAssertEqual(log.text.components(separatedBy: "金额=128元").count - 1, 1)
+        XCTAssertEqual(MemoReferenceParser.references(in: log.text).count, 2)
+    }
+
     func testWorkLogSourceFilterEngineFiltersByTagKindDateAndSearch() {
         let calendar = Calendar(identifier: .gregorian)
         let now = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
@@ -2263,6 +2311,37 @@ final class SomeTests: XCTestCase {
             姓名=李雷
             电话=13800138000
             金额=128 元
+
+            """
+        )
+    }
+
+    func testWorkLogExporterExpandsKeyInfoCandidateSummaryFields() {
+        let date = DateFormatters.wardrobeDay.date(from: "2026-06-25")!
+        let log = Memo(
+            text: """
+            工作日志：关键信息摘录
+            项目：some
+            关键信息候选：日期=2026-06-25 · 邮箱=hello@example.com
+            网页关键信息候选：链接=https://example.com/menu · 金额=128元
+            """,
+            createdAt: date,
+            updatedAt: date
+        )
+
+        let draft = WorkLogExporter.customReportDraft(
+            memos: [log],
+            template: "日期={{日期}}\n邮箱={{邮箱}}\n链接={{链接}}\n金额={{金额}}",
+            title: "关键信息"
+        )
+
+        XCTAssertEqual(
+            draft,
+            """
+            日期=2026-06-25
+            邮箱=hello@example.com
+            链接=https://example.com/menu
+            金额=128元
 
             """
         )

@@ -1260,3 +1260,10 @@
 - 开工前继续检索 `GitHub Swift OCR field extraction work log source memo MIT`、`GitHub Swift notes app OCR key value field candidates work log` 和 `GitHub Swift parse OCR key value fields notes MIT`，没有发现能直接复制进 some 当前中文 memo、OCR 正文边界和工作日志引用格式的小型 Swift/MIT 模块。
 - TDD 红灯：新增 `testAddWorkLogCarriesOCRFieldCandidatesFromSelectedSources`，并用临时探针确认旧生成路径只追加来源引用，不会带出 `字段候选：姓名=李雷 · 电话=13800138000`。
 - 实现：`MemoStore.addWorkLog` 在备注和引用前汇总未归档来源 memo 的生成摘要区 `字段候选`，按 ` · ` 拆成单个候选项去重后写入日志正文；仍跳过 `识别文字：` / `OCR:` 正文段，避免把截图原文里的同名文字带入结构化日志。
+
+## 2026-06-25T12:54:52+08:00
+
+- 进入并完成阶段 153：工作日志生成自动带入网页/OCR 关键信息候选。阶段 152 只搬运 OCR 字段候选，网页/OCR 的 `关键信息候选` 和 `网页关键信息候选` 仍无法自动进入日志正文或自定义模板字段。
+- 开工前检索 `Swift work log web key info candidates OCR notes GitHub MIT`、`Swift notes app key information candidates work log GitHub MIT`、`Swift key info extraction notes work report GitHub MIT` 和 `Swift parse key information candidate line notes GitHub MIT`，没有发现可直接复制进当前中文 memo/工作日志/OCR 正文边界的小型 Swift/MIT 模块。
+- TDD 红灯：新增 `testAddWorkLogCarriesKeyInfoCandidatesFromSelectedSources` 和 `testWorkLogExporterExpandsKeyInfoCandidateSummaryFields`，覆盖勾选网页/OCR 关键信息来源时自动写入日志正文，并让自定义模板可直接使用 `{{邮箱}}`、`{{链接}}`、`{{金额}}` 等字段。
+- 实现：`MemoStore.addWorkLog` 复用候选摘要解析 helper，同时汇总 `关键信息候选` 与 `网页关键信息候选`；`WorkLogExporter.fields` 也展开这两类候选的 `key=value` 子字段。

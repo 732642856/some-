@@ -671,7 +671,7 @@ enum WorkLogExporter {
         (summaryParts + fallbackText.components(separatedBy: .newlines))
             .compactMap(field)
             .forEach { key, value in
-                if key == "字段候选" {
+                if ["字段候选", "关键信息候选", "网页关键信息候选"].contains(key) {
                     fieldCandidates(in: value).forEach { candidateKey, candidateValue in
                         if result[candidateKey] == nil {
                             result[candidateKey] = candidateValue

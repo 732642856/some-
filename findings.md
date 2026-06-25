@@ -182,3 +182,7 @@
 - 进入并完成阶段 152：工作日志生成自动带入 OCR 字段候选。继续顺着工作日志闭环检查后发现，日志页勾选 OCR 字段候选来源时，`MemoStore.addWorkLog` 只把来源 memo 作为引用加入，未把生成摘要区的 `字段候选：...` 带入工作日志正文；这会让阶段 151 的自定义模板字段展开能力需要用户手动复制字段后才可用。
 - 新增 `testAddWorkLogCarriesOCRFieldCandidatesFromSelectedSources`，覆盖多个 OCR 来源合并、单个候选项去重、跳过 OCR 原文里的同名 `字段候选` 和来源引用数量保持正确。
 - `MemoStore.addWorkLog` 新增私有汇总 helper，只从未归档来源 memo 的 OCR 正文外读取 some 生成的 `字段候选` 摘要，按 ` · ` 拆项去重后生成一行工作日志字段候选；不改数据库 schema 和公共接口。
+
+- 进入并完成阶段 153：工作日志生成自动带入网页/OCR 关键信息候选。继续检查工作日志闭环后发现，`关键信息候选` 和 `网页关键信息候选` 已经能从 OCR/网页摘录中生成和筛选，但生成工作日志、导出自定义模板时仍没有像 OCR 字段候选一样展开日期、电话、邮箱、链接和金额。
+- 新增 `testAddWorkLogCarriesKeyInfoCandidatesFromSelectedSources`，覆盖网页与 OCR 关键信息合并、去重、跳过 OCR 原文同名摘要、忽略归档来源和引用数量。
+- 新增 `testWorkLogExporterExpandsKeyInfoCandidateSummaryFields`，覆盖自定义模板可以从 `关键信息候选` 与 `网页关键信息候选` 中直接取 `{{日期}}`、`{{邮箱}}`、`{{链接}}`、`{{金额}}`。
