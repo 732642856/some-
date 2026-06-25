@@ -2,7 +2,7 @@
 
 一个 SwiftUI 写的本地优先 iOS 个人素材库。目标是让用户随时捕捉文字、图片、录音、视频、链接、截图、衣橱单品、饰品和包包，并把这些素材按场景整理成电子手帐、工作日志、网页摘录卡片、图片排版作品和穿搭衣橱记录。
 
-当前代码仍处在“随记/素材库底座”阶段：已经完成文字记录、首页工作台 v7、禅定专注记录、桌面小组件快速入口、标签、搜索、附件、拍照/拍视频/连续扫描/相册/文件导入、录音 v1、本地语音转写 v2、媒体缩略图缓存与媒体元数据摘要 v11、网页摘录 v5、网页/OCR 摘录片段索引 v3、图片/截图/扫描 OCR v17、素材索引、素材库视图、手帐页面与画布编辑 v10、工作日志 v17、图片编辑 v11、电子衣橱与穿着洞察 v12、分享扩展、引用、备份 v2、隐私锁和本地/可选联网 AI 工作台；复杂对象修复等仍在路线图中。
+当前 master 已经是可本地跑起来的个人自用版本：已经完成文字记录、首页工作台 v7、禅定专注记录、桌面小组件快速入口、标签、搜索、附件、拍照/拍视频/连续扫描/相册/文件导入、录音 v1、本地语音转写 v2、媒体缩略图缓存与媒体元数据摘要 v11、网页摘录 v5、网页/OCR 摘录片段索引 v3、图片/截图/扫描 OCR v17、素材索引、素材库视图、手帐页面与画布编辑 v10、工作日志 v17、图片编辑 v11、电子衣橱与穿着洞察 v12、分享扩展、引用、备份 v2、隐私锁和本地/可选联网 AI 工作台；复杂对象修复等仍在路线图中。首次运行、真机签名和验收路径见 `docs/local-install-and-first-use.md`。
 
 项目仍避免使用 flomo、极简衣橱等应用的名称、Logo、素材与品牌表达。后续只复用许可证清晰的开源代码或系统能力；无许可证、GPL/AGPL/MPL 代码默认只做产品与架构参考。
 
@@ -118,12 +118,16 @@
 
 ## 打开工程
 
+最快先看 `docs/local-install-and-first-use.md`，再按下面步骤跑：
+
 1. 安装 Xcode 16 或更新版本。
-2. 打开 `some.xcodeproj`。
-3. 在 target `some` 的 Signing & Capabilities 中选择你的 Apple Developer Team。
-4. 把 Bundle Identifier 从 `com.732642856.some` 改成你账号下可用的唯一 ID。
-5. 在 target `some`、`SomeShareExtension` 和 `SomeWidget` 中启用同一个 App Group，默认占位为 `group.com.732642856.some`，需要按你的 Bundle ID 改成账号下可用的 group。工程通过 build setting `APP_GROUP_IDENTIFIER` 同步写入 entitlements 和运行时配置。
-6. 选择模拟器或真机运行。
+2. 在仓库根目录执行 `bash scripts/check-local-readiness.sh`，确认项目结构完整，并看清本机是否缺 Xcode/Simulator SDK/签名配置。
+3. 打开 `some.xcodeproj`。
+4. 选择 shared scheme `some`。
+5. 先选择 iPhone Simulator 运行。
+6. 真机自用时，在 target `some` 的 Signing & Capabilities 中选择你的 Apple Developer Team。
+7. 把 Bundle Identifier 从 `com.732642856.some` 改成你账号下可用的唯一 ID。
+8. 在 target `some`、`SomeShareExtension` 和 `SomeWidget` 中启用同一个 App Group，默认占位为 `group.com.732642856.some`，需要按你的 Bundle ID 改成账号下可用的 group。工程通过 build setting `APP_GROUP_IDENTIFIER` 同步写入 entitlements 和运行时配置。
 
 ## 如以后上架要替换的信息
 

@@ -1348,3 +1348,12 @@
 - TDD：新增 `testQuickCaptureActionGridLayoutWrapsToolbarActions`，并用类型探针确认旧代码缺少 `QuickCaptureActionGridLayout`。
 - 实现：新增 `QuickCaptureActionGridLayout`；`QuickCaptureView` 底部操作区从固定 `HStack` 改为 `LazyVGrid(.adaptive)`，保留清空、相册、拍照、视频、扫描、录音、文件和网页摘录原有行为；顺手把既有 `if let pendingWebClip` 改为显式绑定，让本机 parser 能覆盖该文件。
 - 本地验证：`git diff --check` 通过；`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Stores/MemoStore.swift some/Views/QuickCaptureView.swift SomeTests/SomeTests.swift` 通过；`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Stores/MemoStore.swift some/Views/ContentView.swift SomeTests/SomeTests.swift` 通过。完整 XCTest 和真实设备渲染仍交给 GitHub Actions/Xcode 16。
+
+## 2026-06-25T23:59:37+08:00
+
+- 进入并完成阶段 164：本地安装与首用闭环。用户追问“什么时候才能真正用上项目”后，本轮不继续盲目堆功能，而是把可用性拆成项目结构完整性、Xcode/Simulator SDK、真机签名、首用验收四层。
+- 开工前继续检索 Apple 官方运行/签名/App Group/Provisioning 文档，以及 GitHub 上 iOS Swift App 本地安装 README、Xcode readiness script 和签名检查脚本候选；未找到适合直接复制进 some 的小型 MIT 脚本，继续写项目专用只读检查。
+- 地毯式扫描当前仓库：工作树从 `c36b0e8` 开始干净；主要 Swift/Markdown/workflow/plist/entitlements/scheme 文件共 82 个；未发现 `.tmp/.bak/.orig/.rej/.xcresult/DerivedData` 等碎片。
+- 新增 `docs/local-install-and-first-use.md`，明确 some 已经是可本地跑起来的个人自用版本，最快先跑模拟器；真机需要用户自己的 Team、唯一 Bundle ID 和同一个 App Group；TestFlight/App Store 才需要证书、profiles 和 App Store Connect 密钥。
+- 新增 `scripts/check-local-readiness.sh`，只读检查工程文件、shared scheme、App Group entitlements、CI workflow、Git 状态、Xcode 版本和 iPhone Simulator SDK，帮助以后直接判断卡点在哪里。
+- README 更新“当前状态”和“打开工程”路径，先指向本地首用文档和 readiness 脚本。
