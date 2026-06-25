@@ -1316,3 +1316,11 @@
 - TDD：扩展 `testHomeModesHaveDashboardCopyAndGroups`，要求每个首页模式都有搜索提示，并锁定工作日志、衣橱两类强场景的 prompt 文案。
 - 实现：`MemoHomeMode` 新增 `searchPrompt`；`ContentView.searchable` 改为使用当前模式提示；`QuickCaptureView` 增加“快速记录”标题和“文字 / 图片 / 音频 / 链接”轻提示，让搜索、模式卡和输入卡层级更连贯。
 - 本地验证：`git diff --check` 通过；`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Stores/MemoStore.swift some/Views/ContentView.swift SomeTests/SomeTests.swift` 通过。把 `QuickCaptureView.swift` 纳入旧 Swift 5.5.2 parser 时会被文件既有 `if let pendingWebClip { ... }` 简写语法阻断，完整编译继续交给 GitHub Actions/Xcode 16。
+
+## 2026-06-25T20:26:43+08:00
+
+- 进入并完成阶段 160：高频工作区首屏标题条。恢复规划文件与 Git 状态后确认工作树干净，上一阶段停在首页搜索与快速输入层级；继续检查 `ContentView` 中素材、手帐、工作日志和衣橱四个高频模式，发现内容区直接进入统计、表单或筛选，缺少统一的工作区锚点。
+- 开工前检索 `GitHub SwiftUI notes app workspace header dashboard mode open source MIT`、`GitHub SwiftUI journal scrapbook editor dashboard open source MIT`、`GitHub SwiftUI wardrobe closet app dashboard open source MIT` 和 `GitHub SwiftUI work log notes app dashboard open source MIT`；结果多为完整应用、通用示例或不同技术栈项目，没有可直接复制进 some 当前 `MemoHomeMode` 和中文多模式首页的小型 SwiftUI/MIT 模块。
+- TDD：新增 `testPrimaryWorkspaceModesHaveContentHeaders`，锁定素材、手帐、工作日志和电子衣橱四个模式的工作区标题、副标题与显示范围；时间线和 AI 不显示该标题条。
+- 实现：`MemoHomeMode` 新增 `showsWorkspaceHeader`、`workspaceHeaderTitle` 和 `workspaceHeaderSubtitle`；`ContentView` 在搜索快捷操作后加入无卡片化 `WorkspaceModeHeader`，只在四个高频工作区显示图标、工作区名称、内容范围和短标签。
+- 本地验证：`git diff --check` 通过；`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Stores/MemoStore.swift some/Views/ContentView.swift SomeTests/SomeTests.swift` 通过。当前本机仍只能做解析级检查，完整 SwiftUI 编译和 XCTest 继续交给 GitHub Actions/Xcode 16。

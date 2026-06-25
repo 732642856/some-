@@ -796,6 +796,23 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(MemoHomeMode.wardrobe.searchPrompt, "搜索衣橱、穿搭、颜色、季节或场景")
     }
 
+    func testPrimaryWorkspaceModesHaveContentHeaders() {
+        let primaryModes: [MemoHomeMode] = [.assets, .scrapbook, .workLog, .wardrobe]
+
+        XCTAssertEqual(
+            primaryModes.map(\.workspaceHeaderTitle),
+            ["素材库", "电子手帐", "工作日志", "电子衣橱"]
+        )
+
+        for mode in primaryModes {
+            XCTAssertTrue(mode.showsWorkspaceHeader)
+            XCTAssertFalse(mode.workspaceHeaderSubtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+
+        XCTAssertFalse(MemoHomeMode.timeline.showsWorkspaceHeader)
+        XCTAssertFalse(MemoHomeMode.ai.showsWorkspaceHeader)
+    }
+
     func testHomeDashboardLayoutAdaptsForSmallScreensAndLargeText() {
         XCTAssertEqual(MemoHomeDashboardLayout.minimumCardWidth(forDynamicTypeScale: 1.0), 156)
         XCTAssertEqual(MemoHomeDashboardLayout.minimumCardWidth(forDynamicTypeScale: 1.3), 196)

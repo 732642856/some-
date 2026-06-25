@@ -18,6 +18,7 @@ struct ContentView: View {
                         HeaderView()
                         HomeModePicker()
                         SearchQuickActionsView()
+                        WorkspaceModeHeader(mode: store.homeMode)
 
                         switch store.homeMode {
                         case .timeline:
@@ -103,6 +104,47 @@ struct ContentView: View {
                 navigationPath = [id]
                 store.pendingOpenMemoID = nil
             }
+        }
+    }
+}
+
+private struct WorkspaceModeHeader: View {
+    let mode: MemoHomeMode
+
+    var body: some View {
+        if mode.showsWorkspaceHeader {
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: mode.systemImage)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(Color.accentGreen)
+                    .frame(width: 34, height: 34)
+                    .background(Color.greenTint)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(mode.workspaceHeaderTitle)
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(Color.primaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+
+                    Text(mode.workspaceHeaderSubtitle)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.secondaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+
+                Spacer(minLength: 8)
+
+                Text(mode.dashboardAccentLabel)
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Color.accentGreen)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 2)
+            .padding(.vertical, 2)
+            .accessibilityElement(children: .combine)
         }
     }
 }

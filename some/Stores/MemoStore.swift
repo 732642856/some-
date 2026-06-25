@@ -91,6 +91,37 @@ enum MemoHomeMode: String, CaseIterable, Identifiable {
         }
     }
 
+    var showsWorkspaceHeader: Bool {
+        switch self {
+        case .assets, .scrapbook, .workLog, .wardrobe:
+            return true
+        case .timeline, .zen, .ai, .review, .stats, .archive:
+            return false
+        }
+    }
+
+    var workspaceHeaderTitle: String {
+        switch self {
+        case .assets: return "素材库"
+        case .scrapbook: return "电子手帐"
+        case .workLog: return "工作日志"
+        case .wardrobe: return "电子衣橱"
+        case .timeline, .zen, .ai, .review, .stats, .archive:
+            return title
+        }
+    }
+
+    var workspaceHeaderSubtitle: String {
+        switch self {
+        case .assets: return "图片、音频、网页、OCR"
+        case .scrapbook: return "页面、拼贴、贴纸、导出"
+        case .workLog: return "来源、候选、汇报"
+        case .wardrobe: return "单品、搭配、洗护、打包"
+        case .timeline, .zen, .ai, .review, .stats, .archive:
+            return dashboardSubtitle
+        }
+    }
+
     var systemImage: String {
         switch self {
         case .timeline: return "square.and.pencil"
