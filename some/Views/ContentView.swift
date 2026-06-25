@@ -951,6 +951,7 @@ private struct WorkLogView: View {
     @State private var sourceKindFilter: MemoContentFilter?
     @State private var sourceDateScope: WorkLogSourceFilter.DateScope = .all
     @State private var sourceSearchText = ""
+    @State private var excludedCandidateTokenIDs = Set<String>()
     @State private var exportedWorkLog: ExportedDocument?
     @State private var statusText: String?
     @State private var isPolishingWorkLog = false
@@ -1036,6 +1037,14 @@ private struct WorkLogView: View {
 
     private var selectedMemos: [Memo] {
         candidateMemos.filter { selectedMemoIDs.contains($0.id) }
+    }
+
+    private var workLogCandidateTokens: [WorkLogCandidateToken] {
+        store.workLogCandidateTokens(from: selectedMemos)
+    }
+
+    private var includedCandidateTokens: [WorkLogCandidateToken] {
+        workLogCandidateTokens.filter { !excludedCandidateTokenIDs.contains($0.id) }
     }
 
     var body: some View {
@@ -1134,6 +1143,8 @@ private struct WorkLogView: View {
                 .background(Color.subtleSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
+            candidateReviewPanel
+
             HStack(spacing: 10) {
                 if let statusText = statusText {
                     Text(statusText)
@@ -1179,6 +1190,63 @@ private struct WorkLogView: View {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(Color.border, lineWidth: 1)
         )
+    }
+
+    @ViewBuilder
+    private var candidateReviewPanel: some View {
+        let tokens = workLogCandidateTokens
+        if !tokens.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Label("候选信息", systemImage: "checkmark.seal")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.secondaryText)
+
+                    Spacer()
+
+                    Text("\(includedCandidateTokens.count)/\(tokens.count)")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(Color.tertiaryText)
+                }
+
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 148), spacing: 8)], alignment: .leading, spacing: 8) {
+                    ForEach(tokens) { token in
+                        let isIncluded = !excludedCandidateTokenIDs.contains(token.id)
+                        Button {
+                            toggleCandidateToken(token)
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: isIncluded ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(isIncluded ? Color.accentGreen : Color.tertiaryText)
+                                    .frame(width: 18, height: 18)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(token.title)
+                                        .font(.caption2.weight(.semibold))
+                                        .foregroundStyle(Color.tertiaryText)
+                                        .lineLimit(1)
+
+                                    Text(token.value)
+                                        .font(.caption)
+                                        .foregroundStyle(Color.primaryText)
+                                        .lineLimit(2)
+                                }
+
+                                Spacer(minLength: 0)
+                            }
+                            .padding(8)
+                            .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+                            .background(isIncluded ? Color.greenTint : Color.subtleSurface)
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .padding(10)
+            .background(Color.subtleSurface.opacity(0.6))
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
     }
 
     private var sourcePicker: some View {
@@ -1466,6 +1534,7 @@ private struct WorkLogView: View {
         } else {
             selectedMemoIDs.insert(memo.id)
         }
+        pruneExcludedCandidateTokens()
     }
 
     private func toggleVisibleCandidates() {
@@ -1477,6 +1546,30 @@ private struct WorkLogView: View {
         } else {
             visibleIDs.forEach { selectedMemoIDs.insert($0) }
         }
+        pruneExcludedCandidateTokens()
+    }
+
+    private func toggleCandidateToken(_ token: WorkLogCandidateToken) {
+        if excludedCandidateTokenIDs.contains(token.id) {
+            excludedCandidateTokenIDs.remove(token.id)
+        } else {
+            excludedCandidateTokenIDs.insert(token.id)
+        }
+    }
+
+    private func includedCandidateValues(for kind: WorkLogCandidateToken.Kind) -> [String]? {
+        let tokens = workLogCandidateTokens.filter { $0.kind == kind }
+        guard !tokens.isEmpty else {
+            return nil
+        }
+        return tokens
+            .filter { !excludedCandidateTokenIDs.contains($0.id) }
+            .map(\.value)
+    }
+
+    private func pruneExcludedCandidateTokens() {
+        let currentTokenIDs = Set(workLogCandidateTokens.map(\.id))
+        excludedCandidateTokenIDs = Set(excludedCandidateTokenIDs.filter { currentTokenIDs.contains($0) })
     }
 
     private func autofillFromSelection() {
@@ -1568,6 +1661,9 @@ private struct WorkLogView: View {
     }
 
     private func saveLog() {
+        let includedFieldCandidates = includedCandidateValues(for: .field)
+        let includedKeyInfoCandidates = includedCandidateValues(for: .keyInfo)
+
         guard store.addWorkLog(
             title: resolvedTitle,
             scope: scope,
@@ -1578,6 +1674,8 @@ private struct WorkLogView: View {
             blockers: splitValues(blockers),
             nextSteps: splitValues(nextSteps).isEmpty ? inferredNextSteps() : splitValues(nextSteps),
             sourceMemos: selectedMemos,
+            includedFieldCandidates: includedFieldCandidates,
+            includedKeyInfoCandidates: includedKeyInfoCandidates,
             note: note
         ) != nil else {
             statusText = "日志保存失败。"
@@ -1594,6 +1692,7 @@ private struct WorkLogView: View {
         nextSteps = ""
         note = ""
         selectedMemoIDs = []
+        excludedCandidateTokenIDs = []
         statusText = "已保存工作日志"
     }
 

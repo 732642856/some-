@@ -87,6 +87,27 @@ struct MemoTimelineEmptyState: Equatable {
     var subtitle: String
 }
 
+struct WorkLogCandidateToken: Identifiable, Equatable, Hashable {
+    enum Kind: String, Equatable, Hashable {
+        case field
+        case keyInfo
+    }
+
+    let kind: Kind
+    let value: String
+
+    var id: String {
+        "\(kind.rawValue):\(value.lowercased())"
+    }
+
+    var title: String {
+        switch kind {
+        case .field: return "字段候选"
+        case .keyInfo: return "关键信息"
+        }
+    }
+}
+
 @MainActor
 final class MemoStore: ObservableObject {
     @Published private(set) var memos: [Memo] = []
@@ -657,6 +678,8 @@ final class MemoStore: ObservableObject {
         blockers: [String] = [],
         nextSteps: [String] = [],
         sourceMemos: [Memo] = [],
+        includedFieldCandidates: [String]? = nil,
+        includedKeyInfoCandidates: [String]? = nil,
         note: String? = nil
     ) -> Memo? {
         let cleanedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -672,8 +695,12 @@ final class MemoStore: ObservableObject {
         appendField("进展", values: progress, to: &lines)
         appendField("问题", values: blockers, to: &lines)
         appendField("下一步", values: nextSteps, to: &lines)
-        appendField("字段候选", value: workLogFieldCandidateSummary(from: sourceMemos), to: &lines)
-        appendField("关键信息候选", value: workLogKeyInfoCandidateSummary(from: sourceMemos), to: &lines)
+        let fieldCandidateSummary = includedFieldCandidates.map { candidateSummary(from: $0) }
+            ?? workLogFieldCandidateSummary(from: sourceMemos)
+        let keyInfoCandidateSummary = includedKeyInfoCandidates.map { candidateSummary(from: $0) }
+            ?? workLogKeyInfoCandidateSummary(from: sourceMemos)
+        appendField("字段候选", value: fieldCandidateSummary, to: &lines)
+        appendField("关键信息候选", value: keyInfoCandidateSummary, to: &lines)
         appendField("备注", value: note, to: &lines)
 
         let references = sourceMemos
@@ -687,6 +714,14 @@ final class MemoStore: ObservableObject {
 
         lines.append(contentsOf: references)
         return addStructuredMemo(lines: lines, attachment: nil)
+    }
+
+    func workLogCandidateTokens(from sourceMemos: [Memo]) -> [WorkLogCandidateToken] {
+        let fieldTokens = candidateValues(from: sourceMemos, prefixes: ["字段候选："])
+            .map { WorkLogCandidateToken(kind: .field, value: $0) }
+        let keyInfoTokens = candidateValues(from: sourceMemos, prefixes: ["网页关键信息候选：", "关键信息候选："])
+            .map { WorkLogCandidateToken(kind: .keyInfo, value: $0) }
+        return fieldTokens + keyInfoTokens
     }
 
     @discardableResult
@@ -1941,14 +1976,22 @@ final class MemoStore: ObservableObject {
     }
 
     private func candidateSummary(from sourceMemos: [Memo], prefixes: [String]) -> String? {
+        candidateSummary(from: candidateValues(from: sourceMemos, prefixes: prefixes))
+    }
+
+    private func candidateSummary(from candidates: [String]) -> String? {
+        let uniqueCandidates = uniqueValues(candidates)
+        guard !uniqueCandidates.isEmpty else { return nil }
+        return uniqueCandidates.joined(separator: " · ")
+    }
+
+    private func candidateValues(from sourceMemos: [Memo], prefixes: [String]) -> [String] {
         let candidates = sourceMemos
             .filter { !$0.isArchived }
             .sorted { $0.createdAt > $1.createdAt }
             .flatMap { generatedCandidateValues(in: $0.text, prefixes: prefixes) }
             .flatMap(candidateParts)
-        let uniqueCandidates = uniqueValues(candidates)
-        guard !uniqueCandidates.isEmpty else { return nil }
-        return uniqueCandidates.joined(separator: " · ")
+        return uniqueValues(candidates)
     }
 
     private func generatedCandidateValues(in text: String, prefixes: [String]) -> [String] {

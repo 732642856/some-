@@ -1268,3 +1268,12 @@
 - TDD 红灯：新增 `testAddWorkLogCarriesKeyInfoCandidatesFromSelectedSources` 和 `testWorkLogExporterExpandsKeyInfoCandidateSummaryFields`，覆盖勾选网页/OCR 关键信息来源时自动写入日志正文，并让自定义模板可直接使用 `{{邮箱}}`、`{{链接}}`、`{{金额}}` 等字段。
 - 实现：`MemoStore.addWorkLog` 复用候选摘要解析 helper，同时汇总 `关键信息候选` 与 `网页关键信息候选`；`WorkLogExporter.fields` 也展开这两类候选的 `key=value` 子字段。
 - 复查阶段 152 远端 CI run `28147628886` 失败后确认真实根因在阶段 151：`customReportPlaceholders` 只替换固定白名单字段，`{{姓名}}`、`{{电话}}`、`{{金额}}` 这类动态候选字段没有进入占位符表；同时 `fields` 先解析素材 summary 片段，会让完整候选行被 ` · ` 拆碎。阶段 153 同步修正为正文完整行优先，并把所有解析出的字段都加入自定义模板占位符。
+
+## 2026-06-25T13:39:00+08:00
+
+- 进入并完成阶段 154：工作日志生成前候选信息检查与取舍。继续检查工作日志闭环后发现阶段 152/153 已会自动把 OCR 字段候选和网页/OCR 关键信息候选写进新日志，但用户保存前看不到将写入哪些候选，也不能取消误识别字段。
+- 开工前检索 `GitHub SwiftUI selectable chips tokens field editor MIT`、`GitHub SwiftUI tag chips selectable component MIT`、`GitHub SwiftUI note app work log OCR key information extraction open source` 以及 GitHub 站内 SwiftUI chip/tag 查询；结果多为通用 tag/chip UI 或完整笔记应用，不理解 some 的中文候选摘要、OCR 正文边界、归档来源过滤和日志覆盖语义，因此不引入第三方依赖。
+- TDD 红灯：新增 `testWorkLogCandidateTokensExposeSelectableGeneratedCandidates`，覆盖候选 token 按来源时间排序、按字段/关键信息分组、去重、忽略归档来源并跳过 OCR 原文同名摘要；新增 `testAddWorkLogUsesSelectedCandidateOverrides`，覆盖保存日志时只写入用户保留的字段候选，空数组可明确取消整类关键信息候选。
+- 实现：`MemoStore` 新增 `WorkLogCandidateToken` 和 `workLogCandidateTokens(from:)`，并给 `addWorkLog` 增加可选 `includedFieldCandidates` / `includedKeyInfoCandidates` 覆盖参数；默认调用仍保持自动汇总，UI 显式传入数组时按用户选择写入。
+- UI：`WorkLogView` 在备注与保存按钮之间显示“候选信息”面板，已选来源中存在 OCR 字段或网页/OCR 关键信息时展示可勾选 token，保存前可逐项取消；切换来源时会清掉已不存在 token 的排除状态，保存成功后清空选择。
+- 本地验证：`git diff --check` 通过。当前机器 `/Applications/Xcode.app` 为 Xcode 13.2.1，项目部署目标 iOS 16，且 ZIPFoundation 0.9.20 使用旧 Swift 标准库没有的 `UnsafeRawBufferPointer.loadUnaligned`，因此本机 `xcodebuild test` 因无 iOS 16 模拟器/旧 SDK无法运行，`xcodebuild build` 的唯一具体 Swift error 落在 ZIPFoundation，而非本轮改动文件；需依赖 GitHub Actions 的新版 Xcode CI 作完整验证。

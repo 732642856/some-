@@ -1461,6 +1461,84 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(MemoReferenceParser.references(in: log.text).count, 2)
     }
 
+    func testWorkLogCandidateTokensExposeSelectableGeneratedCandidates() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let olderDate = DateFormatters.wardrobeDay.date(from: "2026-06-24")!
+        let newerDate = DateFormatters.wardrobeDay.date(from: "2026-06-25")!
+        let olderOCRMemo = Memo(
+            text: """
+            图片文字：receipt.png
+            字段候选：姓名=李雷 · 电话=13800138000
+            关键信息候选：电话=13800138000 · 金额=128元
+
+            识别文字：
+            字段候选：这是截图原文
+            关键信息候选：raw@example.com
+            """,
+            createdAt: olderDate,
+            updatedAt: olderDate
+        )
+        let archivedMemo = Memo(
+            text: "字段候选：姓名=归档",
+            createdAt: newerDate.addingTimeInterval(3600),
+            updatedAt: newerDate.addingTimeInterval(3600),
+            isArchived: true
+        )
+        let newerWebMemo = Memo(
+            text: """
+            网页摘录：菜单
+            字段候选：姓名=李雷 · 金额=128 元
+            网页关键信息候选：链接=https://example.com/menu · 金额=128元
+            """,
+            createdAt: newerDate,
+            updatedAt: newerDate
+        )
+
+        let tokens = store.workLogCandidateTokens(from: [olderOCRMemo, archivedMemo, newerWebMemo])
+
+        XCTAssertEqual(tokens.map(\.kind), [.field, .field, .field, .keyInfo, .keyInfo, .keyInfo])
+        XCTAssertEqual(
+            tokens.map(\.value),
+            [
+                "姓名=李雷",
+                "金额=128 元",
+                "电话=13800138000",
+                "链接=https://example.com/menu",
+                "金额=128元",
+                "电话=13800138000"
+            ]
+        )
+        XCTAssertFalse(tokens.map(\.value).contains("姓名=归档"))
+        XCTAssertFalse(tokens.map(\.value).contains("这是截图原文"))
+        XCTAssertFalse(tokens.map(\.value).contains("raw@example.com"))
+    }
+
+    func testAddWorkLogUsesSelectedCandidateOverrides() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let sourceMemo = Memo(text: """
+        图片文字：receipt.png
+        字段候选：姓名=李雷 · 电话=13800138000
+        关键信息候选：日期=2026-06-24 · 金额=128元
+        """)
+
+        guard let log = store.addWorkLog(
+            title: "候选字段校对",
+            scope: "今日",
+            project: "some",
+            progress: ["校对候选字段"],
+            sourceMemos: [sourceMemo],
+            includedFieldCandidates: ["姓名=李雷"],
+            includedKeyInfoCandidates: []
+        ) else {
+            return XCTFail("Expected work log")
+        }
+
+        XCTAssertTrue(log.text.contains("字段候选：姓名=李雷"))
+        XCTAssertFalse(log.text.contains("电话=13800138000"))
+        XCTAssertFalse(log.text.contains("关键信息候选"))
+        XCTAssertEqual(MemoReferenceParser.references(in: log.text).count, 1)
+    }
+
     func testWorkLogSourceFilterEngineFiltersByTagKindDateAndSearch() {
         let calendar = Calendar(identifier: .gregorian)
         let now = DateFormatters.wardrobeDay.date(from: "2026-06-23")!
