@@ -2211,6 +2211,7 @@ final class SomeTests: XCTestCase {
             姓名=李雷
             电话=13800138000
             金额=128 元
+
             """
         )
     }

@@ -1248,3 +1248,8 @@
 - TDD 红灯：新增 `testWorkLogExporterExpandsOCRFieldCandidateSummaryFields`，并用临时探针确认旧解析只得到 `字段候选=姓名=李雷 · 电话=13800138000 · 金额=128 元`，没有 `姓名/电话/金额` 字段。
 - 实现：`WorkLogExporter.fields` 遇到 `字段候选` 时展开 `=` 子字段，保持用户显式同名字段优先。
 - 本地验证已通过 `worklog OCR field candidate expansion passed` 探针和 `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Utilities/WorkLogSourceFilterEngine.swift SomeTests/SomeTests.swift`。
+
+## 2026-06-25T12:27:02+08:00
+
+- 阶段 151 远端 CI run `28146479672`：Build for simulator 通过，Run tests 失败。公共日志下载受权限限制、API 又触发 rate limit；本地复查本轮唯一新增 XCTest 后确认根因是 `customReportDraft` 会统一补结尾换行，而新测试期望少了末尾空行。
+- 只修测试期望，补上导出器既有的结尾换行，不改生产逻辑。
