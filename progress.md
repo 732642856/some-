@@ -1253,3 +1253,10 @@
 
 - 阶段 151 远端 CI run `28146479672`：Build for simulator 通过，Run tests 失败。公共日志下载受权限限制、API 又触发 rate limit；本地复查本轮唯一新增 XCTest 后确认根因是 `customReportDraft` 会统一补结尾换行，而新测试期望少了末尾空行。
 - 只修测试期望，补上导出器既有的结尾换行，不改生产逻辑。
+
+## 2026-06-25T12:41:19+08:00
+
+- 进入并完成阶段 152：工作日志生成自动带入 OCR 字段候选。阶段 151 只让导出模板能读取日志正文里的 `字段候选`，但用户从日志页勾选 OCR 来源生成工作日志时，字段候选仍停留在来源 memo 中，没有自动进入日志正文。
+- 开工前继续检索 `GitHub Swift OCR field extraction work log source memo MIT`、`GitHub Swift notes app OCR key value field candidates work log` 和 `GitHub Swift parse OCR key value fields notes MIT`，没有发现能直接复制进 some 当前中文 memo、OCR 正文边界和工作日志引用格式的小型 Swift/MIT 模块。
+- TDD 红灯：新增 `testAddWorkLogCarriesOCRFieldCandidatesFromSelectedSources`，并用临时探针确认旧生成路径只追加来源引用，不会带出 `字段候选：姓名=李雷 · 电话=13800138000`。
+- 实现：`MemoStore.addWorkLog` 在备注和引用前汇总未归档来源 memo 的生成摘要区 `字段候选`，按 ` · ` 拆成单个候选项去重后写入日志正文；仍跳过 `识别文字：` / `OCR:` 正文段，避免把截图原文里的同名文字带入结构化日志。

@@ -672,6 +672,7 @@ final class MemoStore: ObservableObject {
         appendField("进展", values: progress, to: &lines)
         appendField("问题", values: blockers, to: &lines)
         appendField("下一步", values: nextSteps, to: &lines)
+        appendField("字段候选", value: workLogFieldCandidateSummary(from: sourceMemos), to: &lines)
         appendField("备注", value: note, to: &lines)
 
         let references = sourceMemos
@@ -1928,6 +1929,76 @@ final class MemoStore: ObservableObject {
         }
 
         lines.append("\(label)：\(cleaned.joined(separator: "、"))")
+    }
+
+    private func workLogFieldCandidateSummary(from sourceMemos: [Memo]) -> String? {
+        let candidates = sourceMemos
+            .filter { !$0.isArchived }
+            .sorted { $0.createdAt > $1.createdAt }
+            .flatMap { generatedOCRFieldCandidateValues(in: $0.text) }
+            .flatMap(fieldCandidateParts)
+        let uniqueCandidates = uniqueValues(candidates)
+        guard !uniqueCandidates.isEmpty else { return nil }
+        return uniqueCandidates.joined(separator: " · ")
+    }
+
+    private func generatedOCRFieldCandidateValues(in text: String) -> [String] {
+        var values: [String] = []
+        var isInRecognizedText = false
+        var hasRecognizedContent = false
+
+        for line in text.components(separatedBy: .newlines) {
+            let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if isRecognizedTextHeader(trimmedLine) {
+                isInRecognizedText = true
+                hasRecognizedContent = false
+                continue
+            }
+
+            if isInRecognizedText {
+                if trimmedLine.isEmpty {
+                    if hasRecognizedContent {
+                        isInRecognizedText = false
+                        hasRecognizedContent = false
+                    }
+                    continue
+                }
+
+                hasRecognizedContent = true
+                continue
+            }
+
+            guard trimmedLine.hasPrefix("字段候选：") else { continue }
+            let value = String(trimmedLine.dropFirst("字段候选：".count))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if !value.isEmpty {
+                values.append(value)
+            }
+        }
+
+        return values
+    }
+
+    private func fieldCandidateParts(in value: String) -> [String] {
+        value
+            .components(separatedBy: " · ")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
+    private func isRecognizedTextHeader(_ line: String) -> Bool {
+        line == "识别文字：" || line == "识别文字:" || line == "OCR：" || line == "OCR:"
+    }
+
+    private func uniqueValues(_ values: [String]) -> [String] {
+        var seen = Set<String>()
+        return values.compactMap { value in
+            let cleaned = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !cleaned.isEmpty else { return nil }
+            let key = cleaned.lowercased()
+            guard seen.insert(key).inserted else { return nil }
+            return cleaned
+        }
     }
 
     private func cleanedValues(_ values: [String]) -> [String] {

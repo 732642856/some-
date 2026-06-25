@@ -1361,6 +1361,58 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(store.filteredMemos.first?.id, log.id)
     }
 
+    func testAddWorkLogCarriesOCRFieldCandidatesFromSelectedSources() {
+        let store = MemoStore(filename: "test-\(UUID().uuidString).json")
+        let olderDate = DateFormatters.wardrobeDay.date(from: "2026-06-24")!
+        let newerDate = DateFormatters.wardrobeDay.date(from: "2026-06-25")!
+        let olderOCRMemo = Memo(
+            text: """
+            图片文字：receipt.png
+            字段候选：姓名=李雷 · 电话=13800138000
+
+            识别文字：
+            字段候选：这是截图原文
+            电话：不是生成摘要
+
+            [附件: receipt.png](some-attachment://receipt.png)
+            """,
+            createdAt: olderDate,
+            updatedAt: olderDate
+        )
+        let plainMemo = Memo(
+            text: "普通记录",
+            createdAt: olderDate.addingTimeInterval(-3600),
+            updatedAt: olderDate.addingTimeInterval(-3600)
+        )
+        let newerOCRMemo = Memo(
+            text: """
+            图片文字：booking.png
+            字段候选：姓名=李雷 · 金额=128 元
+
+            识别文字：
+            合计 128 元
+            """,
+            createdAt: newerDate,
+            updatedAt: newerDate
+        )
+
+        let sourceMemos = [olderOCRMemo, plainMemo, newerOCRMemo]
+        guard let log = store.addWorkLog(
+            title: "截图字段整理",
+            scope: "今日",
+            project: "some",
+            progress: ["整理截图字段"],
+            sourceMemos: sourceMemos
+        ) else {
+            return XCTFail("Expected work log")
+        }
+
+        XCTAssertTrue(log.text.contains("字段候选：姓名=李雷 · 金额=128 元 · 电话=13800138000"))
+        XCTAssertFalse(log.text.contains("不是生成摘要"))
+        XCTAssertEqual(log.text.components(separatedBy: "姓名=李雷").count - 1, 1)
+        XCTAssertEqual(MemoReferenceParser.references(in: log.text).count, 3)
+    }
+
     func testWorkLogSourceFilterEngineFiltersByTagKindDateAndSearch() {
         let calendar = Calendar(identifier: .gregorian)
         let now = DateFormatters.wardrobeDay.date(from: "2026-06-23")!

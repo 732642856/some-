@@ -178,3 +178,7 @@
 - 进入并完成阶段 151：工作日志导出展开 OCR 字段候选。扫描 `WorkLogExporter.fields` 后发现导出器只解析 `键：值`，会把 `字段候选：姓名=李雷 · 金额=128 元` 作为单个“字段候选”字段，导致自定义模板无法使用 `{{姓名}}`、`{{电话}}`、`{{金额}}`。
 - 新增 `testWorkLogExporterExpandsOCRFieldCandidateSummaryFields`，覆盖工作日志正文中包含 OCR 字段候选时，自定义模板可直接输出姓名、电话和金额。
 - `WorkLogExporter.fields` 在遇到 `字段候选` 时展开 `=` 子字段，且不覆盖用户已经显式写入的同名字段。
+
+- 进入并完成阶段 152：工作日志生成自动带入 OCR 字段候选。继续顺着工作日志闭环检查后发现，日志页勾选 OCR 字段候选来源时，`MemoStore.addWorkLog` 只把来源 memo 作为引用加入，未把生成摘要区的 `字段候选：...` 带入工作日志正文；这会让阶段 151 的自定义模板字段展开能力需要用户手动复制字段后才可用。
+- 新增 `testAddWorkLogCarriesOCRFieldCandidatesFromSelectedSources`，覆盖多个 OCR 来源合并、单个候选项去重、跳过 OCR 原文里的同名 `字段候选` 和来源引用数量保持正确。
+- `MemoStore.addWorkLog` 新增私有汇总 helper，只从未归档来源 memo 的 OCR 正文外读取 some 生成的 `字段候选` 摘要，按 ` · ` 拆项去重后生成一行工作日志字段候选；不改数据库 schema 和公共接口。
