@@ -1292,3 +1292,11 @@
 - TDD：新增 `testWorkLogExporterGroupsCandidateInfoInReportDraft` 和 `testWorkLogExporterCustomTemplateIncludesGroupedCandidateInfoPlaceholders`，锁定标准汇报稿“候选信息”分组和自定义模板 `{{候选信息列表}}` / `{{联系人候选列表}}` / `{{金额候选}}` 输出。
 - 实现：`WorkLogExporter` 新增候选分组 helper，只从已保存的三类候选摘要解析 `key=value`，按日期、联系人、电话、邮箱、金额、链接、地址、其他输出；标准稿和所有专题稿自动追加“候选信息”，自定义模板新增候选信息总览、分组列表、分组计数和分组串联占位符。
 - 本地验证：`git diff --check` 通过；`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Utilities/WorkLogSourceFilterEngine.swift SomeTests/SomeTests.swift` 通过。
+
+## 2026-06-25T16:53:12+08:00
+
+- 进入并完成阶段 157：首页工作台版面优化。继续检查首屏后发现 `HomeModePicker` 仍是单行图标入口，10 个模式对新用户不自解释，也和 some 现在的手帐、工作日志、衣橱、图片编辑、网页摘录综合工具定位不匹配。
+- 开工前检索 `GitHub SwiftUI notes app home layout open source MIT`、`GitHub SwiftUI journal app layout open source MIT`、`GitHub SwiftUI masonry notes app open source MIT` 和 `GitHub SwiftUI segmented mode toolbar notes app MIT`，结果偏完整示例应用、瀑布流笔记或通用导航结构，没有适合直接复制进 some 多模式首页的小型 SwiftUI/MIT 模块。
+- TDD：新增 `testHomeModesHaveDashboardCopyAndGroups`，锁定“记录入口 / 创作整理 / 回看管理”三组、所有首页模式必须出现一次，并要求每个模式都提供首页说明和短标签。
+- 实现：`MemoHomeMode` 新增首页工作台分组、说明和短标签；`HeaderView` 显示当前模式用途说明与清新色块；`HomeModePicker` 改为双列模式卡片，保留切换到回顾时自动抽取旧记录的行为。
+- 本地验证：`git diff --check` 通过；`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Stores/MemoStore.swift some/Views/ContentView.swift SomeTests/SomeTests.swift` 通过。旧本机 SDK 对包含 UIKit 的完整 typecheck 仍不可用，完整 XCTest 继续交给推送后的 GitHub Actions。

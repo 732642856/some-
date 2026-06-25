@@ -240,10 +240,36 @@ private struct HeaderView: View {
     @EnvironmentObject private var store: MemoStore
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(headerTitle)
-                .font(.system(size: 30, weight: .bold, design: .rounded))
-                .foregroundStyle(Color.primaryText)
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 14) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(headerTitle)
+                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color.primaryText)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(store.homeMode.dashboardSubtitle)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Color.secondaryText)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 10)
+
+                VStack(spacing: 4) {
+                    Image(systemName: store.homeMode.systemImage)
+                        .font(.system(size: 18, weight: .semibold))
+                    Text(store.homeMode.dashboardAccentLabel)
+                        .font(.caption2.weight(.bold))
+                }
+                .foregroundStyle(Color.white)
+                .frame(width: 58, height: 58)
+                .background(Color.accentGreen)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .accessibilityHidden(true)
+            }
 
             HStack(spacing: 10) {
                 StatBadge(title: "记录", value: "\(store.activeCount)", systemImage: "tray.full")
@@ -2909,33 +2935,101 @@ private struct HomeModePicker: View {
     @EnvironmentObject private var store: MemoStore
 
     var body: some View {
-        HStack(spacing: 6) {
-            ForEach(MemoHomeMode.allCases) { mode in
-                Button {
-                    store.homeMode = mode
-                    if mode == .review, store.reviewMemo == nil {
-                        store.pickRandomReviewMemo()
+        VStack(alignment: .leading, spacing: 14) {
+            ForEach(MemoHomeMode.dashboardGroups, id: \.title) { group in
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(group.title)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Color.tertiaryText)
+
+                    LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
+                        ForEach(group.modes) { mode in
+                            Button {
+                                select(mode)
+                            } label: {
+                                HomeModeCard(
+                                    mode: mode,
+                                    isSelected: store.homeMode == mode
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(mode.title)
+                            .accessibilityHint(mode.dashboardSubtitle)
+                        }
                     }
-                } label: {
-                    Label(mode.title, systemImage: mode.systemImage)
-                        .labelStyle(.iconOnly)
-                        .font(.system(size: 16, weight: .semibold))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 38)
-                        .background(store.homeMode == mode ? Color.accentGreen : Color.clear)
-                        .foregroundStyle(store.homeMode == mode ? Color.white : Color.secondaryText)
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(mode.title)
             }
         }
-        .padding(4)
+        .padding(12)
         .background(Color.surface)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(Color.border, lineWidth: 1)
+        )
+    }
+
+    private var columns: [GridItem] {
+        [
+            GridItem(.flexible(minimum: 112), spacing: 8),
+            GridItem(.flexible(minimum: 112), spacing: 8)
+        ]
+    }
+
+    private func select(_ mode: MemoHomeMode) {
+        store.homeMode = mode
+        if mode == .review, store.reviewMemo == nil {
+            store.pickRandomReviewMemo()
+        }
+    }
+}
+
+private struct HomeModeCard: View {
+    let mode: MemoHomeMode
+    let isSelected: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: mode.systemImage)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(isSelected ? Color.white : Color.accentGreen)
+                .frame(width: 30, height: 30)
+                .background(isSelected ? Color.white.opacity(0.18) : Color.greenTint)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(mode.title)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(isSelected ? Color.white : Color.primaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                        .layoutPriority(1)
+
+                    Text(mode.dashboardAccentLabel)
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(isSelected ? Color.white.opacity(0.86) : Color.accentGold)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                }
+
+                Text(mode.dashboardSubtitle)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(isSelected ? Color.white.opacity(0.88) : Color.secondaryText)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.9)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, minHeight: 78, alignment: .topLeading)
+        .background(isSelected ? Color.accentGreen : Color.subtleSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(isSelected ? Color.accentGreen.opacity(0.55) : Color.border, lineWidth: 1)
         )
     }
 }

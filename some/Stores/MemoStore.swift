@@ -7,6 +7,11 @@ import WidgetKit
 #endif
 
 enum MemoHomeMode: String, CaseIterable, Identifiable {
+    struct DashboardGroup: Equatable {
+        let title: String
+        let modes: [MemoHomeMode]
+    }
+
     case timeline
     case zen
     case assets
@@ -20,6 +25,12 @@ enum MemoHomeMode: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    static let dashboardGroups: [DashboardGroup] = [
+        DashboardGroup(title: "记录入口", modes: [.timeline, .zen, .assets]),
+        DashboardGroup(title: "创作整理", modes: [.scrapbook, .workLog, .wardrobe, .ai]),
+        DashboardGroup(title: "回看管理", modes: [.review, .stats, .archive])
+    ]
+
     var title: String {
         switch self {
         case .timeline: return "记录"
@@ -32,6 +43,36 @@ enum MemoHomeMode: String, CaseIterable, Identifiable {
         case .review: return "回顾"
         case .stats: return "统计"
         case .archive: return "归档"
+        }
+    }
+
+    var dashboardSubtitle: String {
+        switch self {
+        case .timeline: return "快速写下文字、链接和附件"
+        case .zen: return "安静记录一段完整想法"
+        case .assets: return "查看图片、音频、网页和 OCR 素材"
+        case .scrapbook: return "把照片、摘录和贴纸排成电子手帐"
+        case .workLog: return "勾选记录生成工作日志和汇报"
+        case .wardrobe: return "整理衣服、饰品、包包和穿搭"
+        case .ai: return "本地整理，按需使用联网 AI"
+        case .review: return "随机翻看旧想法和历史今天"
+        case .stats: return "查看记录节奏、标签和热力图"
+        case .archive: return "集中查看暂时收起的记录"
+        }
+    }
+
+    var dashboardAccentLabel: String {
+        switch self {
+        case .timeline: return "输入"
+        case .zen: return "专注"
+        case .assets: return "素材"
+        case .scrapbook: return "排版"
+        case .workLog: return "汇总"
+        case .wardrobe: return "搭配"
+        case .ai: return "整理"
+        case .review: return "回看"
+        case .stats: return "趋势"
+        case .archive: return "收纳"
         }
     }
 

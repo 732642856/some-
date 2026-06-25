@@ -769,6 +769,30 @@ final class SomeTests: XCTestCase {
         XCTAssertFalse(store.openPendingShortcutDestinationIfNeeded(defaults: defaults))
     }
 
+    func testHomeModesHaveDashboardCopyAndGroups() {
+        XCTAssertEqual(
+            MemoHomeMode.dashboardGroups.map(\.title),
+            ["记录入口", "创作整理", "回看管理"]
+        )
+        XCTAssertEqual(
+            MemoHomeMode.dashboardGroups.map { $0.modes },
+            [
+                [.timeline, .zen, .assets],
+                [.scrapbook, .workLog, .wardrobe, .ai],
+                [.review, .stats, .archive]
+            ]
+        )
+        XCTAssertEqual(MemoHomeMode.dashboardGroups.flatMap(\.modes), MemoHomeMode.allCases)
+
+        for mode in MemoHomeMode.allCases {
+            XCTAssertFalse(mode.dashboardSubtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            XCTAssertFalse(mode.dashboardAccentLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+
+        XCTAssertEqual(MemoHomeMode.scrapbook.dashboardSubtitle, "把照片、摘录和贴纸排成电子手帐")
+        XCTAssertEqual(MemoHomeMode.workLog.dashboardAccentLabel, "汇总")
+    }
+
     func testURLSchemeOpenSelectsExistingMemoWithoutCreatingMemo() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         let memo = store.addMemo(text: "需要打开的记录 #deeplink")!
