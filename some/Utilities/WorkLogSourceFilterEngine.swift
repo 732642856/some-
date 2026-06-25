@@ -671,12 +671,37 @@ enum WorkLogExporter {
         (summaryParts + fallbackText.components(separatedBy: .newlines))
             .compactMap(field)
             .forEach { key, value in
+                if key == "字段候选" {
+                    fieldCandidates(in: value).forEach { candidateKey, candidateValue in
+                        if result[candidateKey] == nil {
+                            result[candidateKey] = candidateValue
+                        }
+                    }
+                }
                 if result[key] == nil {
                     result[key] = value
                 }
             }
 
         return result
+    }
+
+    private static func fieldCandidates(in value: String) -> [(String, String)] {
+        value.components(separatedBy: " · ")
+            .compactMap { part -> (String, String)? in
+                let trimmed = part.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard let separatorIndex = trimmed.firstIndex(of: "=") else {
+                    return nil
+                }
+
+                let key = String(trimmed[..<separatorIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
+                let valueStart = trimmed.index(after: separatorIndex)
+                let value = String(trimmed[valueStart...]).trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !key.isEmpty, !value.isEmpty else {
+                    return nil
+                }
+                return (key, value)
+            }
     }
 
     private static func field(in line: String) -> (String, String)? {

@@ -2185,6 +2185,36 @@ final class SomeTests: XCTestCase {
         )
     }
 
+    func testWorkLogExporterExpandsOCRFieldCandidateSummaryFields() {
+        let date = DateFormatters.wardrobeDay.date(from: "2026-06-25")!
+        let log = Memo(
+            text: """
+            工作日志：票据摘录
+            项目：some
+            日期：2026-06-25
+            进展：整理截图字段
+            字段候选：姓名=李雷 · 电话=13800138000 · 金额=128 元
+            """,
+            createdAt: date,
+            updatedAt: date
+        )
+
+        let draft = WorkLogExporter.customReportDraft(
+            memos: [log],
+            template: "姓名={{姓名}}\n电话={{电话}}\n金额={{金额}}",
+            title: "OCR 字段"
+        )
+
+        XCTAssertEqual(
+            draft,
+            """
+            姓名=李雷
+            电话=13800138000
+            金额=128 元
+            """
+        )
+    }
+
     func testSearchCanExcludeContentTypes() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         store.addMemo(text: "资料带链接 https://example.com/a")

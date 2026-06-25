@@ -332,3 +332,6 @@ P3 只参考：
 
 
 2026-06-25 本轮实现决策：阶段 150 补 OCR 字段候选常用字段归一前，检索 `Swift OCR key value field label normalization GitHub MIT`、`iOS receipt OCR field label synonyms Swift GitHub MIT`、`Swift form OCR field extraction normalize labels GitHub MIT`、`GitHub Swift OCR field extraction normalized labels MIT`、`GitHub iOS receipt OCR parser field labels Swift MIT` 和 `GitHub Swift key value extraction OCR form fields license MIT`。结果仍以完整 OCR SDK、票据识别示例、服务端/AI parser 或商业方案为主，没有可直接复制进 some 当前 `ImageTextRecognizer`、中文 OCR memo 摘要和本地工作日志筛选的小型 Swift/MIT 模块。本轮不引入依赖，只在项目内为 `字段候选` 增加保守同义字段归一，原始识别文字仍完整保存。
+
+
+2026-06-25 本轮实现决策：阶段 151 补工作日志导出展开 OCR 字段候选前，检索 `Swift work log OCR field candidates export parser GitHub MIT`、`Swift notes OCR field candidates work log export GitHub MIT`、`Swift key value summary parser work report GitHub MIT`、`Swift OCR fields to CSV work log GitHub MIT` 和 `Swift parse key value pairs dot separated GitHub MIT`。GitHub API 精确查询均返回 0 个可直接复制进 some 当前中文 `字段候选` 摘要、`WorkLogExporter` 和自定义模板占位符的小型 Swift/MIT 模块；通用 parser 依赖也不理解 some 的 OCR 正文边界。本轮不引入依赖，只在项目内展开 `字段候选` 子字段。

@@ -174,3 +174,7 @@
 - 进入并完成阶段 150：OCR 字段候选常用字段归一。继续检查 OCR 字段候选链路时发现 `ImageTextRecognizer.fieldCandidate` 只把短字段左侧原样保存，真实截图/小票里的“名字、手机号、电子邮箱、总计”等会分散为不同字段，增加后续校对和工作日志汇总噪音。
 - 新增 `testImageTextRecognizerNormalizesCommonFieldCandidateLabels`，覆盖常见别名归一到 `姓名/电话/邮箱/金额`；同时把既有“合计”字段候选预期归一为“金额”。
 - `ImageTextRecognizer` 新增保守 `normalizedFieldKey`，只在 OCR 生成字段候选摘要时替换常见同义字段，原始识别正文仍完整保留。
+
+- 进入并完成阶段 151：工作日志导出展开 OCR 字段候选。扫描 `WorkLogExporter.fields` 后发现导出器只解析 `键：值`，会把 `字段候选：姓名=李雷 · 金额=128 元` 作为单个“字段候选”字段，导致自定义模板无法使用 `{{姓名}}`、`{{电话}}`、`{{金额}}`。
+- 新增 `testWorkLogExporterExpandsOCRFieldCandidateSummaryFields`，覆盖工作日志正文中包含 OCR 字段候选时，自定义模板可直接输出姓名、电话和金额。
+- `WorkLogExporter.fields` 在遇到 `字段候选` 时展开 `=` 子字段，且不覆盖用户已经显式写入的同名字段。

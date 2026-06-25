@@ -1239,3 +1239,12 @@
 - TDD 红灯：新增 `testImageTextRecognizerNormalizesCommonFieldCandidateLabels`，并用临时探针确认旧行为输出 `名字=李雷 · 手机号=13800138000 · 电子邮箱=hello@example.com · 总计=128 元`。
 - 实现：`fieldCandidate` 输出前调用 `normalizedFieldKey`，把姓名/电话/邮箱/日期/金额/地址的常见中文和英文别名归一；原始 OCR 正文不改，方便人工校对。
 - 本地验证已通过字段归一绿色探针和 `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Utilities/ImageTextRecognizer.swift some/Utilities/KeyInfoExtractor.swift some/Utilities/SharedAttachmentStore.swift SomeTests/SomeTests.swift`。裸 `swiftc -parse` 因本机旧前端未启用 concurrency 误报现有 async 语法，已按项目既有命令重跑通过。
+
+
+## 2026-06-25T12:14:45+08:00
+
+- 进入并完成阶段 151：工作日志导出展开 OCR 字段候选。阶段 150 已让 OCR 字段名稳定，但 `WorkLogExporter.fields` 仍只识别 `键：值`，无法把 `字段候选：姓名=李雷 · 电话=13800138000 · 金额=128 元` 里的子字段暴露给自定义模板。
+- 开工前检索 `Swift work log OCR field candidates export parser GitHub MIT`、`Swift notes OCR field candidates work log export GitHub MIT`、`Swift key value summary parser work report GitHub MIT`、`Swift OCR fields to CSV work log GitHub MIT` 等，GitHub API 精确结果均无可直接复制的 Swift/MIT 小模块。
+- TDD 红灯：新增 `testWorkLogExporterExpandsOCRFieldCandidateSummaryFields`，并用临时探针确认旧解析只得到 `字段候选=姓名=李雷 · 电话=13800138000 · 金额=128 元`，没有 `姓名/电话/金额` 字段。
+- 实现：`WorkLogExporter.fields` 遇到 `字段候选` 时展开 `=` 子字段，保持用户显式同名字段优先。
+- 本地验证已通过 `worklog OCR field candidate expansion passed` 探针和 `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Utilities/WorkLogSourceFilterEngine.swift SomeTests/SomeTests.swift`。
