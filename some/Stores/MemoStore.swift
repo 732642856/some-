@@ -189,6 +189,46 @@ enum WorkspaceMetricGridLayout {
     }
 }
 
+enum WardrobeEntryMode: String, CaseIterable, Identifiable {
+    case item
+    case outfit
+    case wearLog
+    case laundry
+    case packing
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .item: return "单品"
+        case .outfit: return "穿搭"
+        case .wearLog: return "穿着"
+        case .laundry: return "洗护"
+        case .packing: return "打包"
+        }
+    }
+
+    var formTitle: String {
+        switch self {
+        case .item: return "新单品"
+        case .outfit: return "新穿搭"
+        case .wearLog: return "穿着记录"
+        case .laundry: return "洗护状态"
+        case .packing: return "旅行打包"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .item: return "plus.circle"
+        case .outfit: return "sparkles"
+        case .wearLog: return "calendar.badge.clock"
+        case .laundry: return "washer"
+        case .packing: return "suitcase"
+        }
+    }
+}
+
 enum AppShortcutRouteStore {
     private static let destinationKey = "some.shortcut.destination"
 

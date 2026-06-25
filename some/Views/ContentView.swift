@@ -2109,6 +2109,7 @@ private struct WardrobeView: View {
     @State private var packingWeather = ""
     @State private var packingNote = ""
     @State private var isFetchingPackingWeather = false
+    @State private var selectedEntryMode: WardrobeEntryMode = .item
     @State private var statusText: String?
 
     private let categories = ["上装", "下装", "连衣裙", "外套", "鞋履", "包包", "饰品", "其他"]
@@ -2152,12 +2153,9 @@ private struct WardrobeView: View {
         VStack(alignment: .leading, spacing: 14) {
             WorkspaceMetricGrid(metrics: wardrobeMetrics)
 
+            wardrobeEntryModePicker
+            activeWardrobeEntryForm
             wardrobeInsightPanel
-            wardrobeItemForm
-            outfitForm
-            wearLogForm
-            laundryLogForm
-            packingListForm
             wardrobeList
         }
     }
@@ -2173,6 +2171,31 @@ private struct WardrobeView: View {
             WorkspaceMetric(title: "未搭配", value: "\(insights.unusedItems.count)", systemImage: "arrow.triangle.2.circlepath"),
             WorkspaceMetric(title: "场景", value: "\(insights.sceneStats.count)", systemImage: "scope")
         ]
+    }
+
+    private var wardrobeEntryModePicker: some View {
+        Picker("衣橱输入类型", selection: $selectedEntryMode) {
+            ForEach(WardrobeEntryMode.allCases) { mode in
+                Text(mode.title).tag(mode)
+            }
+        }
+        .pickerStyle(.segmented)
+    }
+
+    @ViewBuilder
+    private var activeWardrobeEntryForm: some View {
+        switch selectedEntryMode {
+        case .item:
+            wardrobeItemForm
+        case .outfit:
+            outfitForm
+        case .wearLog:
+            wearLogForm
+        case .laundry:
+            laundryLogForm
+        case .packing:
+            packingListForm
+        }
     }
 
     private var wardrobeInsightPanel: some View {
@@ -2371,7 +2394,7 @@ private struct WardrobeView: View {
 
     private var wardrobeItemForm: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("新单品", systemImage: "plus.circle")
+            Label(WardrobeEntryMode.item.formTitle, systemImage: WardrobeEntryMode.item.systemImage)
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Color.secondaryText)
 
@@ -2448,7 +2471,7 @@ private struct WardrobeView: View {
 
     private var outfitForm: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("新穿搭", systemImage: "sparkles")
+            Label(WardrobeEntryMode.outfit.formTitle, systemImage: WardrobeEntryMode.outfit.systemImage)
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Color.secondaryText)
 
@@ -2496,7 +2519,7 @@ private struct WardrobeView: View {
 
     private var wearLogForm: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("穿着记录", systemImage: "calendar.badge.clock")
+            Label(WardrobeEntryMode.wearLog.formTitle, systemImage: WardrobeEntryMode.wearLog.systemImage)
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Color.secondaryText)
 
@@ -2544,7 +2567,7 @@ private struct WardrobeView: View {
 
     private var laundryLogForm: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("洗护状态", systemImage: "washer")
+            Label(WardrobeEntryMode.laundry.formTitle, systemImage: WardrobeEntryMode.laundry.systemImage)
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Color.secondaryText)
 
@@ -2592,7 +2615,7 @@ private struct WardrobeView: View {
 
     private var packingListForm: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("旅行打包", systemImage: "suitcase")
+            Label(WardrobeEntryMode.packing.formTitle, systemImage: WardrobeEntryMode.packing.systemImage)
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Color.secondaryText)
 

@@ -1332,3 +1332,11 @@
 - TDD：新增 `testWorkspaceMetricGridLayoutWrapsDenseMobileStats`，锁定统计项在普通/大字号下的最小宽度、326pt 内容宽度列数，以及 8 个指标会触发换行、3 个指标不需要强制换行。
 - 实现：新增 `WorkspaceMetricGridLayout` 纯策略；`ContentView` 新增 `WorkspaceMetric` 与 `WorkspaceMetricGrid`，把素材、手帐、工作日志和衣橱首屏统计统一切到动态字体感知的自适应网格，保留原有指标。
 - 本地验证：`git diff --check` 通过；`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Stores/MemoStore.swift some/Views/ContentView.swift SomeTests/SomeTests.swift` 通过。完整 SwiftUI 编译、XCTest 和真实设备渲染仍交给 GitHub Actions/Xcode 16。
+
+## 2026-06-25T21:52:26+08:00
+
+- 进入并完成阶段 162：电子衣橱输入表单分段。继续检查衣橱首屏后发现五个输入表单连续堆叠，容易把真正要填的一类记录埋在长页面里。
+- 开工前检索 `GitHub SwiftUI wardrobe closet outfit planner app MIT`、`GitHub SwiftUI segmented picker form sections open source`、`SwiftySegmentedPicker GitHub SwiftUI MIT`、`MultiSelectSegmentedControl SwiftUI GitHub MIT`、`OOTD Swift virtual closet GitHub` 和 `Eureka iOS form library GitHub MIT`；候选多为完整衣橱 App、通用分段控件或 UIKit 表单库，不适合为了一个现有表单切换入口引入依赖。
+- TDD：新增 `testWardrobeEntryModesExposeCompactFormTabs`，并用类型探针确认旧代码缺少 `WardrobeEntryMode`。
+- 实现：新增 `WardrobeEntryMode`，`WardrobeView` 用 SwiftUI 原生分段 picker 切换单品、穿搭、穿着、洗护和打包表单；原保存方法、草稿状态和洞察列表保持不变。
+- 本地验证：`git diff --check` 通过；`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Stores/MemoStore.swift some/Views/ContentView.swift SomeTests/SomeTests.swift` 通过。完整 SwiftUI 编译、XCTest 和真实分段控件渲染仍交给 GitHub Actions/Xcode 16。

@@ -860,6 +860,18 @@ final class SomeTests: XCTestCase {
         )
     }
 
+    func testWardrobeEntryModesExposeCompactFormTabs() {
+        XCTAssertEqual(WardrobeEntryMode.allCases.map(\.title), ["单品", "穿搭", "穿着", "洗护", "打包"])
+        XCTAssertEqual(
+            WardrobeEntryMode.allCases.map(\.formTitle),
+            ["新单品", "新穿搭", "穿着记录", "洗护状态", "旅行打包"]
+        )
+
+        for mode in WardrobeEntryMode.allCases {
+            XCTAssertFalse(mode.systemImage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+    }
+
     func testURLSchemeOpenSelectsExistingMemoWithoutCreatingMemo() {
         let store = MemoStore(filename: "test-\(UUID().uuidString).json")
         let memo = store.addMemo(text: "需要打开的记录 #deeplink")!
