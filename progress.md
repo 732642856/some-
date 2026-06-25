@@ -1267,3 +1267,4 @@
 - 开工前检索 `Swift work log web key info candidates OCR notes GitHub MIT`、`Swift notes app key information candidates work log GitHub MIT`、`Swift key info extraction notes work report GitHub MIT` 和 `Swift parse key information candidate line notes GitHub MIT`，没有发现可直接复制进当前中文 memo/工作日志/OCR 正文边界的小型 Swift/MIT 模块。
 - TDD 红灯：新增 `testAddWorkLogCarriesKeyInfoCandidatesFromSelectedSources` 和 `testWorkLogExporterExpandsKeyInfoCandidateSummaryFields`，覆盖勾选网页/OCR 关键信息来源时自动写入日志正文，并让自定义模板可直接使用 `{{邮箱}}`、`{{链接}}`、`{{金额}}` 等字段。
 - 实现：`MemoStore.addWorkLog` 复用候选摘要解析 helper，同时汇总 `关键信息候选` 与 `网页关键信息候选`；`WorkLogExporter.fields` 也展开这两类候选的 `key=value` 子字段。
+- 复查阶段 152 远端 CI run `28147628886` 失败后确认真实根因在阶段 151：`customReportPlaceholders` 只替换固定白名单字段，`{{姓名}}`、`{{电话}}`、`{{金额}}` 这类动态候选字段没有进入占位符表；同时 `fields` 先解析素材 summary 片段，会让完整候选行被 ` · ` 拆碎。阶段 153 同步修正为正文完整行优先，并把所有解析出的字段都加入自定义模板占位符。

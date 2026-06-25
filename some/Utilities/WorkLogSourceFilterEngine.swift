@@ -465,6 +465,17 @@ enum WorkLogExporter {
         var placeholders: [String: String] = [:]
         let scalarKeys = ["范围", "项目", "日期", "模板", "进展", "问题", "风险", "下一步", "备注"]
 
+        let dynamicKeys = uniqueValues(fieldValues.flatMap { fields in
+            Array(fields.keys)
+        })
+        dynamicKeys.forEach { key in
+            let values = values(for: [key], from: fieldValues)
+            if !values.isEmpty {
+                placeholders[key] = values.joined(separator: "；")
+            }
+            placeholders["\(key)列表"] = numberedList(values)
+        }
+
         scalarKeys.forEach { key in
             let values = values(for: [key], from: fieldValues)
             if !values.isEmpty {
@@ -668,7 +679,7 @@ enum WorkLogExporter {
         let summaryParts = summary?
             .components(separatedBy: " · ")
             .flatMap { $0.components(separatedBy: .newlines) } ?? []
-        (summaryParts + fallbackText.components(separatedBy: .newlines))
+        (fallbackText.components(separatedBy: .newlines) + summaryParts)
             .compactMap(field)
             .forEach { key, value in
                 if ["字段候选", "关键信息候选", "网页关键信息候选"].contains(key) {
