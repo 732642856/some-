@@ -588,7 +588,7 @@ enum ImageTextRecognizer {
             return nil
         }
 
-        return (key, value)
+        return (normalizedFieldKey(key), value)
     }
 
     private static func isReasonableFieldKey(_ key: String) -> Bool {
@@ -609,6 +609,32 @@ enum ImageTextRecognizer {
         return key.unicodeScalars.contains { scalar in
             CharacterSet.alphanumerics.contains(scalar)
                 || (0x4E00...0x9FFF).contains(scalar.value)
+        }
+    }
+
+    private static func normalizedFieldKey(_ key: String) -> String {
+        let compactKey = key
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .replacingOccurrences(of: " ", with: "")
+            .replacingOccurrences(of: "_", with: "")
+            .replacingOccurrences(of: "-", with: "")
+
+        switch compactKey {
+        case "姓名", "名字", "name", "联系人", "收件人":
+            return "姓名"
+        case "电话", "手机号", "手机", "联系电话", "联系电话号码", "phone", "mobile", "tel", "telephone":
+            return "电话"
+        case "邮箱", "电子邮箱", "邮件", "email", "emailaddress", "mail":
+            return "邮箱"
+        case "日期", "时间", "预约时间", "下单时间", "订单时间", "date", "time":
+            return "日期"
+        case "金额", "合计", "总计", "小计", "应付", "实付", "价格", "费用", "total", "amount", "price":
+            return "金额"
+        case "地址", "收货地址", "地点", "位置", "address", "location":
+            return "地址"
+        default:
+            return key
         }
     }
 

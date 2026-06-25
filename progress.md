@@ -1231,3 +1231,11 @@
 - 进入并完成阶段 149：低置信度 OCR 待校对 CI 收口。复查 GitHub Actions run `28120722163` 后确认失败集中在阶段 146 新增的两个负例，Build for simulator 已通过，Run tests 在 metadata-only 低置信度图片块上仍误命中。
 - 用最小 Swift 探针复现旧逻辑输出 `old metadata-only block review = true`；根因是 `ClipFragmentExtractor.needsOCRReview` 调用 `imageText(in:) != nil`，而 `imageText(in:)` 的无 header 旧格式兜底会把 `置信度：平均 62%` 当成正文。
 - `ClipFragmentExtractor.needsOCRReview` 改为先调用 `hasRecognizedTextLines(in:)`：必须有严格整行 `识别文字：` / `OCR:` header，且 header 后到空行前存在非附件正文，才允许同块低置信度 metadata 触发 `has:ocr-review` 或工作日志待校对来源。
+
+
+## 2026-06-25T11:55:20+08:00
+
+- 进入并完成阶段 150：OCR 字段候选常用字段归一。按用户要求先做全网/GitHub 检索，未发现可直接复制进当前 SwiftUI/Vision OCR memo 摘要格式的小型 Swift/MIT 字段归一模块，继续复用项目内 `ImageTextRecognizer`。
+- TDD 红灯：新增 `testImageTextRecognizerNormalizesCommonFieldCandidateLabels`，并用临时探针确认旧行为输出 `名字=李雷 · 手机号=13800138000 · 电子邮箱=hello@example.com · 总计=128 元`。
+- 实现：`fieldCandidate` 输出前调用 `normalizedFieldKey`，把姓名/电话/邮箱/日期/金额/地址的常见中文和英文别名归一；原始 OCR 正文不改，方便人工校对。
+- 本地验证已通过字段归一绿色探针和 `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Utilities/ImageTextRecognizer.swift some/Utilities/KeyInfoExtractor.swift some/Utilities/SharedAttachmentStore.swift SomeTests/SomeTests.swift`。裸 `swiftc -parse` 因本机旧前端未启用 concurrency 误报现有 async 语法，已按项目既有命令重跑通过。

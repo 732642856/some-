@@ -302,3 +302,5 @@
 ## 下一步建议
 
 在安装完整 Xcode 的 Mac 上打开 `some.xcodeproj`，设置 Team 和 Bundle ID 后运行一次模拟器，再执行 Product > Archive。
+
+- 2026-06-25：阶段 150 OCR 字段候选常用字段归一本地验证：新增 `testImageTextRecognizerNormalizesCommonFieldCandidateLabels`，覆盖 `名字/手机号/电子邮箱/总计` 归一为 `姓名/电话/邮箱/金额`，并把既有 `合计` 字段候选预期归一为 `金额`。红灯探针输出 `red confirmed: 名字=李雷 · 手机号=13800138000 · 电子邮箱=hello@example.com · 总计=128 元`；实现后绿色探针输出 `OCR field normalization passed`，且 `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Utilities/ImageTextRecognizer.swift some/Utilities/KeyInfoExtractor.swift some/Utilities/SharedAttachmentStore.swift SomeTests/SomeTests.swift` 通过。完整 XCTest 仍以推送后的 GitHub Actions/Xcode 16.4 为准。

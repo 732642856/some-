@@ -5485,7 +5485,7 @@ final class SomeTests: XCTestCase {
             """
             图片文字：form.png
             置信度：平均 92% · 最低 88%
-            字段候选：姓名=李雷 · 日期=2026-06-24 · 合计=128 元
+            字段候选：姓名=李雷 · 日期=2026-06-24 · 金额=128 元
             关键信息候选：日期=2026-06-24 · 金额=128元
 
             识别文字：
@@ -5496,6 +5496,28 @@ final class SomeTests: XCTestCase {
             [附件: form.png](some-attachment://form.png)
             """
         )
+    }
+
+    func testImageTextRecognizerNormalizesCommonFieldCandidateLabels() {
+        let attachment = SharedAttachment(
+            id: "contact-receipt.png",
+            filename: "contact-receipt.png",
+            relativePath: "contact-receipt.png",
+            typeIdentifier: UTType.png.identifier,
+            byteCount: 256
+        )
+
+        let text = ImageTextRecognizer.memoText(
+            for: attachment,
+            recognizedLines: [
+                ImageTextRecognizer.RecognizedLine(text: "名字：李雷", confidence: 0.96),
+                ImageTextRecognizer.RecognizedLine(text: "手机号：13800138000", confidence: 0.94),
+                ImageTextRecognizer.RecognizedLine(text: "电子邮箱：hello@example.com", confidence: 0.92),
+                ImageTextRecognizer.RecognizedLine(text: "总计：128 元", confidence: 0.9)
+            ]
+        )
+
+        XCTAssertTrue(text?.contains("字段候选：姓名=李雷 · 电话=13800138000 · 邮箱=hello@example.com · 金额=128 元") == true)
     }
 
     func testImageTextRecognizerBuildsKeyInfoCandidatesForOCRLines() {

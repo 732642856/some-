@@ -170,3 +170,7 @@
 - App Group / 扩展：主 App、Share Extension 和 Widget 已共用 App Group 存储；新增测试覆盖从旧 Documents 迁移到共享目录时会复制 JSON、备份、SQLite、WAL 和 SHM，且不覆盖已存在的共享主 JSON。真机签名和扩展面板仍需完整 Xcode/Apple Team 验证。
 - CI 测试稳定性：GitHub iPhone 16 Pro 模拟器默认图片 renderer scale 可能不是 1，像素尺寸测试必须显式设置 `UIGraphicsImageRendererFormat.scale = 1` 或断言比例；视频/媒体测试应使用真实保存文件，不应手工构造不存在的 `SharedAttachment`。App Intents 元数据训练在 CI 测试阶段可能触发 `extract.actionsdata` 解析失败，当前通过独立 DerivedData、测试阶段 `clean test`、`SWIFT_EMIT_LOC_STRINGS=NO`、条件编译和 `EXCLUDED_SOURCE_FILE_NAMES` 暂避；测试阶段额外临时移除 ZIPFoundation package 引用并禁用 ZIP 完整备份测试，正式 build / TestFlight 仍验证 ZIPFoundation；CI 与 TestFlight workflow 的 checkout action 已统一到 v5。
 - 快速入口：`some://add?text=...`、`some://search?q=...` 和 `some://open?id=<记录UUID>` 已支持快捷指令/浏览器/其他 App 调起；`ContentView` 已使用显式 `NavigationStack` path 消费 `pendingOpenMemoID` 并打开单条记录详情。
+
+- 进入并完成阶段 150：OCR 字段候选常用字段归一。继续检查 OCR 字段候选链路时发现 `ImageTextRecognizer.fieldCandidate` 只把短字段左侧原样保存，真实截图/小票里的“名字、手机号、电子邮箱、总计”等会分散为不同字段，增加后续校对和工作日志汇总噪音。
+- 新增 `testImageTextRecognizerNormalizesCommonFieldCandidateLabels`，覆盖常见别名归一到 `姓名/电话/邮箱/金额`；同时把既有“合计”字段候选预期归一为“金额”。
+- `ImageTextRecognizer` 新增保守 `normalizedFieldKey`，只在 OCR 生成字段候选摘要时替换常见同义字段，原始识别正文仍完整保留。

@@ -329,3 +329,6 @@ P3 只参考：
 4. 电子衣橱 MVP：单品建档、分类、颜色/季节/场景、饰品/包包、搭配组合、穿着记录。
 5. 电子手帐与图片编辑 MVP：素材选择、页面画布、裁剪、滤镜、边框、文字、贴纸、基础排版。
 6. 再回补 flomo 缺口：MCP/API、AI 语音、AI 记忆档案；小组件、禅定模式和引用批注正文已在后续阶段落地，后续只需继续做真实使用验证和细节增强。
+
+
+2026-06-25 本轮实现决策：阶段 150 补 OCR 字段候选常用字段归一前，检索 `Swift OCR key value field label normalization GitHub MIT`、`iOS receipt OCR field label synonyms Swift GitHub MIT`、`Swift form OCR field extraction normalize labels GitHub MIT`、`GitHub Swift OCR field extraction normalized labels MIT`、`GitHub iOS receipt OCR parser field labels Swift MIT` 和 `GitHub Swift key value extraction OCR form fields license MIT`。结果仍以完整 OCR SDK、票据识别示例、服务端/AI parser 或商业方案为主，没有可直接复制进 some 当前 `ImageTextRecognizer`、中文 OCR memo 摘要和本地工作日志筛选的小型 Swift/MIT 模块。本轮不引入依赖，只在项目内为 `字段候选` 增加保守同义字段归一，原始识别文字仍完整保存。
