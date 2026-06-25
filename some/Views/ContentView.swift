@@ -61,7 +61,7 @@ struct ContentView: View {
             }
             .navigationTitle("some")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $store.searchText, prompt: "搜索内容、#标签、has:link 或 created:2026-06")
+            .searchable(text: $store.searchText, prompt: store.homeMode.searchPrompt)
             .onSubmit(of: .search) {
                 store.recordCurrentSearch()
             }

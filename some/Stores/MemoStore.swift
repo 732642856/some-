@@ -76,6 +76,21 @@ enum MemoHomeMode: String, CaseIterable, Identifiable {
         }
     }
 
+    var searchPrompt: String {
+        switch self {
+        case .timeline: return "搜索内容、#标签、has:link 或 created:2026-06"
+        case .zen: return "搜索专注记录、想法片段或 #标签"
+        case .assets: return "搜索素材、附件、OCR、网页或媒体"
+        case .scrapbook: return "搜索手帐、拼贴、贴纸或图片素材"
+        case .workLog: return "搜索工作日志、项目、日期或来源关键字"
+        case .wardrobe: return "搜索衣橱、穿搭、颜色、季节或场景"
+        case .ai: return "搜索 AI 整理、记忆档案或相关记录"
+        case .review: return "搜索旧想法、历史今天或回顾记录"
+        case .stats: return "搜索统计来源、标签或时间范围"
+        case .archive: return "搜索归档内容、#标签 或 has:attachment"
+        }
+    }
+
     var systemImage: String {
         switch self {
         case .timeline: return "square.and.pencil"

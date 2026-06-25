@@ -1308,3 +1308,11 @@
 - TDD：新增 `testHomeDashboardLayoutAdaptsForSmallScreensAndLargeText`，锁定普通字号最小卡片宽度、无障碍大字号最小宽度、说明行数，以及 326pt 内容宽度下普通字号可双列、大字号会退成单列。
 - 实现：新增 `MemoHomeDashboardLayout` 纯布局策略；`HomeModePicker` 读取 `dynamicTypeSize`，用 SwiftUI 原生 `LazyVGrid(.adaptive)` 按字号切换卡片最小宽度；`HomeModeCard` 在大字号下允许说明显示 3 行。
 - 本地验证：`git diff --check` 通过；`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Stores/MemoStore.swift some/Views/ContentView.swift SomeTests/SomeTests.swift` 通过。当前本机没有 iOS simulator SDK，完整 XCTest 和真实动态字体渲染继续以 GitHub Actions/Xcode 16 为准。
+
+## 2026-06-25T19:39:18+08:00
+
+- 进入并完成阶段 159：首页搜索与快速输入层级优化。继续检查首页节奏后发现系统搜索栏仍是全局固定提示，快速输入卡也直接从模式卡后进入大文本框，用户不容易理解“当前模式下该搜什么、该录什么”。
+- 开工前检索 `GitHub SwiftUI notes app search bar quick capture open source MIT`、`GitHub SwiftUI memo app quick capture search bar MIT`、`GitHub SwiftUI note taking app home screen quick input search MIT` 和 `GitHub SwiftUI SearchBar MIT`；结果多为 Web/Go/TS 笔记应用、通用 SearchBar 示例或教程，不适合复制进当前 SwiftUI 首页。
+- TDD：扩展 `testHomeModesHaveDashboardCopyAndGroups`，要求每个首页模式都有搜索提示，并锁定工作日志、衣橱两类强场景的 prompt 文案。
+- 实现：`MemoHomeMode` 新增 `searchPrompt`；`ContentView.searchable` 改为使用当前模式提示；`QuickCaptureView` 增加“快速记录”标题和“文字 / 图片 / 音频 / 链接”轻提示，让搜索、模式卡和输入卡层级更连贯。
+- 本地验证：`git diff --check` 通过；`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Stores/MemoStore.swift some/Views/ContentView.swift SomeTests/SomeTests.swift` 通过。把 `QuickCaptureView.swift` 纳入旧 Swift 5.5.2 parser 时会被文件既有 `if let pendingWebClip { ... }` 简写语法阻断，完整编译继续交给 GitHub Actions/Xcode 16。

@@ -787,10 +787,13 @@ final class SomeTests: XCTestCase {
         for mode in MemoHomeMode.allCases {
             XCTAssertFalse(mode.dashboardSubtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             XCTAssertFalse(mode.dashboardAccentLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            XCTAssertFalse(mode.searchPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
 
         XCTAssertEqual(MemoHomeMode.scrapbook.dashboardSubtitle, "把照片、摘录和贴纸排成电子手帐")
         XCTAssertEqual(MemoHomeMode.workLog.dashboardAccentLabel, "汇总")
+        XCTAssertEqual(MemoHomeMode.workLog.searchPrompt, "搜索工作日志、项目、日期或来源关键字")
+        XCTAssertEqual(MemoHomeMode.wardrobe.searchPrompt, "搜索衣橱、穿搭、颜色、季节或场景")
     }
 
     func testHomeDashboardLayoutAdaptsForSmallScreensAndLargeText() {

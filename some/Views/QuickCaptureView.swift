@@ -60,6 +60,20 @@ struct QuickCaptureView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: 10) {
+                Label("快速记录", systemImage: "sparkle.magnifyingglass")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(Color.primaryText)
+
+                Spacer(minLength: 8)
+
+                Text("文字 / 图片 / 音频 / 链接")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.tertiaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+
             ZStack(alignment: .topLeading) {
                 TextEditor(text: $text)
                     .focused($isFocused)
