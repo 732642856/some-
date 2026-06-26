@@ -156,6 +156,86 @@ enum MemoHomeDashboardLayout {
     }
 }
 
+enum FirstUseChecklistItem: String, CaseIterable, Identifiable {
+    case textMemo
+    case captureMaterial
+    case scrapbook
+    case workLog
+    case wardrobe
+    case backup
+
+    var id: String { rawValue }
+
+    static var previewItems: [FirstUseChecklistItem] {
+        Array(allCases.prefix(3))
+    }
+
+    static func nextItem(after item: FirstUseChecklistItem?) -> FirstUseChecklistItem {
+        guard let item = item,
+              let index = allCases.firstIndex(of: item) else {
+            return allCases[0]
+        }
+
+        let nextIndex = allCases.index(after: index)
+        if nextIndex == allCases.endIndex {
+            return allCases[0]
+        }
+        return allCases[nextIndex]
+    }
+
+    var title: String {
+        switch self {
+        case .textMemo: return "写下第一条"
+        case .captureMaterial: return "导入素材"
+        case .scrapbook: return "做一页手帐"
+        case .workLog: return "生成工作日志"
+        case .wardrobe: return "整理衣橱"
+        case .backup: return "导出备份"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .textMemo: return "先保存一条文字随记"
+        case .captureMaterial: return "试一次图片、录音或网页摘录"
+        case .scrapbook: return "把素材排成可编辑页面"
+        case .workLog: return "勾选记录生成汇报稿"
+        case .wardrobe: return "新增单品或穿搭记录"
+        case .backup: return "设置里导出 Markdown 或完整备份"
+        }
+    }
+
+    var destination: MemoHomeMode? {
+        switch self {
+        case .textMemo: return .timeline
+        case .captureMaterial: return .assets
+        case .scrapbook: return .scrapbook
+        case .workLog: return .workLog
+        case .wardrobe: return .wardrobe
+        case .backup: return nil
+        }
+    }
+
+    var opensSettings: Bool {
+        self == .backup
+    }
+
+    var systemImage: String {
+        switch self {
+        case .textMemo: return "square.and.pencil"
+        case .captureMaterial: return "photo.on.rectangle"
+        case .scrapbook: return "rectangle.stack"
+        case .workLog: return "doc.text"
+        case .wardrobe: return "tshirt"
+        case .backup: return "externaldrive"
+        }
+    }
+
+    var accessibilitySummary: String {
+        "\(title)，\(subtitle)"
+    }
+}
+
 enum WorkspaceMetricGridLayout {
     static let gridSpacing: CGFloat = 8
 

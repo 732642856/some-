@@ -17,6 +17,9 @@ struct ContentView: View {
                     LazyVStack(alignment: .leading, spacing: 16) {
                         HeaderView()
                         HomeModePicker()
+                        FirstUseChecklistCard {
+                            isShowingSettings = true
+                        }
                         SearchQuickActionsView()
                         WorkspaceModeHeader(mode: store.homeMode)
 
@@ -146,6 +149,135 @@ private struct WorkspaceModeHeader: View {
             .padding(.vertical, 2)
             .accessibilityElement(children: .combine)
         }
+    }
+}
+
+private struct FirstUseChecklistCard: View {
+    @EnvironmentObject private var store: MemoStore
+    @State private var activeItem: FirstUseChecklistItem?
+    let openSettings: () -> Void
+
+    private var highlightedItem: FirstUseChecklistItem {
+        activeItem ?? .textMemo
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "sparkle.magnifyingglass")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(Color.accentGreen)
+                    .frame(width: 36, height: 36)
+                    .background(Color.greenTint)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("首用路线")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(Color.primaryText)
+
+                    Text("先跑通记录、素材、手帐、日志、衣橱和备份")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.secondaryText)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 8)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(FirstUseChecklistItem.previewItems) { item in
+                    FirstUseChecklistRow(
+                        item: item,
+                        isHighlighted: item == highlightedItem
+                    )
+                }
+            }
+
+            Button {
+                advance()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: highlightedItem.systemImage)
+                    Text("继续验收：\(highlightedItem.title)")
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+                    Spacer(minLength: 4)
+                    Image(systemName: "arrow.right")
+                }
+                .font(.footnote.weight(.bold))
+                .foregroundStyle(Color.white)
+                .padding(.horizontal, 12)
+                .frame(minHeight: 40)
+                .background(Color.accentGreen)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("继续首用验收")
+            .accessibilityHint(highlightedItem.accessibilitySummary)
+        }
+        .padding(12)
+        .background(Color.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.border, lineWidth: 1)
+        )
+    }
+
+    private func advance() {
+        let item = highlightedItem
+        activeItem = FirstUseChecklistItem.nextItem(after: item)
+
+        if item.opensSettings {
+            openSettings()
+            return
+        }
+
+        guard let destination = item.destination else {
+            return
+        }
+
+        store.homeMode = destination
+        if destination == .review, store.reviewMemo == nil {
+            store.pickRandomReviewMemo()
+        }
+        store.searchText = ""
+    }
+}
+
+private struct FirstUseChecklistRow: View {
+    let item: FirstUseChecklistItem
+    let isHighlighted: Bool
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Image(systemName: item.systemImage)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(isHighlighted ? Color.white : Color.accentGreen)
+                .frame(width: 26, height: 26)
+                .background(isHighlighted ? Color.accentGreen : Color.greenTint)
+                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(Color.primaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+
+                Text(item.subtitle)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(Color.secondaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(item.accessibilitySummary)
     }
 }
 

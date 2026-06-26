@@ -813,6 +813,28 @@ final class SomeTests: XCTestCase {
         XCTAssertFalse(MemoHomeMode.ai.showsWorkspaceHeader)
     }
 
+    func testFirstUseChecklistGuidesCorePersonalWorkflow() {
+        let items = FirstUseChecklistItem.allCases
+
+        XCTAssertEqual(items.count, 6)
+        XCTAssertEqual(items.map(\.title), ["写下第一条", "导入素材", "做一页手帐", "生成工作日志", "整理衣橱", "导出备份"])
+        XCTAssertEqual(items.dropLast().compactMap(\.destination), [.timeline, .assets, .scrapbook, .workLog, .wardrobe])
+        XCTAssertNil(FirstUseChecklistItem.backup.destination)
+        XCTAssertTrue(FirstUseChecklistItem.backup.opensSettings)
+
+        for item in items {
+            XCTAssertFalse(item.subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            XCTAssertFalse(item.systemImage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            XCTAssertFalse(item.accessibilitySummary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+
+        XCTAssertEqual(FirstUseChecklistItem.previewItems.map(\.title), ["写下第一条", "导入素材", "做一页手帐"])
+        XCTAssertEqual(FirstUseChecklistItem.nextItem(after: nil), .textMemo)
+        XCTAssertEqual(FirstUseChecklistItem.nextItem(after: .textMemo), .captureMaterial)
+        XCTAssertEqual(FirstUseChecklistItem.nextItem(after: .backup), .textMemo)
+        XCTAssertEqual(FirstUseChecklistItem.backup.subtitle, "设置里导出 Markdown 或完整备份")
+    }
+
     func testHomeDashboardLayoutAdaptsForSmallScreensAndLargeText() {
         XCTAssertEqual(MemoHomeDashboardLayout.minimumCardWidth(forDynamicTypeScale: 1.0), 156)
         XCTAssertEqual(MemoHomeDashboardLayout.minimumCardWidth(forDynamicTypeScale: 1.3), 196)

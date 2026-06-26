@@ -1357,3 +1357,11 @@
 - 新增 `docs/local-install-and-first-use.md`，明确 some 已经是可本地跑起来的个人自用版本，最快先跑模拟器；真机需要用户自己的 Team、唯一 Bundle ID 和同一个 App Group；TestFlight/App Store 才需要证书、profiles 和 App Store Connect 密钥。
 - 新增 `scripts/check-local-readiness.sh`，只读检查工程文件、shared scheme、App Group entitlements、CI workflow、Git 状态、Xcode 版本和 iPhone Simulator SDK，帮助以后直接判断卡点在哪里。
 - README 更新“当前状态”和“打开工程”路径，先指向本地首用文档和 readiness 脚本。
+
+## 2026-06-26T11:52:26+08:00
+
+- 进入并完成阶段 165：首页首用验收入口。继续主动推进时先恢复 Git 状态、阶段计划、首页源码和碎片文件扫描，确认工作树干净、远端同步，未发现临时/备份/冲突碎片。
+- 开工前检索 `GitHub SwiftUI onboarding checklist first run guide MIT`、`GitHub SwiftUI first launch checklist onboarding card open source MIT`、`GitHub SwiftUI empty state getting started checklist app MIT` 和 `GitHub SwiftUI notes app onboarding checklist open source MIT`；候选多为完整 onboarding 或空状态组件，不理解 some 的多工作区首用验收路径，本轮不引入依赖。
+- TDD：新增 `testFirstUseChecklistGuidesCorePersonalWorkflow`，锁定六个首用步骤、目标工作区、设置页备份入口、预览前三项和 next-item 循环。
+- 实现：新增 `FirstUseChecklistItem` 纯元数据；`ContentView` 在首页模式卡后插入“首用路线”卡片，显示前三个步骤和继续验收按钮，按钮切换到记录、素材、手帐、日志、衣橱，备份步骤打开设置页。
+- 本地验证：`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Stores/MemoStore.swift some/Views/ContentView.swift SomeTests/SomeTests.swift`、`git diff --check`、plist lint、scheme XML 解析和 workflow YAML 解析通过。完整 XCTest 和真实首页渲染仍以 GitHub Actions/Xcode 16 为准。
