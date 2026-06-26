@@ -154,82 +154,91 @@ private struct WorkspaceModeHeader: View {
 
 private struct FirstUseChecklistCard: View {
     @EnvironmentObject private var store: MemoStore
-    @State private var activeItem: FirstUseChecklistItem?
     let openSettings: () -> Void
 
-    private var highlightedItem: FirstUseChecklistItem {
-        activeItem ?? .textMemo
+    private var progress: FirstUseChecklistProgress {
+        store.firstUseChecklistProgress
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: "sparkle.magnifyingglass")
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(Color.accentGreen)
-                    .frame(width: 36, height: 36)
-                    .background(Color.greenTint)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        if progress.shouldShowCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "sparkle.magnifyingglass")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(Color.accentGreen)
+                        .frame(width: 36, height: 36)
+                        .background(Color.greenTint)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("首用路线")
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(Color.primaryText)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(progress.showsExpandedPreview ? "首用路线" : "继续收尾")
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(Color.primaryText)
 
-                    Text("先跑通记录、素材、手帐、日志、衣橱和备份")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color.secondaryText)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
+                        Text(progress.subtitle)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.secondaryText)
+                            .lineLimit(progress.showsExpandedPreview ? 2 : 3)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Text(progress.progressLabel)
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(Color.accentGreen)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                        .background(Color.greenTint)
+                        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                 }
 
-                Spacer(minLength: 8)
-            }
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(progress.visibleItems) { item in
+                        FirstUseChecklistRow(
+                            item: item,
+                            isCompleted: progress.completedItems.contains(item),
+                            isHighlighted: item == progress.nextPendingItem
+                        )
+                    }
+                }
 
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(FirstUseChecklistItem.previewItems) { item in
-                    FirstUseChecklistRow(
-                        item: item,
-                        isHighlighted: item == highlightedItem
-                    )
+                if let highlightedItem = progress.nextPendingItem {
+                    Button {
+                        advance(to: highlightedItem)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: highlightedItem.systemImage)
+                            Text(progress.buttonTitle)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.82)
+                            Spacer(minLength: 4)
+                            Image(systemName: "arrow.right")
+                        }
+                        .font(.footnote.weight(.bold))
+                        .foregroundStyle(Color.white)
+                        .padding(.horizontal, 12)
+                        .frame(minHeight: 40)
+                        .background(Color.accentGreen)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("继续首用验收")
+                    .accessibilityHint(highlightedItem.accessibilitySummary)
                 }
             }
-
-            Button {
-                advance()
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: highlightedItem.systemImage)
-                    Text("继续验收：\(highlightedItem.title)")
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
-                    Spacer(minLength: 4)
-                    Image(systemName: "arrow.right")
-                }
-                .font(.footnote.weight(.bold))
-                .foregroundStyle(Color.white)
-                .padding(.horizontal, 12)
-                .frame(minHeight: 40)
-                .background(Color.accentGreen)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("继续首用验收")
-            .accessibilityHint(highlightedItem.accessibilitySummary)
+            .padding(12)
+            .background(Color.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(Color.border, lineWidth: 1)
+            )
         }
-        .padding(12)
-        .background(Color.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Color.border, lineWidth: 1)
-        )
     }
 
-    private func advance() {
-        let item = highlightedItem
-        activeItem = FirstUseChecklistItem.nextItem(after: item)
-
+    private func advance(to item: FirstUseChecklistItem) {
         if item.opensSettings {
             openSettings()
             return
@@ -249,11 +258,12 @@ private struct FirstUseChecklistCard: View {
 
 private struct FirstUseChecklistRow: View {
     let item: FirstUseChecklistItem
+    let isCompleted: Bool
     let isHighlighted: Bool
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
-            Image(systemName: item.systemImage)
+            Image(systemName: isCompleted ? "checkmark" : item.systemImage)
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(isHighlighted ? Color.white : Color.accentGreen)
                 .frame(width: 26, height: 26)
@@ -270,12 +280,13 @@ private struct FirstUseChecklistRow: View {
                 Text(item.subtitle)
                     .font(.caption.weight(.medium))
                     .foregroundStyle(Color.secondaryText)
-                    .lineLimit(1)
+                    .lineLimit(isHighlighted ? 2 : 1)
                     .minimumScaleFactor(0.82)
             }
 
             Spacer(minLength: 0)
         }
+        .opacity(isCompleted && !isHighlighted ? 0.72 : 1)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(item.accessibilitySummary)
     }

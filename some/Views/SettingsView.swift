@@ -36,6 +36,9 @@ struct SettingsView: View {
                                     fileExtension: "md",
                                     content: store.exportMarkdown()
                                 )
+                                if exportedMarkdown != nil {
+                                    store.markFirstUseBackupExported()
+                                }
                             } label: {
                                 HStack {
                                     Label("导出 Markdown", systemImage: "square.and.arrow.up")
@@ -68,7 +71,7 @@ struct SettingsView: View {
                                 .font(.footnote)
                                 .foregroundStyle(Color.secondaryText)
 
-                            if let dataStatusText {
+                            if let dataStatusText = dataStatusText {
                                 Text(dataStatusText)
                                     .font(.footnote)
                                     .foregroundStyle(Color.secondaryText)
@@ -380,6 +383,7 @@ struct SettingsView: View {
         do {
             exportedBackup = ExportedDocument(url: try MemoBackupPackage.export(from: store))
             dataStatusText = nil
+            store.markFirstUseBackupExported()
         } catch {
             dataStatusText = "导出失败：\(error.localizedDescription)"
         }

@@ -1365,3 +1365,11 @@
 - TDD：新增 `testFirstUseChecklistGuidesCorePersonalWorkflow`，锁定六个首用步骤、目标工作区、设置页备份入口、预览前三项和 next-item 循环。
 - 实现：新增 `FirstUseChecklistItem` 纯元数据；`ContentView` 在首页模式卡后插入“首用路线”卡片，显示前三个步骤和继续验收按钮，按钮切换到记录、素材、手帐、日志、衣橱，备份步骤打开设置页。
 - 本地验证：`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Stores/MemoStore.swift some/Views/ContentView.swift SomeTests/SomeTests.swift`、`git diff --check`、plist lint、scheme XML 解析和 workflow YAML 解析通过。完整 XCTest 和真实首页渲染仍以 GitHub Actions/Xcode 16 为准。
+
+## 2026-06-26T19:04:22+08:00
+
+- 进入并完成阶段 166：首页首用进度联动收口。继续检查首页后发现阶段 165 的“首用路线”仍是静态卡片：用户已经写过记录、做过手帐或导出过备份后，首页仍长期占住首屏，既不反映真实进度，也会让回访用户觉得拥挤。
+- 开工前检索 `GitHub SwiftUI onboarding checklist progress card MIT`、`GitHub SwiftUI getting started checklist app progress MIT`、`GitHub SwiftUI first run checklist progress card notes app`、`GitHub SwiftUI onboarding stepper progress view MIT`；结果多为通用 onboarding flow、进度 stepper 或教程示例，不理解 some 当前多工作区 + 本地导出备份的首用闭环，不适合直接复制。
+- TDD：新增 `testFirstUseChecklistProgressReflectsRealUsageAndCollapsesAfterStarting` 和 `testFirstUseChecklistProgressPointsToBackupWhenOnlyExportRemains`，锁定首页首用进度会按真实 memo / asset / 导出状态变化、开始使用后从三项预览收缩为两项收尾、仅剩备份时高亮设置导出、全部完成后卡片消失。
+- 实现：新增 `FirstUseChecklistProgress` 纯状态模型；`MemoStore` 基于现有 memo 和 `MemoAsset` 自动判定文字、素材、手帐、工作日志和衣橱步骤，并用 `UserDefaults` 记录导出 Markdown 或完整备份后已完成备份；`ContentView` 的“首用路线”卡片改为显示实时完成数、当前收尾步骤与已完成样式，不再靠临时本地状态轮播。
+- 本地验证：`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -parse -Xfrontend -enable-experimental-concurrency some/Stores/MemoStore.swift some/Views/ContentView.swift some/Views/SettingsView.swift SomeTests/SomeTests.swift`、`git diff --check`、`plutil -lint some/Info.plist SomeShareExtension/Info.plist SomeWidget/Info.plist some.xcodeproj/project.pbxproj`、`some.xcscheme` XML 解析和 workflow YAML 解析通过。额外确认当前本机 `xcodebuild` 仍是 Xcode 13.2.1，缺 `iphonesimulator` SDK，完整 XCTest 与真实首页渲染继续以 GitHub Actions/Xcode 16 为准。

@@ -236,6 +236,83 @@ enum FirstUseChecklistItem: String, CaseIterable, Identifiable {
     }
 }
 
+struct FirstUseChecklistProgress: Equatable {
+    static let backupExportedDefaultsKey = "some.firstUseChecklist.backupExported"
+
+    let completedItems: Set<FirstUseChecklistItem>
+
+    var completedCount: Int {
+        completedItems.count
+    }
+
+    var totalCount: Int {
+        FirstUseChecklistItem.allCases.count
+    }
+
+    var nextPendingItem: FirstUseChecklistItem? {
+        FirstUseChecklistItem.allCases.first { !completedItems.contains($0) }
+    }
+
+    var showsExpandedPreview: Bool {
+        completedCount == 0
+    }
+
+    var shouldShowCard: Bool {
+        completedCount < totalCount
+    }
+
+    var visibleItems: [FirstUseChecklistItem] {
+        guard shouldShowCard else {
+            return []
+        }
+
+        if showsExpandedPreview {
+            return FirstUseChecklistItem.previewItems
+        }
+
+        guard let nextPendingItem = nextPendingItem,
+              let index = FirstUseChecklistItem.allCases.firstIndex(of: nextPendingItem) else {
+            return []
+        }
+
+        let start = max(index - 1, 0)
+        let end = min(start + 1, FirstUseChecklistItem.allCases.count - 1)
+        return Array(FirstUseChecklistItem.allCases[start...end])
+    }
+
+    var progressLabel: String {
+        "已完成 \(completedCount)/\(totalCount)"
+    }
+
+    var subtitle: String {
+        guard let nextPendingItem = nextPendingItem else {
+            return "首用流程已经跑通，可以直接进入日常记录。"
+        }
+
+        if showsExpandedPreview {
+            return "先跑通记录、素材、手帐、日志、衣橱和备份"
+        }
+
+        if nextPendingItem == .backup {
+            return "核心工作区已经就位，最后导出一次备份。"
+        }
+
+        return "已完成 \(completedCount)/\(totalCount)，\(nextPendingItem.subtitle)"
+    }
+
+    var buttonTitle: String {
+        guard let nextPendingItem = nextPendingItem else {
+            return "已完成首用验收"
+        }
+
+        if nextPendingItem.opensSettings {
+            return "去导出备份"
+        }
+
+        return "继续验收：\(nextPendingItem.title)"
+    }
+}
+
 enum WorkspaceMetricGridLayout {
     static let gridSpacing: CGFloat = 8
 
@@ -430,6 +507,7 @@ final class MemoStore: ObservableObject {
     @Published private(set) var reviewMemo: Memo?
     @Published private(set) var revisionsByMemoID: [UUID: [MemoRevision]] = [:]
     @Published private(set) var assets: [MemoAsset] = []
+    @Published private(set) var hasExportedBackup = false
     @Published private(set) var recentSearches: [String] = []
     @Published private(set) var savedSearches: [String] = []
 
@@ -443,6 +521,23 @@ final class MemoStore: ObservableObject {
     private static let savedSearchesKey = "some.search.saved"
     private static let maxRecentSearches = 8
     private static let maxSavedSearches = 16
+    private static let firstUseCaptureAssetKinds: Set<MemoAssetKind> = [
+        .link,
+        .attachment,
+        .webClip,
+        .clipFragment,
+        .imageEdit,
+        .audio,
+        .video,
+        .screenshot
+    ]
+    private static let firstUseWardrobeAssetKinds: Set<MemoAssetKind> = [
+        .wardrobeItem,
+        .outfit,
+        .wearLog,
+        .laundryLog,
+        .packingList
+    ]
 
     init(
         filename: String = "some-memos.json",
@@ -469,6 +564,7 @@ final class MemoStore: ObservableObject {
         }
 
         loadSearchCollections()
+        hasExportedBackup = defaults.bool(forKey: FirstUseChecklistProgress.backupExportedDefaultsKey)
         load()
         refreshWidgetSnapshot()
     }
@@ -480,6 +576,10 @@ final class MemoStore: ObservableObject {
     var archivedMemos: [Memo] {
         filteredMemos(includeArchived: true)
             .filter(\.isArchived)
+    }
+
+    var firstUseChecklistProgress: FirstUseChecklistProgress {
+        FirstUseChecklistProgress(completedItems: firstUseChecklistCompletedItems())
     }
 
     @discardableResult
@@ -608,6 +708,12 @@ final class MemoStore: ObservableObject {
         Self.reviewBacklogMemos(from: activeMemos)
     }
 
+    func markFirstUseBackupExported() {
+        guard !hasExportedBackup else { return }
+        hasExportedBackup = true
+        defaults.set(true, forKey: FirstUseChecklistProgress.backupExportedDefaultsKey)
+    }
+
     @discardableResult
     func addMemo(text: String) -> Memo? {
         guard storageError == nil else {
@@ -628,6 +734,33 @@ final class MemoStore: ObservableObject {
             return nil
         }
         return memo
+    }
+
+    private func firstUseChecklistCompletedItems() -> Set<FirstUseChecklistItem> {
+        var completed = Set<FirstUseChecklistItem>()
+
+        if memos.contains(where: { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) {
+            completed.insert(.textMemo)
+        }
+
+        let assetKinds = Set(assets.map(\.kind))
+        if !assetKinds.isDisjoint(with: Self.firstUseCaptureAssetKinds) {
+            completed.insert(.captureMaterial)
+        }
+        if assetKinds.contains(.scrapbookPage) {
+            completed.insert(.scrapbook)
+        }
+        if assetKinds.contains(.workLog) {
+            completed.insert(.workLog)
+        }
+        if !assetKinds.isDisjoint(with: Self.firstUseWardrobeAssetKinds) {
+            completed.insert(.wardrobe)
+        }
+        if hasExportedBackup {
+            completed.insert(.backup)
+        }
+
+        return completed
     }
 
     @discardableResult

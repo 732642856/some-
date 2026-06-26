@@ -835,6 +835,66 @@ final class SomeTests: XCTestCase {
         XCTAssertEqual(FirstUseChecklistItem.backup.subtitle, "设置里导出 Markdown 或完整备份")
     }
 
+    func testFirstUseChecklistProgressReflectsRealUsageAndCollapsesAfterStarting() {
+        let defaultsSuite = "test-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: defaultsSuite)!
+        defer {
+            defaults.removePersistentDomain(forName: defaultsSuite)
+        }
+
+        let store = MemoStore(
+            filename: "test-\(UUID().uuidString).json",
+            defaults: defaults
+        )
+
+        let initial = store.firstUseChecklistProgress
+        XCTAssertEqual(initial.completedItems, [])
+        XCTAssertEqual(initial.nextPendingItem, .textMemo)
+        XCTAssertEqual(initial.visibleItems, [.textMemo, .captureMaterial, .scrapbook])
+        XCTAssertTrue(initial.showsExpandedPreview)
+        XCTAssertTrue(initial.shouldShowCard)
+        XCTAssertEqual(initial.buttonTitle, "继续验收：写下第一条")
+
+        store.addMemo(text: "今天先记一句")
+
+        let afterFirstMemo = store.firstUseChecklistProgress
+        XCTAssertEqual(afterFirstMemo.completedItems, Set([.textMemo]))
+        XCTAssertEqual(afterFirstMemo.nextPendingItem, .captureMaterial)
+        XCTAssertEqual(afterFirstMemo.visibleItems, [.textMemo, .captureMaterial])
+        XCTAssertFalse(afterFirstMemo.showsExpandedPreview)
+        XCTAssertEqual(afterFirstMemo.buttonTitle, "继续验收：导入素材")
+
+        store.addWebClip(
+            url: URL(string: "https://example.com/note")!,
+            title: "网页摘录",
+            summary: "首用素材"
+        )
+        store.addMemo(text: "手帐页面：六月手帐\n模板：日记")
+        store.addMemo(text: "工作日志：今日记录\n项目：some")
+        store.addMemo(text: "衣橱单品：白衬衫\n分类：上装")
+        store.markFirstUseBackupExported()
+
+        let finished = store.firstUseChecklistProgress
+        XCTAssertEqual(finished.completedItems, Set(FirstUseChecklistItem.allCases))
+        XCTAssertEqual(finished.completedCount, FirstUseChecklistItem.allCases.count)
+        XCTAssertNil(finished.nextPendingItem)
+        XCTAssertFalse(finished.shouldShowCard)
+    }
+
+    func testFirstUseChecklistProgressPointsToBackupWhenOnlyExportRemains() {
+        let progress = FirstUseChecklistProgress(
+            completedItems: Set(
+                FirstUseChecklistItem.allCases.filter { $0 != .backup }
+            )
+        )
+
+        XCTAssertEqual(progress.nextPendingItem, .backup)
+        XCTAssertEqual(progress.visibleItems, [.wardrobe, .backup])
+        XCTAssertEqual(progress.buttonTitle, "去导出备份")
+        XCTAssertFalse(progress.showsExpandedPreview)
+        XCTAssertTrue(progress.shouldShowCard)
+    }
+
     func testHomeDashboardLayoutAdaptsForSmallScreensAndLargeText() {
         XCTAssertEqual(MemoHomeDashboardLayout.minimumCardWidth(forDynamicTypeScale: 1.0), 156)
         XCTAssertEqual(MemoHomeDashboardLayout.minimumCardWidth(forDynamicTypeScale: 1.3), 196)
